@@ -1,0 +1,5 @@
+{
+  "apis": {
+    "btctestnet": "https://blockstream.info/testnet/api"
+  }
+}
