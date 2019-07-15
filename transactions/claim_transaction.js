@@ -4,14 +4,14 @@ const {networks} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
 const estimateTxWeight = require('./estimate_tx_weight');
-const {names} = require('./conf/bitcoinjs-lib');
+const {names} = require('./../conf/bitcoinjs-lib');
 const witnessesForClaim = require('./witnesses_for_claim');
 
 const {ceil} = Math;
-const dustRatio = 1 / 3;
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
 const minSequenceValue = 0;
 const {toOutputScript} = address;
+const txVersion = 2;
 const vRatio = 4;
 
 /** Make a claim transaction for a swap
@@ -42,7 +42,7 @@ module.exports = args => {
     throw new Error('ExpectedBlockHeightForClaimTransaction');
   }
 
-  if (!args.fee_tokens_per_vbyte) {
+  if (args.fee_tokens_per_vbyte === undefined) {
     throw new Error('ExpectedFeeTokensPerVbyte');
   }
 
@@ -99,6 +99,9 @@ module.exports = args => {
   // Set tx locktime
   tx.locktime = bip65Encode({blocks: args.block_height});
 
+  // Set tx version
+  tx.version = txVersion;
+
   // Estimate final weight
   try {
     const {weight} = estimateTxWeight({
@@ -112,17 +115,12 @@ module.exports = args => {
     throw err;
   }
 
-  const fee = args.fee_tokens_per_vbyte * ceil(weightEstimate / vRatio);
-
-  // Exit early when the ratio of the amount spent on fees would be too high
-  if (fee > args.tokens || fee / (args.tokens - fee) > dustRatio) {
-    throw new Error('OutputAmountFallsBelowDustThreshold');
-  }
+  const fee = tokensPerVirtualByte * ceil(weightEstimate / vRatio);
 
   const [out] = tx.outs;
 
   // Reduce the sweep output by the fee amount
-  out.value -= fee;
+  out.value = args.tokens - ceil(fee);
 
   // Set signatures
   try {

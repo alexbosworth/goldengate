@@ -1,5 +1,6 @@
 {
   "sockets": {
+    "btc": "swap.lightning.today:11009",
     "btctestnet": "test.swap.lightning.today:11009"
   }
 }

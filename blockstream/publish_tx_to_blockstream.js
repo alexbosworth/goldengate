@@ -6,6 +6,7 @@ const {apis} = require('./conf/blockstream-info');
 
   {
     network: <Network Name String>
+    request: <Request Function>
     transaction: <Raw Transaction Hex String>
   }
 
@@ -14,9 +15,13 @@ const {apis} = require('./conf/blockstream-info');
     transaction_id: <Transaction Id Hex String>
   }
 */
-module.exports = ({network, transaction}, cbk) => {
+module.exports = ({network, request, transaction}, cbk) => {
   if (!network || !apis[network]) {
     return cbk([400, 'ExpectedKnownNetworkNameToSendTransactionToMempool']);
+  }
+
+  if (!request) {
+    return cbk([400, 'ExpectedRequestToPublishTransaction']);
   }
 
   if (!transaction) {
@@ -30,7 +35,7 @@ module.exports = ({network, transaction}, cbk) => {
   },
   (err, r, transactionId) => {
     if (!!err) {
-      return cbk([503, 'UnexpectedErrorPostingTransaction', err]);
+      return cbk([503, 'UnexpectedErrorPostingTransaction', {err}]);
     }
 
     if (!r || r.statusCode !== 200) {

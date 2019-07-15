@@ -1,7 +1,7 @@
 const {address} = require('bitcoinjs-lib');
 const {networks} = require('bitcoinjs-lib');
 
-const {names} = require('./conf/bitcoinjs-lib');
+const {names} = require('./../conf/bitcoinjs-lib');
 const p2wshOutputScript = require('./p2wsh_output_script');
 
 const {fromOutputScript} = address;

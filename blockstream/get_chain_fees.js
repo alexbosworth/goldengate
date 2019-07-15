@@ -1,5 +1,3 @@
-const request = require('request');
-
 const {apis} = require('./conf/blockstream-info');
 
 const normalFeeTarget = 6;
@@ -8,18 +6,23 @@ const normalFeeTarget = 6;
 
   {
     network: <Network Name String>
+    request: <Request Function>
   }
 
   @returns via cbk
   {
     fees: {
-      6: <Confirmation Fee Tokens Per Virtual Byte Number>
+      'confirmation number': <Confirmation Fee Tokens Per Virtual Byte Number>
     }
   }
 */
-module.exports = ({network}, cbk) => {
+module.exports = ({network, request}, cbk) => {
   if (!network || !apis[network]) {
     return cbk([400, 'ExpectedKnownNetworkToGetFeeEstimates']);
+  }
+
+  if (!request) {
+    return cbk([400, 'ExpectedRequestToGetFeeEstimates']);
   }
 
   return request({

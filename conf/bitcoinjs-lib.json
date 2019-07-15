@@ -1,5 +1,6 @@
 {
   "names": {
+    "btc": "mainnet",
     "btctestnet": "testnet"
   }
 }

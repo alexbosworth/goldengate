@@ -5,7 +5,7 @@ const decBase = 10;
 /** Get swap quote from swap service
 
   {
-    socket: <Service Socket String>
+    service: <Swap Service Object>
   }
 
   @returns via cbk
@@ -15,18 +15,16 @@ const decBase = 10;
     deposit: <Deposit Tokens Number>
     destination: <Destination Public Key Hex String>
     fee_rate: <Fee Rate in Parts Per Million Number>
-    max_swap: <Maximum Swap Tokens Number>
-    min_swap: <Minimum Swap Tokens Number>
+    max_tokens: <Maximum Swap Tokens Number>
+    min_tokens: <Minimum Swap Tokens Number>
   }
 */
-module.exports = ({socket}, cbk) => {
-  if (!socket) {
-    return cbk([400, 'ExpectedSocketToGetSwapQuote']);
+module.exports = ({service}, cbk) => {
+  if (!service || !service.loopOutQuote) {
+    return cbk([400, 'ExpectedServiceToGetSwapQuote']);
   }
 
-  const {grpc} = getGrpcInterface({socket});
-
-  return grpc.loopOutQuote({}, (err, res) => {
+  return service.loopOutQuote({}, (err, res) => {
     if (!!err) {
       return cbk([503, 'UnexpectedErrorGettingSwapQuote', err]);
     }
@@ -47,6 +45,10 @@ module.exports = ({socket}, cbk) => {
       return cbk([503, 'ExpectedMinSwapAmountInSwapQuoteResponse']);
     }
 
+    if (!res.prepay_amt) {
+      return cbk([503, 'ExpectedPrepayAmountInSwapQuoteResponse']);
+    }
+
     if (!res.swap_fee_base) {
       return cbk([503, 'ExpectedSwapFeeBaseRateInSwapQuoteResponse']);
     }
@@ -65,8 +67,8 @@ module.exports = ({socket}, cbk) => {
       deposit: parseInt(res.prepay_amt, decBase),
       destination: res.swap_payment_dest,
       fee_rate: parseInt(res.swap_fee_rate, decBase),
-      max_swap: parseInt(res.max_swap_amount, decBase),
-      min_swap: parseInt(res.min_swap_amount, decBase),
+      max_tokens: parseInt(res.max_swap_amount, decBase),
+      min_tokens: parseInt(res.min_swap_amount, decBase),
     });
   });
 };

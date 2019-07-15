@@ -1,13 +1,12 @@
-const request = require('request');
-
 const {apis} = require('./conf/blockstream-info');
 
 const decBase = 10;
 
-/** Get chain tip height
+/** Get chain tip height from blockstream
 
   {
     network: <Network Name String>
+    request: <Request Function>
   }
 
   @returns via cbk
@@ -15,13 +14,17 @@ const decBase = 10;
     height: <Chain Tip Height Number>
   }
 */
-module.exports = ({network}, cbk) => {
+module.exports = ({network, request}, cbk) => {
   if (!network || !apis[network]) {
     return cbk([400, 'ExpectedKnownNetworkNameToGetChainTipHeight']);
   }
 
+  if (!request) {
+    return cbk([400, 'ExpectedRequestFunctionToGetChainTipHeight']);
+  }
+
   return request({
-    url: `https://blockstream.info/testnet/api/blocks/tip/height`,
+    url: `${apis[network]}/blocks/tip/height`,
   },
   (err, r, height) => {
     if (!!err) {
