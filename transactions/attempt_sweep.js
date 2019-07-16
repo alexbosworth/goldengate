@@ -49,12 +49,12 @@ module.exports = (args, cbk) => {
         return cbk([400, 'ExpectedDeadlineHeightWhenAttemptingHtlcSweep']);
       }
 
-      if (!args.max_fee_multiplier) {
-        return cbk([400, 'ExpectedMaxFeeMultiplierForHtlcSweepAttempt']);
+      if (!args.lnd && !args.request) {
+        return cbk([400, 'ExpectedEitherLndOrRequestToAttemptSweep']);
       }
 
-      if (!args.start_height) {
-        return cbk([400, 'ExpectedSweepingStartHeightToAttemptNewSweep']);
+      if (!args.max_fee_multiplier) {
+        return cbk([400, 'ExpectedMaxFeeMultiplierForHtlcSweepAttempt']);
       }
 
       if (!args.network) {
@@ -69,12 +69,12 @@ module.exports = (args, cbk) => {
         return cbk([400, 'ExpectedRedeemScriptToExecuteUtxoSweepAttempt']);
       }
 
-      if (!args.request && !args.lnd) {
-        return cbk([400, 'ExpectedRequestOrWalletLndConnection']);
-      }
-
       if (!args.secret) {
         return cbk([400, 'ExpectedSweepSecretToExecuteUtxoSweepAttempt']);
+      }
+
+      if (!args.start_height) {
+        return cbk([400, 'ExpectedSweepingStartHeightToAttemptNewSweep']);
       }
 
       if (!args.sweep_address) {
@@ -109,6 +109,7 @@ module.exports = (args, cbk) => {
         request: args.request,
       },
       (err, res) => {
+        // Exit early with default fee rate if there is any issue
         if (!!err || !res || !res.tokens_per_vbyte) {
           return cbk(null, defaultMinFeeRate);
         }
