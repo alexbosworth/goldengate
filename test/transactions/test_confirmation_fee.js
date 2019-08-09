@@ -4,6 +4,21 @@ const {confirmationFee} = require('./../../transactions');
 
 const tests = [
   {
+    args: {},
+    description: 'A before block height is required',
+    error: 'ExpectedTargetUltimateConfirmHeight',
+  },
+  {
+    args: {before: 1},
+    description: 'A cursor is required',
+    error: 'ExpectedBlockHeightCursorNumber',
+  },
+  {
+    args: {before: 1, cursor: 0},
+    description: 'A multiplier is required',
+    error: 'ExpectedMaximumFeeMultiplier',
+  },
+  {
     args: {
       before: 25,
       cursor: 0,
@@ -44,8 +59,14 @@ const tests = [
   },
 ];
 
-tests.forEach(({args, description, expected}) => {
-  return test(description, ({equal, end}) => {
+tests.forEach(({args, description, error, expected}) => {
+  return test(description, ({equal, end, throws}) => {
+    if (!!error) {
+      throws(() => confirmationFee(args), new Error(error), 'Got error');
+
+      return end();
+    }
+
     const {rate} = confirmationFee(args);
 
     equal(rate, expected, 'Rate derived for cursor');

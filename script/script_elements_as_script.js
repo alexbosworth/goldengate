@@ -1,5 +1,4 @@
 const BN = require('bn.js');
-
 const {encode} = require('varuint-bitcoin');
 
 const decBase = 10;
@@ -11,11 +10,11 @@ const decBase = 10;
   }
 
   @throws
-  <Error> when a script element length exceeds maximum
+  <Error>
 
   @returns
   {
-    script: <Script Hex>
+    script: <Script Hex String>
   }
 */
 module.exports = ({elements}) => {
@@ -24,9 +23,9 @@ module.exports = ({elements}) => {
     .map(element => {
       if (Buffer.isBuffer(element)) {
         return Buffer.concat([encode(element.length), element]);
+      } else {
+        return new BN(element, decBase).toArrayLike(Buffer);
       }
-
-      return new BN(element, decBase).toArrayLike(Buffer);
     })
     .reduce((element, script) => Buffer.concat([element, script]));
 

@@ -1,41 +1,53 @@
+const {addressForScript} = require('./script');
+const {attemptRefund} = require('./transactions');
 const {attemptSweep} = require('./transactions');
 const {broadcastTransaction} = require('./chain');
 const {checkQuote} = require('./lightninglabs');
 const {checkSwapTiming} = require('./chain');
 const {claimTransaction} = require('./transactions');
-const {createSwap} = require('./lightninglabs');
-const {decodeLightningLabsRecovery} = require('./lightninglabs');
-const {encodeLightningLabsRecovery} = require('./lightninglabs');
+const {createSwapIn} = require('./lightninglabs');
+const {createSwapOut} = require('./lightninglabs');
+const {decodeSwapRecovery} = require('./lightninglabs');
+const {encodeSwapRecovery} = require('./lightninglabs');
 const {findDeposit} = require('./chain');
+const {findSecret} = require('./blockstream');
+const {getChainFeeRate} = require('./chain');
 const {getGrpcInterface} = require('./grpc');
 const {getHeight} = require('./chain');
-const {getSwapQuote} = require('./lightninglabs');
+const {getSwapInQuote} = require('./lightninglabs');
+const {getSwapOutQuote} = require('./lightninglabs');
 const {lightningLabsSwapService} = require('./lightninglabs');
-const {p2wshOutputScript} = require('./transactions');
+const {p2wshOutputScript} = require('./script');
+const {refundTransaction} = require('./transactions');
 const {serviceSocket} = require('./lightninglabs');
 const {subscribeToBlocks} = require('./chain');
-const {swapAddress} = require('./transactions');
-const {swapScript} = require('./transactions');
-const {sweep} = require('./transactions');
+const {swapInFee} = require('./lightninglabs');
+const {swapScript} = require('./script');
 
 module.exports = {
+  addressForScript,
+  attemptRefund,
   attemptSweep,
   broadcastTransaction,
   checkQuote,
   checkSwapTiming,
   claimTransaction,
-  createSwap,
-  decodeLightningLabsRecovery,
-  encodeLightningLabsRecovery,
+  createSwapIn,
+  createSwapOut,
+  decodeSwapRecovery,
+  encodeSwapRecovery,
   findDeposit,
+  findSecret,
+  getChainFeeRate,
   getGrpcInterface,
   getHeight,
-  getSwapQuote,
+  getSwapInQuote,
+  getSwapOutQuote,
   lightningLabsSwapService,
   p2wshOutputScript,
+  refundTransaction,
   serviceSocket,
   subscribeToBlocks,
-  swapAddress,
+  swapInFee,
   swapScript,
-  sweep,
 };

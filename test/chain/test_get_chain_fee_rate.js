@@ -4,6 +4,21 @@ const {getChainFeeRate} = require('./../../chain');
 
 const tests = [
   {
+    args: {},
+    description: 'A confirmation target is required',
+    error: [400, 'ExpectedConfirmationTargetToGetChainFeeRate'],
+  },
+  {
+    args: {confirmation_target: 1},
+    description: 'A request method is required',
+    error: [400, 'ExpectedRequestFunctionOrLndObjToGetChainFeeRate'],
+  },
+  {
+    args: {confirmation_target: 1, request: ({}, cbk) => cbk()},
+    description: 'A network is required',
+    error: [400, 'ExpectedNetworkToGetChainFeeRate'],
+  },
+  {
     args: {
       confirmation_target: 7,
       network: 'btctestnet',
@@ -24,14 +39,18 @@ const tests = [
   },
 ];
 
-tests.forEach(({args, description, expected}) => {
-  return test(description, ({equal, end}) => {
-    return getChainFeeRate(args, (err, res) => {
-      equal(err, null, 'No error getting chain fee rate');
-
-      equal(res.tokens_per_vbyte, expected, 'Got chain fee rate');
+tests.forEach(({args, description, error, expected}) => {
+  return test(description, async ({equal, end, rejects}) => {
+    if (!!error) {
+      rejects(getChainFeeRate(args), error, 'Got expected error');
 
       return end();
-    });
+    }
+
+    const rate = await getChainFeeRate(args);
+
+    equal(rate.tokens_per_vbyte, expected, 'Got chain fee rate');
+
+    return end();
   });
 });

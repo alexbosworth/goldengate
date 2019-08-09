@@ -1,7 +1,7 @@
 const {ECPair} = require('bitcoinjs-lib');
 const {test} = require('tap');
 
-const {createSwap} = require('./../../lightninglabs');
+const {createSwapOut} = require('./../../');
 
 const expiry = 150;
 const serviceKey = ECPair.makeRandom().publicKey.toString('hex');
@@ -33,7 +33,7 @@ const tests = [
 
 tests.forEach(({args, description, expected}) => {
   return test(description, ({equal, end}) => {
-    return createSwap(args, (err, res) => {
+    return createSwapOut(args, (err, res) => {
       equal(err, null, 'No error creating swap');
 
       equal(!!res.private_key, true, 'Private key created');

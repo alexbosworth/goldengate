@@ -127,12 +127,6 @@ module.exports = (args, cbk) => {
   sub.on('status', () => {});
 
   sub.on('confirmation', ({transaction}) => {
-    try {
-      fromHex(transaction);
-    } catch (err) {
-      return finished([503, 'ReceivedInvalidTxWhenFindingDeposit', {err}]);
-    }
-
     const {output} = findOutput({
       transaction,
       id: args.transaction_id,

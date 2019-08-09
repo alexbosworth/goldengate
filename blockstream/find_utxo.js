@@ -1,7 +1,9 @@
 const asyncAuto = require('async/auto');
+const {returnResult} = require('asyncjs-util');
 
 const {apis} = require('./conf/blockstream-info');
 const getHeightFromBlockstream = require('./get_height_from_blockstream');
+const getUtxosFromBlockstream = require('./get_utxos_from_blockstream');
 
 const {isArray} = Array;
 
@@ -25,135 +27,116 @@ const {isArray} = Array;
   }
 */
 module.exports = (args, cbk) => {
-  return asyncAuto({
-    // Check arguments
-    validate: cbk => {
-      if (!args.address) {
-        return cbk([400, 'ExpectedAddressToFindUtxo']);
-      }
-
-      if (args.confirmations === undefined) {
-        return cbk([400, 'ExpectedConfirmationsCountToFindUtxo']);
-      }
-
-      if (!args.network || !apis[args.network]) {
-        return cbk([400, 'ExpectedKnownNetworkToFindUtxo']);
-      }
-
-      if (!args.request) {
-        return cbk([400, 'ExpectedRequestFunctionTOFindUtxo']);
-      }
-
-      if (!args.tokens && !args.transaction_id) {
-        return cbk([400, 'ExpectedUtxoTokensWhenFindingUtxo']);
-      }
-
-      if (!!args.transaction_id && args.transaction_vout === undefined) {
-        return cbk([400, 'ExpectedTransactionVoutWhenLookingForUtxoSpend']);
-      }
-
-      return cbk();
-    },
-
-    // Find utxo
-    getUtxo: ['validate', ({}, cbk) => {
-      return args.request({
-        json: true,
-        url: `${apis[args.network]}/address/${args.address}/utxo`,
-      },
-      (err, r, utxos) => {
-        if (!!err) {
-          return cbk([503, 'UnexpectedResponseFromUtxoApi', {err}]);
+  return new Promise((resolve, reject) => {
+    return asyncAuto({
+      // Check arguments
+      validate: cbk => {
+        if (!args.address) {
+          return cbk([400, 'ExpectedAddressToFindUtxo']);
         }
 
-        if (!r) {
-          return cbk([503, 'ExpectedResponseFromUtxoApi']);
+        if (args.confirmations === undefined) {
+          return cbk([400, 'ExpectedConfirmationsCountToFindUtxo']);
         }
 
-        const code = r.statusCode;
-
-        if (code !== 200) {
-          return cbk([503, 'UnexpectedStatusCodeFromUtxoApi', {code}]);
+        if (!args.network || !apis[args.network]) {
+          return cbk([400, 'ExpectedKnownNetworkToFindUtxo']);
         }
 
-        if (!isArray(utxos)) {
-          return cbk([503, 'ExpectedArrayOfUtxosInApiResponse']);
+        if (!args.request) {
+          return cbk([400, 'ExpectedRequestFunctionToFindUtxo']);
         }
 
-        if (!utxos.length) {
-          return cbk([503, 'ExpectedUtxosForDepositAddress']);
+        if (!args.tokens && !args.transaction_id) {
+          return cbk([400, 'ExpectedUtxoTokensWhenFindingUtxo']);
         }
 
-        const [utxo] = utxos;
-
-        if (!utxo.txid) {
-          return cbk([503, 'ExpectedUtxoTransactionIdInUtxosApiResponse']);
+        if (!!args.transaction_id && args.transaction_vout === undefined) {
+          return cbk([400, 'ExpectedTransactionVoutWhenLookingForUtxoSpend']);
         }
 
-        if (!!args.tokens && utxo.value !== args.tokens) {
-          return cbk([503, 'UnexpectedTokensValueForFoundUtxo']);
-        }
-
-        if (!!args.transaction_id && utxo.txid !== args.transaction_id) {
-          return cbk([503, 'UnexpectedSpendingUtxoTransactionId']);
-        }
-
-        if (utxo.vout === undefined) {
-          return cbk([503, 'ExpectedUtxoVoutInUtxosApiResponse']);
-        }
-
-        if (!!args.transaction_id && utxo.vout !== args.transaction_vout) {
-          return cbk([503, 'UnexpectedSpendingUtxoTransactionId']);
-        }
-
-        return cbk(null, {
-          block_height: utxo.status.block_height,
-          output_tokens: utxo.value,
-          transaction_id: utxo.txid,
-          transaction_vout: utxo.vout,
-        });
-      });
-    }],
-
-    // Get the current height
-    getHeight: ['getUtxo', ({}, cbk) => {
-      return getHeightFromBlockstream({
-        network: args.network,
-        request: args.request,
-      },
-      cbk);
-    }],
-
-    // Check that the current height matches the confirmation expectation
-    checkHeight: ['getHeight', 'getUtxo', ({getHeight, getUtxo}, cbk) => {
-      // Exit early when no confirmations are required
-      if (!args.confirmations) {
         return cbk();
-      }
+      },
 
-      // Exit early when no confirmations have been stacked
-      if (!getUtxo.block_height) {
-        return cbk([503, 'UtxoNotYetConfirmedIntoABlock']);
-      }
+      // Find utxo
+      getUtxo: ['validate', ({}, cbk) => {
+        return getUtxosFromBlockstream({
+          address: args.address,
+          network: args.network,
+          request: args.request,
+        },
+        (err, res) => {
+          if (!!err) {
+            return cbk(err);
+          }
 
-      const confs = getHeight.height - getUtxo.block_height + [getUtxo].length;
+          const {utxos} = res;
 
-      if (confs < args.confirmations) {
-        return cbk([503, 'ExpectedMoreWorkOnTopOfUtxo']);
-      }
+          if (!utxos.length) {
+            return cbk([503, 'ExpectedUtxosForDepositAddress']);
+          }
 
-      return cbk();
-    }],
-  },
-  (err, res) => {
-    if (!!err) {
-      return cbk(err);
-    }
+          const [utxo] = utxos.filter(utxo => {
+            return !args.tokens || utxo.tokens === args.tokens;
+          });
 
-    return cbk(null, {
-      output_tokens: res.getUtxo.output_tokens,
-      transaction_id: res.getUtxo.transaction_id,
-      transaction_vout: res.getUtxo.transaction_vout,
-    });
+          if (!utxo) {
+            return cbk([503, 'UnexpectedTokensValueForFoundUtxo']);
+          }
+
+          const txId = args.transaction_id;
+
+          if (!!txId && utxo.transaction_id !== txId) {
+            return cbk([503, 'UnexpectedSpendingUtxoTransactionId']);
+          }
+
+          if (!!txId && utxo.transaction_vout !== args.transaction_vout) {
+            return cbk([503, 'UnexpectedSpendingUtxoTransactionVout']);
+          }
+
+          return cbk(null, {
+            block_height: utxo.confirm_height,
+            output_tokens: utxo.tokens,
+            transaction_id: utxo.transaction_id,
+            transaction_vout: utxo.transaction_vout,
+          });
+        });
+      }],
+
+      // Get the current height
+      getHeight: ['getUtxo', ({}, cbk) => {
+        return getHeightFromBlockstream({
+          network: args.network,
+          request: args.request,
+        },
+        cbk);
+      }],
+
+      // Check that the current height matches the confirmation expectation
+      checkHeight: ['getHeight', 'getUtxo', ({getHeight, getUtxo}, cbk) => {
+        // Exit early when no confirmations are required
+        if (!args.confirmations) {
+          return cbk();
+        }
+
+        const confs = getHeight.height - getUtxo.block_height;
+
+        if (confs + [getUtxo].length < args.confirmations) {
+          return cbk([503, 'ExpectedMoreWorkOnTopOfUtxo']);
+        }
+
+        return cbk();
+      }],
+
+      // Utxo
+      utxo: ['getUtxo', ({getUtxo}, cbk) => {
+        return cbk(null, {
+          output_tokens: getUtxo.output_tokens,
+          transaction_id: getUtxo.transaction_id,
+          transaction_vout: getUtxo.transaction_vout,
+        });
+      }],
+    },
+    returnResult({reject, resolve, of: 'utxo'}, cbk));
   });
 };

@@ -31,6 +31,40 @@ const tests = [
       request: ({url}, cbk) => {
         switch (url) {
           case 'https://blockstream.info/testnet/api/tx':
+            return cbk(null, {statusCode: 503}, txId);
+
+          default:
+            return cbk(new Error('UnexpectedUrlWhenTestingPublishTx'));
+        }
+      },
+      transaction: Buffer.alloc(100).toString('hex'),
+    },
+    description: 'Transaction is published',
+    error: [503, 'UnexpectedResponsePostingTransaction'],
+  },
+  {
+    args: {
+      network: 'btctestnet',
+      request: ({url}, cbk) => {
+        switch (url) {
+          case 'https://blockstream.info/testnet/api/tx':
+            return cbk(null, {statusCode: 200});
+
+          default:
+            return cbk(new Error('UnexpectedUrlWhenTestingPublishTx'));
+        }
+      },
+      transaction: Buffer.alloc(100).toString('hex'),
+    },
+    description: 'Transaction is published',
+    error: [503, 'ExpectedTransactionIdInPostTransactionResponse'],
+  },
+  {
+    args: {
+      network: 'btctestnet',
+      request: ({url}, cbk) => {
+        switch (url) {
+          case 'https://blockstream.info/testnet/api/tx':
             return cbk(null, {statusCode: 200}, txId);
 
           default:

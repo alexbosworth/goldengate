@@ -1,14 +1,15 @@
-const {isArray} = Array;
+const bufferFromHex = hex => Buffer.from(hex, 'hex');
 const maxSignatureLength = 72;
 const sequenceLength = 4;
 const shortPushdataLength = 1;
+const sumOf = arr => arr.reduce((sum, n) => sum + n, 0);
 
 /** Estimate the weight of a transaction after signed SegWit inputs are added
 
   {
-    redeems: [<Redeem Script / Witness Program Hex String>]
-    secret: <Preimage Hex String>
+    unlock: <Unlock Data Push Hex String>
     weight: <Weight Without Signed Inputs Number>
+    witness_script: <Witness Script Hex String>
   }
 
   @throws
@@ -19,31 +20,28 @@ const shortPushdataLength = 1;
     weight: <Estimated Weight Number>
   }
 */
-module.exports = ({redeems, secret, weight}) => {
-  if (!isArray(redeems)) {
-    throw new Error('ExpectedRedeemScriptsForTxWeightEstimation');
+module.exports = args => {
+  if (!args.unlock) {
+    throw new Error('ExpectedUnlockElementForTxWeightEstimation');
   }
 
-  if (!secret) {
-    throw new Error('ExpectedSecretPreimageForTxWeightEstimation');
-  }
-
-  if (!weight) {
+  if (!args.weight) {
     throw new Error('ExpectedUnsignedTxWeightToEstimateSignedTxWeight');
   }
 
-  const finalWeight = redeems.reduce((sum, redeem) => {
-    return [
-      shortPushdataLength,
-      maxSignatureLength,
-      shortPushdataLength,
-      Buffer.from(secret, 'hex').length,
-      sequenceLength,
-      Buffer.from(redeem, 'hex').length,
-      sum,
-    ].reduce((sum, n) => sum + n);
-  },
-  weight);
+  if (!args.witness_script) {
+    throw new Error('ExpectedWitnessScriptForTxWeightEstimation');
+  }
 
-  return {weight: finalWeight};
+  const weight = sumOf([
+    args.weight,
+    shortPushdataLength,
+    maxSignatureLength,
+    shortPushdataLength,
+    bufferFromHex(args.unlock).length,
+    sequenceLength,
+    bufferFromHex(args.witness_script).length,
+  ]);
+
+  return {weight};
 };

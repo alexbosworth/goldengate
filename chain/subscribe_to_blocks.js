@@ -12,6 +12,9 @@ const tickDelayMs = 20;
 
 /** Subscribe to blocks
 
+  Either lnd or request method is required
+  A network is required if request method is used
+
   {
     [delay]: <Poll Delay Milliseconds Number> // default 10 minutes
     [lnd]: <Authenticated LND gRPC Object>

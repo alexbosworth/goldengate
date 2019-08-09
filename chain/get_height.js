@@ -13,51 +13,58 @@ const {max} = Math;
     [network]: <Network Name String>
     [request]: <Request Function>a
   }
+
+  @returns via cbk or Promise
+  {
+    height: <Chain Tip Block Height Number>
+  }
 */
 module.exports = ({lnd, network, request}, cbk) => {
-  return asyncAuto({
-    // Check arguments
-    validate: cbk => {
-      if (!lnd && !request) {
-        return cbk([400, 'ExpectedLndOrRequestToGetChainHeight']);
-      }
+  return new Promise((resolve, reject) => {
+    return asyncAuto({
+      // Check arguments
+      validate: cbk => {
+        if (!lnd && !request) {
+          return cbk([400, 'ExpectedLndOrRequestToGetChainHeight']);
+        }
 
-      if (!!request && !network) {
-        return cbk([400, 'ExpectedNetworkWhenUsingRequestToGetChainHeight']);
-      }
+        if (!!request && !network) {
+          return cbk([400, 'ExpectedNetworkWhenUsingRequestToGetChainHeight']);
+        }
 
-      return cbk();
+        return cbk();
+      },
+
+      // Get blockstream height
+      getBlockstreamTip: ['validate', ({}, cbk) => {
+        if (!request) {
+          return cbk();
+        }
+
+        return getHeightFromBlockstream({network, request}, cbk);
+      }],
+
+      // Get wallet info
+      getLndTip: ['validate', ({}, cbk) => {
+        if (!lnd) {
+          return cbk();
+        }
+
+        return getWalletInfo({lnd}, cbk);
+      }],
+
+      // Chain tip height
+      tip: [
+        'getBlockstreamTip',
+        'getLndTip',
+        ({getBlockstreamTip, getLndTip}, cbk) =>
+      {
+        const blockstreamTip = !getBlockstreamTip ? 0 : getBlockstreamTip.height;
+        const lndTip = !getLndTip ? 0 : getLndTip.current_block_height;
+
+        return cbk(null, {height: max(blockstreamTip, lndTip)});
+      }],
     },
-
-    // Get blockstream height
-    getBlockstreamTip: ['validate', ({}, cbk) => {
-      if (!request) {
-        return cbk();
-      }
-
-      return getHeightFromBlockstream({network, request}, cbk);
-    }],
-
-    // Get wallet info
-    getLndTip: ['validate', ({}, cbk) => {
-      if (!lnd) {
-        return cbk();
-      }
-
-      return getWalletInfo({lnd}, cbk);
-    }],
-
-    // Chain tip height
-    tip: [
-      'getBlockstreamTip',
-      'getLndTip',
-      ({getBlockstreamTip, getLndTip}, cbk) =>
-    {
-      const blockstreamTip = !getBlockstreamTip ? 0 : getBlockstreamTip.height;
-      const lndTip = !getLndTip ? 0 : getLndTip.current_block_height;
-
-      return cbk(null, {height: max(blockstreamTip, lndTip)});
-    }],
-  },
-  returnResult({of: 'tip'}, cbk));
+    returnResult({reject, resolve, of: 'tip'}, cbk));
+  });
 };

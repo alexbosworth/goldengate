@@ -53,6 +53,24 @@ const tests = [
   },
   {
     args: {
+      address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
+      after: 1,
+      confirmations: 3,
+      lnd: {
+        chain: {
+          registerConfirmationsNtfn: ({}) => confirmationsEmitter,
+        },
+      },
+      network: 'btctestnet',
+      timeout: 1,
+      transaction_id: 'f2598a12da364e22112c301f69c3ea8a7537a7b94210d3a07a792d2e585395a3',
+      transaction_vout: 1,
+    },
+    description: 'Timeout finding deposit',
+    error: [503, 'FailedToFindDepositWithinTimeoutTime'],
+  },
+  {
+    args: {
       address: 'address',
       confirmations: 3,
       network: 'btctestnet',
@@ -113,10 +131,77 @@ const tests = [
       transaction_vout: 1,
     },
   },
+  {
+    args: {},
+    description: 'An address is required to find deposit',
+    error: [400, 'ExpectedChainAddressToFindDepositTo'],
+  },
+  {
+    args: {address: 'address', lnd: {}},
+    description: 'An address is required to find deposit',
+    error: [400, 'ExpectedChainHeightToFindDepositAfter'],
+  },
+  {
+    args: {address: 'address', lnd: {}},
+    description: 'An address is required to find deposit',
+    error: [400, 'ExpectedChainHeightToFindDepositAfter'],
+  },
+  {
+    args: {address: 'address', after: 1},
+    description: 'A request method is required to find deposit',
+    error: [400, 'ExpectedChainLndOrRequestFunctionToFindDeposit'],
+  },
+  {
+    args: {address: 'address', after: 1, lnd: {}},
+    description: 'Confirmation depth is required to find deposit',
+    error: [400, 'ExpectedConfirmationsToFindDeposit'],
+  },
+  {
+    args: {address: 'address', after: 1, confirmations: 0, lnd: {}},
+    description: 'Network is required to find deposit',
+    error: [400, 'ExpectedNetworkToFindDeposit'],
+  },
+  {
+    args: {
+      address: 'address',
+      after: 1,
+      confirmations: 0,
+      lnd: {},
+      network: 'btc',
+    },
+    description: 'Timeout is required for finding deposit',
+    error: [400, 'ExpectedTimeoutMillisecondsToStopWaitingForDeposit'],
+  },
+  {
+    args: {
+      address: 'address',
+      after: 1,
+      confirmations: 0,
+      lnd: {},
+      network: 'btc',
+      timeout: 1,
+    },
+    description: 'Tokens are required for finding deposit',
+    error: [400, 'ExpectedDepositedTokensInDeposit'],
+  },
+  {
+    args: {
+      address: 'address',
+      after: 1,
+      confirmations: 0,
+      lnd: {},
+      network: 'btc',
+      timeout: 1,
+      tokens: 1,
+      transaction_id: Buffer.alloc(32).toString('hex'),
+    },
+    description: 'A tx vout is required for finding deposit',
+    error: [400, 'ExpectedTransactionVoutWhenFindingUtxoSpendDeposit'],
+  },
 ];
 
-tests.forEach(({args, description, expected}) => {
-  return test(description, ({equal, end}) => {
+tests.forEach(({args, description, error, expected}) => {
+  return test(description, ({deepIs, equal, end}) => {
     setTimeout(() => confirmationsEmitter.emit('data', {
       conf: {
         block_hash: Buffer.alloc(32),
@@ -126,6 +211,12 @@ tests.forEach(({args, description, expected}) => {
     }), 20);
 
     return findDeposit(args, (err, res) => {
+      if (!!error) {
+        deepIs(err, error, 'Got expected error');
+
+        return end();
+      }
+
       equal(err, null, 'No error finding deposit');
 
       equal(res.transaction_id, expected.transaction_id, 'Got transaction id');

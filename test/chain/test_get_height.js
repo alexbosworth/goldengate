@@ -22,12 +22,11 @@ const tests = [
 ];
 
 tests.forEach(({args, description, expected}) => {
-  return test(description, ({equal, end}) => {
-    return getHeight(args, (err, res) => {
-      equal(err, null, 'No error getting chain height');
-      equal(res.height, 100, 'Got chain height');
+  return test(description, async ({equal, end}) => {
+    const {height} = await getHeight(args);
 
-      return end();
-    });
+    equal(height, 100, 'Got chain height');
+
+    return end();
   });
 });

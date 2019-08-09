@@ -1,11 +1,40 @@
 const {Transaction} = require('bitcoinjs-lib');
 const {test} = require('tap');
 
-const {broadcastTransaction} = require('./../../chain');
+const {broadcastTransaction} = require('./../../');
 
 const txId = new Transaction().getId();
 
 const tests = [
+  {
+    args: {},
+    description: 'Lnd or request required to broadcast transaction',
+    error: [400, 'ExpectedRequestFunctionOrLndGrpcApiObject'],
+  },
+  {
+    args: {request: ({}, cbk) => cbk()},
+    description: 'Network is required to broadcast transaction',
+    error: [400, 'ExpectedNetworkToPublishTransaction'],
+  },
+  {
+    args: {network: 'btctestnet', request: ({}, cbk) => cbk()},
+    description: 'Raw transaction is required to broadcast transaction',
+    error: [
+      400,
+      'ExpectedValidTransactionToPublish',
+      {
+        err: new Error('The first argument must be one of type string, Buffer, ArrayBuffer, Array, or Array-like Object. Received type undefined'),
+      },
+    ],
+  },
+  {
+    args: {
+      lnd: {wallet: {publishTransaction: ({}, cbk) => cbk(null, {})}},
+      transaction: new Transaction().toHex(),
+    },
+    description: 'Transaction published to blockchain',
+    expected: {transaction_id: txId},
+  },
   {
     args: {
       network: 'btctestnet',
@@ -26,16 +55,17 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({deepIs, equal, end}) => {
-    return broadcastTransaction(args, (err, res) => {
-      if (!!err) {
-        deepIs(err, error);
-      } else {
-        equal(err, null, 'No error broadcasting chain transaction');
-        equal(res.transaction_id, expected.transaction_id, 'Broadcast tx id');
-      }
+  return test(description, async ({equal, end, rejects}) => {
+    if (!!error) {
+      rejects(broadcastTransaction(args), error, 'Got expected error');
 
       return end();
-    });
+    }
+
+    const sent = await broadcastTransaction(args);
+
+    equal(sent.transaction_id, expected.transaction_id, 'Broadcast tx id');
+
+    return end();
   });
 });

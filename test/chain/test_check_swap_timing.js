@@ -1,6 +1,6 @@
 const {test} = require('tap');
 
-const {checkSwapTiming} = require('./../../chain');
+const {checkSwapTiming} = require('./../../');
 
 const tests = [
   {

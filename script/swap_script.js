@@ -17,10 +17,12 @@ const pushdataEncode = require('pushdata-bitcoin').encode;
 const pushdataEncodingLen = require('pushdata-bitcoin').encodingLength;
 const {script} = require('bitcoinjs-lib');
 
+const getPublicKey = require('./get_public_key');
 const scriptElementsAsScript = require('./script_elements_as_script');
 
 const encodeNumber = script.number.encode;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const pubKey = key => getPublicKey({private_key: key}).public_key;
 const {ripemd160} = crypto;
 const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
@@ -30,11 +32,12 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
   // A private key or public key is required
 
   {
+    [claim_private_key]: <Claim Private Key Hex String>
+    [claim_public_key]: <Claim Public Key Hex String>
     [hash]: <Preimage Hash Hex String>
-    [private_key]: <Private Key Hex String>
-    [public_key]: <Public Key Hex String>
+    [refund_private_key]: <Refund Private Key Hex String>
+    [refund_public_key]: <Refund Public Key Hex String>
     [secret]: <Preimage Hex String>
-    service_public_key: <Service Public Key Hex String>
     timeout: <CLTV Timeout Height Number>
   }
 
@@ -43,60 +46,46 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
   @returns
   {
-    script: <Hex Serialized Redeem Script String>
+    script: <Hex Serialized Witness Script String>
   }
 */
 module.exports = args => {
+  if (!args.claim_private_key && !args.claim_public_key) {
+    throw new Error('ExpectedEitherPrivateKeyOrPublicKeyForSwapScript');
+  }
+
   if (!args.hash && !args.secret) {
     throw new Error('ExpectedEitherHashOrSecretForSwapScript');
   }
 
-  if (!!args.hash && !!args.secret) {
-    throw new Error('ExpectedOnlyHashOrSecretForSwapScript');
-  }
-
-  if (!args.private_key && !args.public_key) {
-    throw new Error('ExpectedEitherPrivateKeyOrPublicKeyForSwapScript');
-  }
-
-  if (!!args.private_key && !!args.public_key) {
-    throw new Error('ExpectedOnlyPrivateKeyOrPublicKeyForSwapScript');
-  }
-
-  if (!args.service_public_key) {
-    throw new Error('ExpectedServicePublicKeyForSwapScript');
+  if (!args.refund_private_key && !args.refund_public_key) {
+    throw new Error('ExpectedRefundPublicOrPrivateKeyForSwapScript');
   }
 
   if (!args.timeout) {
     throw new Error('ExpectedSwapTimeoutExpirationCltvForSwapScript');
   }
 
-  const cltv = encodeNumber(bip65Encode({blocks: args.timeout}));
   const hash = args.hash || sha256(hexAsBuffer(args.secret));
-  const privateKey = !args.private_key ? null : hexAsBuffer(args.private_key);
-  const refundPublicKey = hexAsBuffer(args.service_public_key);
 
-  const keyPair = !privateKey ? null : ECPair.fromPrivateKey(privateKey);
   const swapHash = hexAsBuffer(hash);
 
-  const publicKey = args.public_key || keyPair.publicKey.toString('hex');
-
-  const destinationPublicKey = hexAsBuffer(publicKey);
-
-  const elements = [
-    OP_SIZE, encodeNumber(swapHash.length), OP_EQUAL,
-    OP_IF,
-      OP_HASH160, ripemd160(swapHash), OP_EQUALVERIFY,
-      destinationPublicKey,
-    OP_ELSE,
-      OP_DROP,
-      cltv, OP_CHECKLOCKTIMEVERIFY, OP_DROP,
-      refundPublicKey,
-    OP_ENDIF,
-    OP_CHECKSIG,
-  ];
-
   try {
+    const cltv = encodeNumber(bip65Encode({blocks: args.timeout}));
+
+    const elements = [
+      OP_SIZE, encodeNumber(swapHash.length), OP_EQUAL,
+      OP_IF,
+        OP_HASH160, ripemd160(swapHash), OP_EQUALVERIFY,
+        hexAsBuffer(args.claim_public_key || pubKey(args.claim_private_key)),
+      OP_ELSE,
+        OP_DROP,
+        cltv, OP_CHECKLOCKTIMEVERIFY, OP_DROP,
+        hexAsBuffer(args.refund_public_key || pubKey(args.refund_private_key)),
+      OP_ENDIF,
+      OP_CHECKSIG,
+    ];
+
     const {script} = scriptElementsAsScript({elements});
 
     return {script};

@@ -1,27 +1,29 @@
 const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
 const {networks} = require('bitcoinjs-lib');
+const {OP_FALSE} = require('bitcoin-ops');
 const {Transaction} = require('bitcoinjs-lib');
 
 const estimateTxWeight = require('./estimate_tx_weight');
 const {names} = require('./../conf/bitcoinjs-lib');
+const {nestedWitnessScript} = require('./../script');
 const witnessForResolution = require('./witness_for_resolution');
 
 const {ceil} = Math;
+const dummy = Buffer.from(OP_FALSE.toString(16), 'hex');
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
-const minSequenceValue = 0;
+const minSequence = 0;
+const minTokens = 0;
 const {toOutputScript} = address;
-const txVersion = 2;
 const vRatio = 4;
 
-/** Make a claim transaction for a swap
+/** Build a refund transaction to claim funds back from a swap
 
   {
     block_height: <Timelock Block Height Number>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
     network: <Network Name String>
-    private_key: <Raw Private Key Hex String>
-    secret: <HTLC Preimage Hex String>
+    [private_key]: <Refund Private Key WIF String>
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
@@ -34,99 +36,103 @@ const vRatio = 4;
 
   @returns
   {
-    transaction: <Raw Transaction Hex String>
+    transaction: <Sweep Transaction Hex Serialized String>
   }
 */
 module.exports = args => {
   if (!args.block_height) {
-    throw new Error('ExpectedBlockHeightForClaimTransaction');
+    throw new Error('ExpectedLocktimeHeightForRefundTransaction');
   }
 
-  if (args.fee_tokens_per_vbyte === undefined) {
-    throw new Error('ExpectedFeeTokensPerVbyte');
+  if (!args.fee_tokens_per_vbyte) {
+    throw new Error('ExpectedFeeRateToUseForRefundTransaction');
   }
 
   if (!args.network || !names[args.network]) {
-    throw new Error('ExpectedNetworkNameForClaimTransaction');
-  }
-
-  if (!args.secret) {
-    throw new Error('ExpectedPreimageSecretForClaimTransaction');
-  }
-
-  if (!args.private_key) {
-    throw new Error('ExpectedPrivateKeyForClaimTransaction');
+    throw new Error('ExpectedKnownNetworkForRefundTransaction');
   }
 
   if (!args.sweep_address) {
-    throw new Error('ExpectedSweepAddressForClaimTransaction');
-  }
-
-  if (!args.tokens) {
-    throw new Error('ExpectedTokensForClaimTransaction');
+    throw new Error('ExpectedDestinationForRefundTransactionToSweepOutTo');
   }
 
   if (!args.transaction_id) {
-    throw new Error('ExpectedTransactionIdForClaimTransaction');
+    throw new Error('ExpectedTransactionIdToCreateRefundTransaction');
   }
 
   if (args.transaction_vout === undefined) {
-    throw new Error('ExpectedTransactionVoutForClaimTransaction');
+    throw new Error('ExpectedTransactionVoutToCreateRefundTransaction');
   }
 
   if (!args.witness_script) {
-    throw new Error('ExpectedWitnessScriptForClaimTransaction');
+    throw new Error('ExpectedWitnessScriptForRefundTransaction');
   }
 
   const network = networks[names[args.network]];
-  const tokensPerVirtualByte = args.fee_tokens_per_vbyte;
   const tx = new Transaction();
-
-  // Add UTXO to tx
-  tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
 
   // Add sweep output
   try {
     tx.addOutput(toOutputScript(args.sweep_address, network), args.tokens);
   } catch (err) {
-    throw new Error('FailedToAddSweepAddressOutputScript');
+    throw new Error('FailedToAddSweepAddressOutputScriptToRefundTransaction');
   }
 
-  // Set input sequence number
-  tx.ins.forEach(n => n.sequence = minSequenceValue);
+  // Add the UTXO to sweep
+  tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
 
-  // Set tx locktime
+  // OP_CLTV prohibits final sequence use
+  tx.ins.forEach(input => input.sequence = minSequence);
+
+  // Set transaction locktime which will be needed for OP_CLTV
   tx.locktime = bip65Encode({blocks: args.block_height});
 
-  // Set tx version
-  tx.version = txVersion;
+  try {
+    const nested = nestedWitnessScript({witness_script: args.witness_script});
 
-  // Estimate final weight and adjust output down to account for fee
+    const script = hexAsBuf(nested.redeem_script);
+
+    // Set the nested redeem script
+    tx.ins.forEach((input, i) => tx.setInputScript(i, script));
+  } catch (err) {
+    throw new Error('FailedToSetNestedRedeemScriptForRefundTransaction');
+  }
+
+  // Estimate final weight and reduce output by this estimate
   try {
     const {weight} = estimateTxWeight({
-      unlock: args.secret,
+      unlock: dummy,
       weight: tx.weight(),
       witness_script: args.witness_script,
     });
 
-    const fee = tokensPerVirtualByte * ceil(weight / vRatio);
-
+    // Reduce the final output value to give some tokens over to fees
     const [out] = tx.outs;
 
-    // Reduce the sweep output by the fee amount
-    out.value = args.tokens - ceil(fee);
+    out.value -= args.fee_tokens_per_vbyte * ceil(weight / vRatio);
+
+    if (out.value < minTokens) {
+      throw new Error('ExpectedMoreTokensForRefundTransaction');
+    }
   } catch (err) {
     throw err;
   }
 
+  // Exit early when there is no private key to sign the refund inputs
+  if (!args.private_key) {
+    return {transaction: tx.toHex()};
+  }
+
   // Set witness
   try {
+    tx.outs.forEach(out => out.value = ceil(out.value));
+
     tx.ins.forEach((input, i) => {
       const {witness} = witnessForResolution({
         private_key: args.private_key,
         tokens: args.tokens,
         transaction: tx.toHex(),
-        unlock: args.secret,
+        unlock: dummy,
         vin: i,
         witness_script: args.witness_script,
       });
@@ -139,3 +145,4 @@ module.exports = args => {
 
   return {transaction: tx.toHex()};
 };
+

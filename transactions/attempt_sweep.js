@@ -20,7 +20,6 @@ const longRangeConfTarget = 1008;
     max_fee_multiplier: <Maximum Fee Multiplier Number>
     network: <Network Name String>
     private_key: <Sweep Claim Key Private Key Hex String>
-    redeem_script: <Swap Redeem Script Hex String>
     [request]: <Request Function>
     secret: <Secret Preimage Hex String>
     start_height: <Starting Height of Attempts Number>
@@ -28,6 +27,7 @@ const longRangeConfTarget = 1008;
     tokens: <Sweep Tokens Number>
     transaction_id: <Deposit Transaction Id String>
     transaction_vout: <Deposit Transaction Vout Number>
+    witness_script: <Swap Redeem Script Hex String>
   }
 
   @returns via cbk
@@ -65,10 +65,6 @@ module.exports = (args, cbk) => {
         return cbk([400, 'ExpectedClaimPrivateKeyToExecuteUtxoSweepAttempt']);
       }
 
-      if (!args.redeem_script) {
-        return cbk([400, 'ExpectedRedeemScriptToExecuteUtxoSweepAttempt']);
-      }
-
       if (!args.secret) {
         return cbk([400, 'ExpectedSweepSecretToExecuteUtxoSweepAttempt']);
       }
@@ -91,6 +87,10 @@ module.exports = (args, cbk) => {
 
       if (args.transaction_vout === undefined) {
         return cbk([400, 'ExpectedDepositTransactionVoutToAttemptUtxoSweep']);
+      }
+
+      if (!args.witness_script) {
+        return cbk([400, 'ExpectedWitnessScriptToExecuteUtxoSweepAttempt']);
       }
 
       return cbk();
@@ -143,12 +143,12 @@ module.exports = (args, cbk) => {
           fee_tokens_per_vbyte: rate,
           network: args.network,
           private_key: args.private_key,
-          redeem: args.redeem_script,
           secret: args.secret,
           sweep_address: args.sweep_address,
           tokens: args.tokens,
           transaction_id: args.transaction_id,
           transaction_vout: args.transaction_vout,
+          witness_script: args.witness_script,
         });
 
         return cbk(null, {

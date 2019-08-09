@@ -3,7 +3,7 @@ const {readFileSync} = require('fs');
 
 const {test} = require('tap');
 
-const {subscribeToBlocks} = require('./../../chain');
+const {subscribeToBlocks} = require('./../../');
 
 const api = 'https://blockstream.info/testnet/api/block';
 const confirmationCount = 6;
@@ -13,12 +13,19 @@ const okStatus = {statusCode: 200};
 // Subscribers to blocks should receive block notifications
 test(`Subscribe to blocks`, ({end, equal, fail}) => {
   let confs = confirmationCount;
+  let err = 503;
 
   const hashes = [...Array(confirmationCount)]
     .map((_, i) => Buffer.alloc(32, i).toString('hex'));
 
   const request = ({url}, cbk) => {
     if (url === 'https://blockstream.info/testnet/api/blocks/tip/hash') {
+      if (!!err) {
+        err = null;
+
+        return cbk(err);
+      }
+
       return cbk(null, okStatus, hashes[confs - 1]);
     }
 
@@ -28,6 +35,15 @@ test(`Subscribe to blocks`, ({end, equal, fail}) => {
   };
 
   const sub = subscribeToBlocks({network, request, delay: 20});
+
+  sub.on('error', err => {
+    const [code, message] = err;
+
+    equal(code, 503, 'Got expected error code');
+    equal(message, 'UnexpectedResponseGettingChainTipHash', 'Got err message');
+
+    return;
+  });
 
   const blockEmitter = new EventEmitter();
 
