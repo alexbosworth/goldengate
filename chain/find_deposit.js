@@ -18,7 +18,7 @@ const {toOutputScript} = address;
 
   Either chain_lnd or an http request function is required.
 
-  An after height is reuqired if chain_lnd is given
+  An after height is required if chain_lnd is given
   A network name is required if request is given
 
   {
