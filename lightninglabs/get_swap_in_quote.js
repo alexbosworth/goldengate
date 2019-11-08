@@ -1,26 +1,22 @@
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
-const {getGrpcInterface} = require('./../grpc');
-
 const decBase = 10;
 
-/** Get swap quote from swap service
+/** Get swap in quote from swap service
 
   {
     service: <Swap Service Object>
+    tokens: <Tokens to Swap Number>
   }
 
   @returns via cbk or Promise
   {
-    base_fee: <Base Fee Tokens Number>
     cltv_delta: <CLTV Delta Number>
-    fee_rate: <Fee Rate in Parts Per Million Number>
-    max_tokens: <Maximum Swap Tokens Number>
-    min_tokens: <Minimum Swap Tokens Number>
+    fee: <Total Fee Tokens Number>
   }
 */
-module.exports = ({service}, cbk) => {
+module.exports = ({service, tokens}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
@@ -29,12 +25,16 @@ module.exports = ({service}, cbk) => {
           return cbk([400, 'ExpectedServiceToGetSwapInQuote']);
         }
 
+        if (!tokens) {
+          return cbk([400, 'ExpectedTokensAmountToGetSwapInQuote']);
+        }
+
         return cbk();
       },
 
       // Get quote
       getQuote: ['validate', ({}, cbk) => {
-        return service.loopInQuote({}, (err, res) => {
+        return service.loopInQuote({amt: tokens.toString()}, (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapInQuote', {err}]);
           }
@@ -45,42 +45,24 @@ module.exports = ({service}, cbk) => {
 
           return cbk(null, {
             cltv_delta: res.cltv_delta,
-            max_swap_amount: res.max_swap_amount,
-            min_swap_amount: res.min_swap_amount,
-            swap_fee_base: res.swap_fee_base,
-            swap_fee_rate: res.swap_fee_rate,
+            swap_fee: res.swap_fee,
           });
         });
       }],
 
       // Loop In Quote
       quote: ['getQuote', ({getQuote}, cbk) => {
-        if (!getQuote.cltv_delta) {
+        if (getQuote.cltv_delta === undefined) {
           return cbk([503, 'ExpectedCltvDeltaInSwapInQuoteResponse']);
         }
 
-        if (!getQuote.max_swap_amount) {
-          return cbk([503, 'ExpectedMaxSwapAmountInSwapInQuoteResponse']);
-        }
-
-        if (!getQuote.min_swap_amount) {
-          return cbk([503, 'ExpectedMinSwapAmountInSwapInQuoteResponse']);
-        }
-
-        if (!getQuote.swap_fee_base) {
+        if (!getQuote.swap_fee) {
           return cbk([503, 'ExpectedSwapFeeBaseRateInSwapInQuoteResponse']);
         }
 
-        if (!getQuote.swap_fee_rate) {
-          return cbk([503, 'ExpectedSwapFeeRateInSwapInQuoteResponse']);
-        }
-
         return cbk(null, {
-          base_fee: parseInt(getQuote.swap_fee_base, decBase),
           cltv_delta: getQuote.cltv_delta,
-          fee_rate: parseInt(getQuote.swap_fee_rate, decBase),
-          max_tokens: parseInt(getQuote.max_swap_amount, decBase),
-          min_tokens: parseInt(getQuote.min_swap_amount, decBase),
+          fee: Number(getQuote.swap_fee),
         });
       }],
     },

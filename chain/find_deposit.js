@@ -106,9 +106,7 @@ module.exports = (args, cbk) => {
   let timeout;
 
   const finished = (err, res) => {
-    if (!!timeout) {
-      clearTimeout(timeout);
-    }
+    clearTimeout(timeout);
 
     sub.removeAllListeners();
 

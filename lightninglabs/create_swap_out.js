@@ -12,7 +12,7 @@ const preimageLen = 32;
 const randomHex = byteLength => randomBytes(byteLength).toString('hex')
 const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
-/** Create a swap invoice
+/** Create a swap out request
 
   {
     [hash]: <Swap Hash String>

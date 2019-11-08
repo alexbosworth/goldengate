@@ -2,11 +2,11 @@ const asyncAuto = require('async/auto');
 const {ECPair} = require('bitcoinjs-lib');
 const {returnResult} = require('asyncjs-util');
 
-const {addressForScript} = require('./../script');
 const {broadcastTransaction} = require('./../chain');
 const {findDeposit} = require('./../chain');
 const {getHeight} = require('./../chain');
-const refundTransaction = require('./refund_transaction');
+const {makeAddressForScript} = require('./../script');
+const makeRefundTransaction = require('./make_refund_transaction');
 const {swapScript} = require('./../script');
 
 const defaultTimeoutMs = 1000 * 30;
@@ -107,13 +107,7 @@ module.exports = (args, cbk) => {
 
       // Swap address
       swapAddress: ['script', ({script}, cbk) => {
-        try {
-          const {nested} = addressForScript({script, network: args.network});
-
-          return cbk(null, nested);
-        } catch (err) {
-          return cbk([400, 'FailedToDeriveSwapScriptForRefundAttempt']);
-        }
+        return makeAddressForScript({script, network: args.network}, cbk);
       }],
 
       // Check height
@@ -128,7 +122,7 @@ module.exports = (args, cbk) => {
       // Find deposit
       findDeposit: ['checkHeight', 'swapAddress', ({swapAddress}, cbk) => {
         return findDeposit({
-          address: swapAddress,
+          address: swapAddress.nested,
           after: args.start_height,
           confirmations: [].length,
           lnd: args.lnd,
@@ -141,39 +135,43 @@ module.exports = (args, cbk) => {
       }],
 
       // Refund transaction
-      refund: ['findDeposit', 'script', ({findDeposit, script}, cbk) => {
-        try {
-          const {transaction} = refundTransaction({
-            block_height: args.timeout_height,
-            fee_tokens_per_vbyte: args.fee_tokens_per_vbyte || minRelayFee,
-            network: args.network,
-            private_key: args.refund_private_key,
-            sweep_address: args.sweep_address,
-            tokens: findDeposit.output_tokens,
-            transaction_id: findDeposit.transaction_id,
-            transaction_vout: findDeposit.transaction_vout,
-            witness_script: script,
-          });
-
-          return cbk(null, {
-            refund_transaction: transaction,
-            transaction_id: findDeposit.transaction_id,
-            transaction_vout: findDeposit.transaction_vout,
-          });
-        } catch (err) {
-          return cbk([500, 'FailedToConstructRefundTransaction', {err}]);
-        }
+      makeRefund: ['findDeposit', 'script', ({findDeposit, script}, cbk) => {
+        return makeRefundTransaction({
+          block_height: args.timeout_height,
+          fee_tokens_per_vbyte: args.fee_tokens_per_vbyte || minRelayFee,
+          network: args.network,
+          private_key: args.refund_private_key,
+          sweep_address: args.sweep_address,
+          tokens: findDeposit.output_tokens,
+          transaction_id: findDeposit.transaction_id,
+          transaction_vout: findDeposit.transaction_vout,
+          witness_script: script,
+        },
+        cbk);
       }],
 
       // Broadcast transaction
-      publish: ['refund', ({refund}, cbk) => {
+      publish: ['makeRefund', ({makeRefund}, cbk) => {
         return broadcastTransaction({
           lnd: args.lnd,
           network: args.network,
           request: args.request,
-          transaction: refund.refund_transaction,
+          transaction: makeRefund.transaction,
         },
         cbk);
+      }],
+
+      // Refund details
+      refund: [
+        'findDeposit',
+        'makeRefund',
+        ({findDeposit, makeRefund}, cbk) =>
+      {
+        return cbk(null, {
+          refund_transaction: makeRefund.transaction,
+          transaction_id: findDeposit.transaction_id,
+          transaction_vout: findDeposit.transaction_vout,
+        });
       }],
     },
     returnResult({reject, resolve, of: 'refund'}, cbk));

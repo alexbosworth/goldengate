@@ -1,34 +1,34 @@
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
-const {getGrpcInterface} = require('./../grpc');
-
 const decBase = 10;
 
 /** Get swap quote from swap service
 
   {
     service: <Swap Service Object>
+    tokens: <Tokens Number>
   }
 
   @returns via cbk or Promise
   {
-    base_fee: <Base Fee Tokens Number>
     cltv_delta: <CLTV Delta Number>
     deposit: <Deposit Tokens Number>
     destination: <Destination Public Key Hex String>
-    fee_rate: <Fee Rate in Parts Per Million Number>
-    max_tokens: <Maximum Swap Tokens Number>
-    min_tokens: <Minimum Swap Tokens Number>
+    fee: <Total Fee Tokens Number>
   }
 */
-module.exports = ({service}, cbk) => {
+module.exports = ({service, tokens}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
         if (!service || !service.loopOutQuote) {
-          return cbk([400, 'ExpectedServiceToGetSwapQuote']);
+          return cbk([400, 'ExpectedServiceToGetSwapOutQuote']);
+        }
+
+        if (!tokens) {
+          return cbk([400, 'ExpectedTokensToGetSwapOutQuote']);
         }
 
         return cbk();
@@ -36,7 +36,7 @@ module.exports = ({service}, cbk) => {
 
       // Get quote
       getQuote: ['validate', ({}, cbk) => {
-        return service.loopOutQuote({}, (err, res) => {
+        return service.loopOutQuote({amt: tokens.toString()}, (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapQuote', {err}]);
           }
@@ -55,24 +55,12 @@ module.exports = ({service}, cbk) => {
           return cbk([503, 'ExpectedCltvDeltaInSwapQuoteResponse']);
         }
 
-        if (!getQuote.max_swap_amount) {
-          return cbk([503, 'ExpectedMaxSwapAmountInSwapQuoteResponse']);
-        }
-
-        if (!getQuote.min_swap_amount) {
-          return cbk([503, 'ExpectedMinSwapAmountInSwapQuoteResponse']);
-        }
-
         if (!getQuote.prepay_amt) {
           return cbk([503, 'ExpectedPrepayAmountInSwapQuoteResponse']);
         }
 
-        if (!getQuote.swap_fee_base) {
-          return cbk([503, 'ExpectedSwapFeeBaseRateInSwapQuoteResponse']);
-        }
-
-        if (!getQuote.swap_fee_rate) {
-          return cbk([503, 'ExpectedSwapFeeRateInSwapQuoteResponse']);
+        if (!getQuote.swap_fee) {
+          return cbk([503, 'ExpectedSwapFeeAmountInSwapQuoteResponse']);
         }
 
         if (!getQuote.swap_payment_dest) {
@@ -80,13 +68,10 @@ module.exports = ({service}, cbk) => {
         }
 
         return cbk(null, {
-          base_fee: parseInt(getQuote.swap_fee_base, decBase),
           cltv_delta: getQuote.cltv_delta,
-          deposit: parseInt(getQuote.prepay_amt, decBase),
+          deposit: Number(getQuote.prepay_amt),
           destination: getQuote.swap_payment_dest,
-          fee_rate: parseInt(getQuote.swap_fee_rate, decBase),
-          max_tokens: parseInt(getQuote.max_swap_amount, decBase),
-          min_tokens: parseInt(getQuote.min_swap_amount, decBase),
+          fee: Number(getQuote.swap_fee),
         });
       }],
     },

@@ -20,8 +20,8 @@ const preimageLen = 32;
 /** Create a swap in
 
   {
-    base_fee: <Base Fee Tokens Number>
-    fee_rate: <Swap Fee Rate Number>
+    fee: <Fee Tokens Number>
+    max_timeout_height: <Max Timeout Height Number>
     [private_key]: <Refund Private Key Hex String>
     [public_key]: <Refund Public Key Hex String>
     request: <BOLT 11 Payment Request String>
@@ -44,12 +44,12 @@ module.exports = (args, cbk) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
-        if (args.base_fee === undefined) {
-          return cbk([400, 'ExpectedBaseFeeToCreateSwapIn']);
+        if (args.fee === undefined) {
+          return cbk([400, 'ExpectedFeeToCreateSwapIn']);
         }
 
-        if (args.fee_rate === undefined) {
-          return cbk([400, 'ExpectedFeeRateToCreateSwapIn']);
+        if (!args.request) {
+          return cbk([400, 'ExpectedPaymentRequestToCreateSwapIn']);
         }
 
         if (!args.service || !args.service.newLoopInSwap) {
@@ -91,26 +91,10 @@ module.exports = (args, cbk) => {
         }
       }],
 
-      // Calculate swap fee
-      swapFee: ['parsedRequest', ({parsedRequest}, cbk) => {
-        const baseFee = args.base_fee;
-        const feeRate = args.fee_rate;
-        const {tokens} = parsedRequest;
-
-        const fee = ((tokens + baseFee) / (1 - feeRate / feeDivisor)) - tokens;
-
-        return cbk(null, Math.floor(fee));
-      }],
-
       // Create the swap
-      create: [
-        'keys',
-        'parsedRequest',
-        'swapFee',
-        ({keys, parsedRequest, swapFee}, cbk) =>
-      {
+      create: ['keys', 'parsedRequest', ({keys, parsedRequest}, cbk) => {
         return args.service.newLoopInSwap({
-          amt: parsedRequest.tokens + swapFee,
+          amt: parsedRequest.tokens + args.fee,
           sender_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(parsedRequest.id, 'hex'),
           swap_invoice: args.request,
@@ -128,16 +112,18 @@ module.exports = (args, cbk) => {
             return cbk([503, 'ExpectedResponseWhenCreatingSwapIn']);
           }
 
-          if (!isBuffer(res.receiver_key) || res.receiver_key.length !== pkLen) {
-            return cbk([503, 'ExpectedReceiverKeyWhenCreatingSwapIn']);
-          }
-
           if (!res.expiry) {
             return cbk([503, 'ExpectedExpiryHeightForCreatedSwapIn']);
           }
 
           if (res.expiry > args.max_timeout_height) {
             return cbk([503, 'ExpectedLowerExpiryHeightForCreatedSwapIn']);
+          }
+
+          const receiverKey = res.receiver_key;
+
+          if (!isBuffer(receiverKey) || receiverKey.length !== pkLen) {
+            return cbk([503, 'ExpectedReceiverKeyWhenCreatingSwapIn']);
           }
 
           return cbk(null, {
@@ -186,8 +172,7 @@ module.exports = (args, cbk) => {
         'keys',
         'parsedRequest',
         'script',
-        'swapFee',
-        ({address, create, keys, parsedRequest, script, swapFee}, cbk) =>
+        ({address, create, keys, parsedRequest, script}, cbk) =>
       {
         return cbk(null, {
           address,
@@ -196,7 +181,7 @@ module.exports = (args, cbk) => {
           private_key: !!args.public_key ? undefined : keys.private_key,
           service_public_key: create.service_public_key.toString('hex'),
           timeout: create.timeout,
-          tokens: parsedRequest.tokens + swapFee,
+          tokens: parsedRequest.tokens + args.fee,
         });
       }],
     },

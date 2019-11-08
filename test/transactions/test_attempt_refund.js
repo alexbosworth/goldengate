@@ -109,6 +109,74 @@ const tests = [
       refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
       start_height: 1,
       sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
+      timeout_height: Infinity,
+      tokens: 1000,
+    },
+    description: 'Swap script requires valid elements',
+    error: [400, 'FailedToDeriveSwapScriptForRefundAttempt'],
+  },
+  {
+    args: {
+      hash,
+      network,
+      request: ({method, url}, cbk) => {
+        if (/height/.test(url)) {
+          return cbk(null, {statusCode: 200}, 99);
+        }
+
+        if (/address/.test(url)) {
+          return cbk(null, {statusCode: 200}, [{
+            status: {block_height: 200},
+            txid: Buffer.alloc(32).toString('hex'),
+            value: 1000,
+            vout: 0,
+          }]);
+        }
+
+        if (method === 'POST') {
+          return cbk(null, {statusCode: 200}, 'txid');
+        }
+
+        return cbk();
+      },
+      service_public_key,
+      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      start_height: 1,
+      sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
+      timeout_height: 100,
+      tokens: 1000,
+    },
+    description: 'Refund with request requires valid request response',
+    error: [425, 'SwapTimeoutHeightNotMetForRefundTransaction'],
+  },
+  {
+    args: {
+      hash,
+      network,
+      request: ({method, url}, cbk) => {
+        if (/height/.test(url)) {
+          return cbk(null, {statusCode: 200}, 200);
+        }
+
+        if (/address/.test(url)) {
+          return cbk(null, {statusCode: 200}, [{
+            status: {block_height: 200},
+            txid: Buffer.alloc(32).toString('hex'),
+            value: 1000,
+            vout: 0,
+          }]);
+        }
+
+        if (method === 'POST') {
+          return cbk(null, {statusCode: 200}, 'txid');
+        }
+
+        return cbk();
+      },
+      service_public_key,
+      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      start_height: 1,
+      sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
       timeout_height: 100,
       tokens: 1000,
     },

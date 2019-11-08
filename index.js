@@ -15,7 +15,9 @@ const {getChainFeeRate} = require('./chain');
 const {getGrpcInterface} = require('./grpc');
 const {getHeight} = require('./chain');
 const {getSwapInQuote} = require('./lightninglabs');
+const {getSwapInTerms} = require('./lightninglabs');
 const {getSwapOutQuote} = require('./lightninglabs');
+const {getSwapOutTerms} = require('./lightninglabs');
 const {lightningLabsSwapService} = require('./lightninglabs');
 const {p2wshOutputScript} = require('./script');
 const {refundTransaction} = require('./transactions');
@@ -42,7 +44,9 @@ module.exports = {
   getGrpcInterface,
   getHeight,
   getSwapInQuote,
+  getSwapInTerms,
   getSwapOutQuote,
+  getSwapOutTerms,
   lightningLabsSwapService,
   p2wshOutputScript,
   refundTransaction,

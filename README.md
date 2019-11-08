@@ -1,4 +1,10 @@
 # GoldenGate
 
-Tools for dealing with HTLC-based transfers.
+Utility functions for working with HTLC-based transfers.
 
+## Networks
+
+Supported networks:
+
+- `btc`: Bitcoin mainnet
+- `btctestnet`: Bitcoin testnet3

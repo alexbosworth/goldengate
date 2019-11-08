@@ -102,40 +102,32 @@ module.exports = args => {
   tx.version = txVersion;
 
   // Estimate final weight and adjust output down to account for fee
-  try {
-    const {weight} = estimateTxWeight({
+  const {weight} = estimateTxWeight({
+    unlock: args.secret,
+    weight: tx.weight(),
+    witness_script: args.witness_script,
+  });
+
+  const fee = tokensPerVirtualByte * ceil(weight / vRatio);
+
+  const [out] = tx.outs;
+
+  // Reduce the sweep output by the fee amount
+  out.value = args.tokens - ceil(fee);
+
+  // Set witness
+  tx.ins.forEach((input, i) => {
+    const {witness} = witnessForResolution({
+      private_key: args.private_key,
+      tokens: args.tokens,
+      transaction: tx.toHex(),
       unlock: args.secret,
-      weight: tx.weight(),
+      vin: i,
       witness_script: args.witness_script,
     });
 
-    const fee = tokensPerVirtualByte * ceil(weight / vRatio);
-
-    const [out] = tx.outs;
-
-    // Reduce the sweep output by the fee amount
-    out.value = args.tokens - ceil(fee);
-  } catch (err) {
-    throw err;
-  }
-
-  // Set witness
-  try {
-    tx.ins.forEach((input, i) => {
-      const {witness} = witnessForResolution({
-        private_key: args.private_key,
-        tokens: args.tokens,
-        transaction: tx.toHex(),
-        unlock: args.secret,
-        vin: i,
-        witness_script: args.witness_script,
-      });
-
-      return tx.setWitness(i, witness.map(n => hexAsBuf(n)));
-    });
-  } catch (err) {
-    throw new Error('FailedToSetWitnessesForClaimTransaction');
-  }
+    return tx.setWitness(i, witness.map(n => hexAsBuf(n)));
+  });
 
   return {transaction: tx.toHex()};
 };

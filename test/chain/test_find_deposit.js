@@ -41,7 +41,7 @@ const tests = [
         },
       },
       network: 'btctestnet',
-      timeout: 1000,
+      timeout: 100000,
       transaction_id: 'f2598a12da364e22112c301f69c3ea8a7537a7b94210d3a07a792d2e585395a3',
       transaction_vout: 1,
     },
@@ -206,9 +206,17 @@ tests.forEach(({args, description, error, expected}) => {
       conf: {
         block_hash: Buffer.alloc(32),
         block_height: 1,
+        raw_tx: new Transaction().toBuffer(),
+      },
+    }), 100);
+
+    setTimeout(() => confirmationsEmitter.emit('data', {
+      conf: {
+        block_hash: Buffer.alloc(32),
+        block_height: 1,
         raw_tx: Buffer.from(transaction, 'hex'),
       },
-    }), 20);
+    }), 200);
 
     return findDeposit(args, (err, res) => {
       if (!!error) {

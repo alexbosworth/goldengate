@@ -30,7 +30,7 @@ const longRangeConfTarget = 1008;
     witness_script: <Swap Redeem Script Hex String>
   }
 
-  @returns via cbk
+  @returns via cbk or Promise
   {
     fee_rate: <Fee Rate Number>
     min_fee_rate: <Minimum Tokens Per VByte Fee Rate Number>
@@ -38,144 +38,146 @@ const longRangeConfTarget = 1008;
   }
 */
 module.exports = (args, cbk) => {
-  return asyncAuto({
-    // Check arguments
-    validate: cbk => {
-      if (!args.current_height) {
-        return cbk([400, 'ExpectedCurrentHeightForHtlcSweepAttempt']);
-      }
-
-      if (!args.deadline_height) {
-        return cbk([400, 'ExpectedDeadlineHeightWhenAttemptingHtlcSweep']);
-      }
-
-      if (!args.lnd && !args.request) {
-        return cbk([400, 'ExpectedEitherLndOrRequestToAttemptSweep']);
-      }
-
-      if (!args.max_fee_multiplier) {
-        return cbk([400, 'ExpectedMaxFeeMultiplierForHtlcSweepAttempt']);
-      }
-
-      if (!args.network) {
-        return cbk([400, 'ExpectedNetworkNameToExecuteUtxoSweepAttempt']);
-      }
-
-      if (!args.private_key) {
-        return cbk([400, 'ExpectedClaimPrivateKeyToExecuteUtxoSweepAttempt']);
-      }
-
-      if (!args.secret) {
-        return cbk([400, 'ExpectedSweepSecretToExecuteUtxoSweepAttempt']);
-      }
-
-      if (!args.start_height) {
-        return cbk([400, 'ExpectedSweepingStartHeightToAttemptNewSweep']);
-      }
-
-      if (!args.sweep_address) {
-        return cbk([400, 'ExpectedSweepAddressToExecuteUtxoSweepAttempt']);
-      }
-
-      if (!args.tokens) {
-        return cbk([400, 'ExpectedSwapTokensToExecuteUtxoSweepAttempt']);
-      }
-
-      if (!args.transaction_id) {
-        return cbk([400, 'ExpectedDepositTransactionIdToAttemptUtxoSweep']);
-      }
-
-      if (args.transaction_vout === undefined) {
-        return cbk([400, 'ExpectedDepositTransactionVoutToAttemptUtxoSweep']);
-      }
-
-      if (!args.witness_script) {
-        return cbk([400, 'ExpectedWitnessScriptToExecuteUtxoSweepAttempt']);
-      }
-
-      return cbk();
-    },
-
-    // Get minimal chain fee estimate
-    getChainFee: ['validate', ({}, cbk) => {
-      if (!!args.min_fee_rate) {
-        return cbk(null, args.min_fee_rate);
-      }
-
-      return getChainFeeRate({
-        confirmation_target: longRangeConfTarget,
-        lnd: args.lnd,
-        network: args.network,
-        request: args.request,
-      },
-      (err, res) => {
-        // Exit early with default fee rate if there is any issue
-        if (!!err || !res || !res.tokens_per_vbyte) {
-          return cbk(null, defaultMinFeeRate);
+  return new Promise((resolve, reject) => {
+    return asyncAuto({
+      // Check arguments
+      validate: cbk => {
+        if (!args.current_height) {
+          return cbk([400, 'ExpectedCurrentHeightForHtlcSweepAttempt']);
         }
 
-        return cbk(null, res.tokens_per_vbyte);
-      });
-    }],
+        if (!args.deadline_height) {
+          return cbk([400, 'ExpectedDeadlineHeightWhenAttemptingHtlcSweep']);
+        }
 
-    // Get an adjusted fee based on block progression
-    rate: ['getChainFee', ({getChainFee}, cbk) => {
-      try {
-        const {rate} = confirmationFee({
-          before: args.deadline_height - args.start_height,
-          cursor: args.current_height - args.start_height,
-          fee: getChainFee,
-          multiplier: args.max_fee_multiplier,
-        });
+        if (!args.lnd && !args.request) {
+          return cbk([400, 'ExpectedEitherLndOrRequestToAttemptSweep']);
+        }
 
-        return cbk(null, rate);
-      } catch (err) {
-        return cbk([500, 'FailedToCalculateConfirmationFeeRate', err]);
-      }
-    }],
+        if (!args.max_fee_multiplier) {
+          return cbk([400, 'ExpectedMaxFeeMultiplierForHtlcSweepAttempt']);
+        }
 
-    // Claim transaction
-    claim: ['getChainFee', 'rate', ({getChainFee, rate}, cbk) => {
-      try {
-        // Form the claim transaction to sweep the output
-        const {transaction} = claimTransaction({
-          block_height: args.current_height,
-          fee_tokens_per_vbyte: rate,
-          network: args.network,
-          private_key: args.private_key,
-          secret: args.secret,
-          sweep_address: args.sweep_address,
-          tokens: args.tokens,
-          transaction_id: args.transaction_id,
-          transaction_vout: args.transaction_vout,
-          witness_script: args.witness_script,
-        });
+        if (!args.network) {
+          return cbk([400, 'ExpectedNetworkNameToExecuteUtxoSweepAttempt']);
+        }
 
-        return cbk(null, {
-          transaction,
-          fee_rate: rate,
-          min_fee_rate: getChainFee,
-        });
-      } catch (err) {
-        return cbk([500, 'FailedToGenerateSweepTransaction', {err}]);
-      }
-    }],
+        if (!args.private_key) {
+          return cbk([400, 'ExpectedClaimPrivKeyToExecuteUtxoSweepAttempt']);
+        }
 
-    // Send transaction to peers to be mined
-    broadcast: ['claim', ({claim}, cbk) => {
-      // Exit early when this is a dry-run for a future broadcast
-      if (!!args.is_dry_run) {
+        if (!args.secret) {
+          return cbk([400, 'ExpectedSweepSecretToExecuteUtxoSweepAttempt']);
+        }
+
+        if (!args.start_height) {
+          return cbk([400, 'ExpectedSweepingStartHeightToAttemptNewSweep']);
+        }
+
+        if (!args.sweep_address) {
+          return cbk([400, 'ExpectedSweepAddressToExecuteUtxoSweepAttempt']);
+        }
+
+        if (!args.tokens) {
+          return cbk([400, 'ExpectedSwapTokensToExecuteUtxoSweepAttempt']);
+        }
+
+        if (!args.transaction_id) {
+          return cbk([400, 'ExpectedDepositTransactionIdToAttemptUtxoSweep']);
+        }
+
+        if (args.transaction_vout === undefined) {
+          return cbk([400, 'ExpectedDepositTxVoutToAttemptUtxoSweep']);
+        }
+
+        if (!args.witness_script) {
+          return cbk([400, 'ExpectedWitnessScriptToExecuteUtxoSweepAttempt']);
+        }
+
         return cbk();
-      }
-
-      return broadcastTransaction({
-        lnd: args.lnd,
-        network: args.network,
-        request: args.request,
-        transaction: claim.transaction,
       },
-      cbk);
-    }],
-  },
-  returnResult({of: 'claim'}, cbk));
+
+      // Get minimal chain fee estimate
+      getChainFee: ['validate', ({}, cbk) => {
+        if (!!args.min_fee_rate) {
+          return cbk(null, args.min_fee_rate);
+        }
+
+        return getChainFeeRate({
+          confirmation_target: longRangeConfTarget,
+          lnd: args.lnd,
+          network: args.network,
+          request: args.request,
+        },
+        (err, res) => {
+          // Exit early with default fee rate if there is any issue
+          if (!!err || !res || !res.tokens_per_vbyte) {
+            return cbk(null, defaultMinFeeRate);
+          }
+
+          return cbk(null, res.tokens_per_vbyte);
+        });
+      }],
+
+      // Get an adjusted fee based on block progression
+      rate: ['getChainFee', ({getChainFee}, cbk) => {
+        try {
+          const {rate} = confirmationFee({
+            before: args.deadline_height - args.start_height,
+            cursor: args.current_height - args.start_height,
+            fee: getChainFee,
+            multiplier: args.max_fee_multiplier,
+          });
+
+          return cbk(null, rate);
+        } catch (err) {
+          return cbk([500, 'FailedToCalculateConfirmationFeeRate', err]);
+        }
+      }],
+
+      // Claim transaction
+      claim: ['getChainFee', 'rate', ({getChainFee, rate}, cbk) => {
+        try {
+          // Form the claim transaction to sweep the output
+          const {transaction} = claimTransaction({
+            block_height: args.current_height,
+            fee_tokens_per_vbyte: rate,
+            network: args.network,
+            private_key: args.private_key,
+            secret: args.secret,
+            sweep_address: args.sweep_address,
+            tokens: args.tokens,
+            transaction_id: args.transaction_id,
+            transaction_vout: args.transaction_vout,
+            witness_script: args.witness_script,
+          });
+
+          return cbk(null, {
+            transaction,
+            fee_rate: rate,
+            min_fee_rate: getChainFee,
+          });
+        } catch (err) {
+          return cbk([500, 'FailedToGenerateSweepTransaction', {err}]);
+        }
+      }],
+
+      // Send transaction to peers to be mined
+      broadcast: ['claim', ({claim}, cbk) => {
+        // Exit early when this is a dry-run for a future broadcast
+        if (!!args.is_dry_run) {
+          return cbk();
+        }
+
+        return broadcastTransaction({
+          lnd: args.lnd,
+          network: args.network,
+          request: args.request,
+          transaction: claim.transaction,
+        },
+        cbk);
+      }],
+    },
+    returnResult({reject, resolve, of: 'claim'}, cbk));
+  });
 };

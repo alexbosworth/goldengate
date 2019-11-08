@@ -4,14 +4,81 @@ const {test} = require('tap');
 const {createSwapIn} = require('./../../');
 
 const expiry = 150;
+const request = 'lntb1500n1pwne5trpp5dgen963wrgm3y2ls8r0qv0guwgz6jjepn6w83803hlu2yp54r2fsdqvg9jxgg8zn2sscqzpgxqr23s02xlzwwanxyun29cgggcytlepmu352v2njq6cuvhl6uz6wlv7jzx8pxgvlf0983n43g243uxgv6ejt58ps035lerdulymarz9j98nqqp8340y4';
 const serviceKey = ECPair.makeRandom().publicKey.toString('hex');
 
 const tests = [
   {
+    args: {},
+    description: 'Expected fee to create swap in',
+    error: [400, 'ExpectedFeeToCreateSwapIn'],
+  },
+  {
+    args: {fee: 1},
+    description: 'Expected payment request to create swap in',
+    error: [400, 'ExpectedPaymentRequestToCreateSwapIn'],
+  },
+  {
+    args: {request, fee: 1},
+    description: 'Expected service to create swap in',
+    error: [400, 'ExpectedServiceToCreateSwapIn'],
+  },
+  {
+    args: {request, fee: 1, service: {newLoopInSwap: ({}, cbk) => cbk('err')}},
+    description: 'Error creating swap passed back',
+    error: [503, 'UnexpectedErrorCreatingSwapIn', {err: 'err'}],
+  },
+  {
+    args: {request, fee: 1, service: {newLoopInSwap: ({}, cbk) => cbk()}},
+    description: 'A response is expected',
+    error: [503, 'ExpectedResponseWhenCreatingSwapIn'],
+  },
+  {
     args: {
-      base_fee: 2,
-      fee_rate: 10000,
-      request: 'lntb1500n1pwne5trpp5dgen963wrgm3y2ls8r0qv0guwgz6jjepn6w83803hlu2yp54r2fsdqvg9jxgg8zn2sscqzpgxqr23s02xlzwwanxyun29cgggcytlepmu352v2njq6cuvhl6uz6wlv7jzx8pxgvlf0983n43g243uxgv6ejt58ps035lerdulymarz9j98nqqp8340y4',
+      request,
+      fee: 1,
+      service: {newLoopInSwap: ({}, cbk) => cbk(null, {})},
+    },
+    description: 'A response with expiry expected',
+    error: [503, 'ExpectedExpiryHeightForCreatedSwapIn'],
+  },
+  {
+    args: {
+      request,
+      fee: 1,
+      max_timeout_height: 1,
+      service: {newLoopInSwap: ({}, cbk) => cbk(null, {expiry: 2})},
+    },
+    description: 'A response with low expiry expected',
+    error: [503, 'ExpectedLowerExpiryHeightForCreatedSwapIn'],
+  },
+  {
+    args: {
+      request,
+      fee: 1,
+      service: {newLoopInSwap: ({}, cbk) => cbk(null, {expiry: 2})},
+    },
+    description: 'A receiver key is expected',
+    error: [503, 'ExpectedReceiverKeyWhenCreatingSwapIn'],
+  },
+  {
+    args: {
+      request,
+      fee: 1,
+      service: {
+        newLoopInSwap: ({}, cbk) => cbk(null, {
+          expiry: 2,
+          receiver_key: Buffer.alloc(0),
+        },
+      )},
+    },
+    description: 'A receiver key of pubkey length is expected',
+    error: [503, 'ExpectedReceiverKeyWhenCreatingSwapIn'],
+  },
+  {
+    args: {
+      request,
+      fee: 3,
       service: {
         newLoopInSwap: ({}, cbk) => {
           return cbk(null, {
@@ -27,11 +94,6 @@ const tests = [
       timeout: 200,
       tokens: 153,
     },
-  },
-  {
-    args: {},
-    description: 'Swap in requires base fee',
-    error: [400, 'ExpectedBaseFeeToCreateSwapIn'],
   },
 ];
 

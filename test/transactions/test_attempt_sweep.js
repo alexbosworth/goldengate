@@ -64,7 +64,7 @@ const tests = [
   {
     args: {current_height, deadline_height, lnd, max_fee_multiplier, network},
     description: 'A swap private key is required',
-    error: [400, 'ExpectedClaimPrivateKeyToExecuteUtxoSweepAttempt'],
+    error: [400, 'ExpectedClaimPrivKeyToExecuteUtxoSweepAttempt'],
   },
   {
     args: {
@@ -157,7 +157,7 @@ const tests = [
       witness_script,
     },
     description: 'A utxo transaction vout is required',
-    error: [400, 'ExpectedDepositTransactionVoutToAttemptUtxoSweep'],
+    error: [400, 'ExpectedDepositTxVoutToAttemptUtxoSweep'],
   },
   {
     args: {
@@ -180,18 +180,16 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({deepIs, equal, end}) => {
-    return attemptSweep(args, (err, res) => {
-      if (!!error) {
-        deepIs(err, error, 'Expected error returned');
-      } else {
-        equal(err, null, 'Sweep attempted');
+  return test(description, async ({deepIs, equal, end, rejects}) => {
+    if (!!error) {
+      rejects(attemptSweep(args), error, 'Expected error returned');
+    } else {
+      const res = await attemptSweep(args);
 
-        equal(res.min_fee_rate, expected, 'Returns min fee rate used');
-        equal(!!res.transaction, true, 'Returns transaction');
-      }
+      equal(res.min_fee_rate, expected, 'Returns min fee rate used');
+      equal(!!res.transaction, true, 'Returns transaction');
+    }
 
-      return end();
-    });
+    return end();
   });
 });

@@ -56,6 +56,10 @@ module.exports = args => {
     throw new Error('ExpectedDestinationForRefundTransactionToSweepOutTo');
   }
 
+  if (!args.tokens) {
+    throw new Error('ExpectedUtxoTokensAmountForRefundTransaction');
+  }
+
   if (!args.transaction_id) {
     throw new Error('ExpectedTransactionIdToCreateRefundTransaction');
   }
@@ -72,11 +76,7 @@ module.exports = args => {
   const tx = new Transaction();
 
   // Add sweep output
-  try {
-    tx.addOutput(toOutputScript(args.sweep_address, network), args.tokens);
-  } catch (err) {
-    throw new Error('FailedToAddSweepAddressOutputScriptToRefundTransaction');
-  }
+  tx.addOutput(toOutputScript(args.sweep_address, network), args.tokens);
 
   // Add the UTXO to sweep
   tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
@@ -87,35 +87,27 @@ module.exports = args => {
   // Set transaction locktime which will be needed for OP_CLTV
   tx.locktime = bip65Encode({blocks: args.block_height});
 
-  try {
-    const nested = nestedWitnessScript({witness_script: args.witness_script});
+  const nested = nestedWitnessScript({witness_script: args.witness_script});
 
-    const script = hexAsBuf(nested.redeem_script);
+  const script = hexAsBuf(nested.redeem_script);
 
-    // Set the nested redeem script
-    tx.ins.forEach((input, i) => tx.setInputScript(i, script));
-  } catch (err) {
-    throw new Error('FailedToSetNestedRedeemScriptForRefundTransaction');
-  }
+  // Set the nested redeem script
+  tx.ins.forEach((input, i) => tx.setInputScript(i, script));
 
   // Estimate final weight and reduce output by this estimate
-  try {
-    const {weight} = estimateTxWeight({
-      unlock: dummy,
-      weight: tx.weight(),
-      witness_script: args.witness_script,
-    });
+  const {weight} = estimateTxWeight({
+    unlock: dummy,
+    weight: tx.weight(),
+    witness_script: args.witness_script,
+  });
 
-    // Reduce the final output value to give some tokens over to fees
-    const [out] = tx.outs;
+  // Reduce the final output value to give some tokens over to fees
+  const [out] = tx.outs;
 
-    out.value -= args.fee_tokens_per_vbyte * ceil(weight / vRatio);
+  out.value -= args.fee_tokens_per_vbyte * ceil(weight / vRatio);
 
-    if (out.value < minTokens) {
-      throw new Error('ExpectedMoreTokensForRefundTransaction');
-    }
-  } catch (err) {
-    throw err;
+  if (out.value < minTokens) {
+    throw new Error('ExpectedMoreTokensForRefundTransaction');
   }
 
   // Exit early when there is no private key to sign the refund inputs
@@ -124,24 +116,20 @@ module.exports = args => {
   }
 
   // Set witness
-  try {
-    tx.outs.forEach(out => out.value = ceil(out.value));
+  tx.outs.forEach(out => out.value = ceil(out.value));
 
-    tx.ins.forEach((input, i) => {
-      const {witness} = witnessForResolution({
-        private_key: args.private_key,
-        tokens: args.tokens,
-        transaction: tx.toHex(),
-        unlock: dummy,
-        vin: i,
-        witness_script: args.witness_script,
-      });
-
-      return tx.setWitness(i, witness.map(n => hexAsBuf(n)));
+  tx.ins.forEach((input, i) => {
+    const {witness} = witnessForResolution({
+      private_key: args.private_key,
+      tokens: args.tokens,
+      transaction: tx.toHex(),
+      unlock: dummy,
+      vin: i,
+      witness_script: args.witness_script,
     });
-  } catch (err) {
-    throw new Error('FailedToSetWitnessesForClaimTransaction');
-  }
+
+    return tx.setWitness(i, witness.map(n => hexAsBuf(n)));
+  });
 
   return {transaction: tx.toHex()};
 };
