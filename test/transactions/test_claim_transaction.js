@@ -17,6 +17,122 @@ const {script} = swapScript({
 
 const tests = [
   {
+    args: {},
+    description: 'A block height is required',
+    error: 'ExpectedBlockHeightForClaimTransaction',
+  },
+  {
+    args: {block_height: 1},
+    description: 'Fee rate is required',
+    error: 'ExpectedFeeTokensPerVbyte',
+  },
+  {
+    args: {block_height: 1, fee_tokens_per_vbyte: 1},
+    description: 'Network is required',
+    error: 'ExpectedNetworkNameForClaimTransaction',
+  },
+  {
+    args: {block_height: 1, fee_tokens_per_vbyte: 1, network: 'network'},
+    description: 'Known network is required',
+    error: 'ExpectedNetworkNameForClaimTransaction',
+  },
+  {
+    args: {block_height: 1, fee_tokens_per_vbyte: 1, network: 'btctestnet'},
+    description: 'Private key is required',
+    error: 'ExpectedPrivateKeyForClaimTransaction',
+  },
+  {
+    args: {
+      block_height: 1,
+      fee_tokens_per_vbyte: 1,
+      network: 'btctestnet',
+      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+    },
+    description: 'Preimage is required',
+    error: 'ExpectedPreimageSecretForClaimTransaction',
+  },
+  {
+    args: {
+      block_height: 1,
+      fee_tokens_per_vbyte: 1,
+      network: 'btctestnet',
+      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      secret: Buffer.alloc(32).toString('hex'),
+    },
+    description: 'A sweep address is required',
+    error: 'ExpectedSweepAddressForClaimTransaction',
+  },
+  {
+    args: {
+      block_height: 1,
+      fee_tokens_per_vbyte: 1,
+      network: 'btctestnet',
+      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      secret: Buffer.alloc(32).toString('hex'),
+      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
+    },
+    description: 'Tokens are required',
+    error: 'ExpectedTokensForClaimTransaction',
+  },
+  {
+    args: {
+      block_height: 1,
+      fee_tokens_per_vbyte: 1,
+      network: 'btctestnet',
+      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      secret: Buffer.alloc(32).toString('hex'),
+      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
+      tokens: 1,
+    },
+    description: 'A transaction id is required',
+    error: 'ExpectedTransactionIdForClaimTransaction',
+  },
+  {
+    args: {
+      block_height: 1,
+      fee_tokens_per_vbyte: 1,
+      network: 'btctestnet',
+      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      secret: Buffer.alloc(32).toString('hex'),
+      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
+      tokens: 1,
+      transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
+    },
+    description: 'A transaction vout is required',
+    error: 'ExpectedTransactionVoutForClaimTransaction',
+  },
+  {
+    args: {
+      block_height: 1,
+      fee_tokens_per_vbyte: 1,
+      network: 'btctestnet',
+      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      secret: Buffer.alloc(32).toString('hex'),
+      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
+      tokens: 1,
+      transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
+      transaction_vout: 0,
+    },
+    description: 'A witness script is required',
+    error: 'ExpectedWitnessScriptForClaimTransaction',
+  },
+  {
+    args: {
+      block_height: 1,
+      fee_tokens_per_vbyte: 1,
+      network: 'btctestnet',
+      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      secret: Buffer.alloc(32).toString('hex'),
+      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
+      tokens: -1,
+      transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
+      transaction_vout: 0,
+      witness_script: script,
+    },
+    description: 'A valid tokens value is required',
+    error: 'FailedToAddSweepAddressOutputScript',
+  },
+  {
     args: {
       block_height: 1571579,
       fee_tokens_per_vbyte: 1,
@@ -45,26 +161,30 @@ const tests = [
   },
 ];
 
-tests.forEach(({args, description, expected}) => {
-  return test(description, ({equal, end}) => {
-    const tx = Transaction.fromHex(claimTransaction(args).transaction);
+tests.forEach(({args, description, error, expected}) => {
+  return test(description, ({equal, end, throws}) => {
+    if (!!error) {
+      throws(() => claimTransaction(args), new Error(error), 'Got error');
+    } else {
+      const tx = Transaction.fromHex(claimTransaction(args).transaction);
 
-    const [input] = tx.ins;
-    const [out] = tx.outs;
+      const [input] = tx.ins;
+      const [out] = tx.outs;
 
-    const [witnessSig, witnessUnlock, witnessScript] = input.witness;
+      const [witnessSig, witnessUnlock, witnessScript] = input.witness;
 
-    equal(input.hash.toString('hex'), expected.input_hash, 'Input hash');
-    equal(input.index, expected.input_index, 'Input index as expected');
-    equal(input.script.toString('hex'), expected.input_script, 'Input script');
-    equal(input.sequence, expected.input_sequence, 'Input sequence expected');
-    equal(out.script.toString('hex'), expected.out_script, 'Got out script');
-    equal(out.value, expected.out_value, 'Output value as expected');
-    equal(tx.locktime, expected.locktime, 'Transaction locktime as expected');
-    equal(tx.version, expected.version, 'Transaction version as expected');
-    equal(!!witnessSig, true, 'Witness signature returned');
-    equal(witnessUnlock.toString('hex'), expected.witness_unlock, 'Unlock');
-    equal(witnessScript.toString('hex'), expected.witness_script, 'Script');
+      equal(input.hash.toString('hex'), expected.input_hash, 'Input hash');
+      equal(input.index, expected.input_index, 'Input index as expected');
+      equal(input.script.toString('hex'), expected.input_script, 'Got script');
+      equal(input.sequence, expected.input_sequence, 'Got input sequence');
+      equal(out.script.toString('hex'), expected.out_script, 'Got out script');
+      equal(out.value, expected.out_value, 'Output value as expected');
+      equal(tx.locktime, expected.locktime, 'Tx locktime as expected');
+      equal(tx.version, expected.version, 'Transaction version as expected');
+      equal(!!witnessSig, true, 'Witness signature returned');
+      equal(witnessUnlock.toString('hex'), expected.witness_unlock, 'Unlock');
+      equal(witnessScript.toString('hex'), expected.witness_script, 'Script');
+    }
 
     return end();
   });

@@ -50,12 +50,12 @@ module.exports = args => {
     throw new Error('ExpectedNetworkNameForClaimTransaction');
   }
 
-  if (!args.secret) {
-    throw new Error('ExpectedPreimageSecretForClaimTransaction');
-  }
-
   if (!args.private_key) {
     throw new Error('ExpectedPrivateKeyForClaimTransaction');
+  }
+
+  if (!args.secret) {
+    throw new Error('ExpectedPreimageSecretForClaimTransaction');
   }
 
   if (!args.sweep_address) {

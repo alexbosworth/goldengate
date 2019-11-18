@@ -8,13 +8,16 @@ const {returnResult} = require('asyncjs-util');
 const {addressForScript} = require('./../script');
 const {swapScript} = require('./../script');
 
+const msPerSec = 1e3;
 const preimageLen = 32;
-const randomHex = byteLength => randomBytes(byteLength).toString('hex')
+const randomHex = byteLength => randomBytes(byteLength).toString('hex');
+const {round} = Math;
 const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
 /** Create a swap out request
 
   {
+    [fund_at]: <Request Funding On-Chain Before ISO 8601 Date String>
     [hash]: <Swap Hash String>
     network: <Network Name String>
     [private_key]: <Private Key Hex String>
@@ -63,6 +66,17 @@ module.exports = (args, cbk) => {
       return cbk();
     },
 
+    // Deadline for swap execution
+    deadline: ['validate', ({}, cbk) => {
+      if (!args.fund_at) {
+        return cbk();
+      }
+
+      const epochMs = new Date(args.fund_at).getTime();
+
+      return cbk(null, round(epochMs / msPerSec).toString());
+    }],
+
     // Keys
     keys: ['validate', ({}, cbk) => {
       const key = ECPair.makeRandom();
@@ -85,11 +99,12 @@ module.exports = (args, cbk) => {
     }],
 
     // Create the swap
-    create: ['keys', ({keys}, cbk) => {
+    create: ['deadline', 'keys', ({deadline, keys}, cbk) => {
       return args.service.newLoopOutSwap({
         amt: `${args.tokens}`,
         receiver_key: Buffer.from(keys.public_key, 'hex'),
         swap_hash: Buffer.from(keys.swap_hash, 'hex'),
+        swap_publication_deadline: deadline,
       },
       (err, res) => {
         if (!!err) {

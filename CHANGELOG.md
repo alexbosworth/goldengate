@@ -1,5 +1,9 @@
 # Versions
 
+## 3.1.0
+
+- `createSwapOut`: Add `fund_at` attribute to specify an acceptable funding time
+
 ## 3.0.0
 
 - Add `getSwapInTerms` to look up max and min swap sizes for on-to-off-chain
