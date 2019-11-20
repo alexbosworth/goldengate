@@ -1,6 +1,6 @@
 # Versions
 
-## 3.1.0
+## 3.1.1
 
 - `createSwapOut`: Add `fund_at` attribute to specify an acceptable funding time
 
