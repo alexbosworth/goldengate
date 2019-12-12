@@ -2,7 +2,7 @@ const {script} = require('bitcoinjs-lib');
 const {test} = require('tap');
 const {Transaction} = require('bitcoinjs-lib');
 
-const {isSweep} = require('./../../transactions');
+const {isSweep} = require('./../../');
 const {swapScript} = require('./../../script');
 
 const {compile} = script;

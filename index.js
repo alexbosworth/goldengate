@@ -18,6 +18,7 @@ const {getSwapInQuote} = require('./lightninglabs');
 const {getSwapInTerms} = require('./lightninglabs');
 const {getSwapOutQuote} = require('./lightninglabs');
 const {getSwapOutTerms} = require('./lightninglabs');
+const {isSweep} = require('./transactions');
 const {lightningLabsSwapService} = require('./lightninglabs');
 const {p2wshOutputScript} = require('./script');
 const {refundTransaction} = require('./transactions');
@@ -47,6 +48,7 @@ module.exports = {
   getSwapInTerms,
   getSwapOutQuote,
   getSwapOutTerms,
+  isSweep,
   lightningLabsSwapService,
   p2wshOutputScript,
   refundTransaction,

@@ -1,6 +1,6 @@
 # Versions
 
-## 4.0.0
+## 4.0.1
 
 - Add `isSweep` to determine if a raw transaction is a sweep
 
