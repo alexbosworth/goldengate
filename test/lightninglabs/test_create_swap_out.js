@@ -32,18 +32,16 @@ const tests = [
 ];
 
 tests.forEach(({args, description, expected}) => {
-  return test(description, ({equal, end}) => {
-    return createSwapOut(args, (err, res) => {
-      equal(err, null, 'No error creating swap');
+  return test(description, async ({equal, end}) => {
+    const res = await createSwapOut(args);
 
-      equal(!!res.private_key, true, 'Private key created');
-      equal(!!res.secret, true, 'Preimage secret created');
-      equal(res.service_public_key, serviceKey, 'Service key returned');
-      equal(res.swap_execute_request, expected.prepay, 'Prepay pay request');
-      equal(res.swap_fund_request, expected.swap_payreq, 'Swap pay request');
-      equal(res.timeout, expected.expiry, 'Swap expiry height');
+    equal(!!res.private_key, true, 'Private key created');
+    equal(!!res.secret, true, 'Preimage secret created');
+    equal(res.service_public_key, serviceKey, 'Service key returned');
+    equal(res.swap_execute_request, expected.prepay, 'Prepay pay request');
+    equal(res.swap_fund_request, expected.swap_payreq, 'Swap pay request');
+    equal(res.timeout, expected.expiry, 'Swap expiry height');
 
-      return end();
-    });
+    return end();
   });
 });

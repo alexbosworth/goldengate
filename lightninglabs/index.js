@@ -1,4 +1,3 @@
-const checkQuote = require('./check_quote');
 const createSwapIn = require('./create_swap_in');
 const createSwapOut = require('./create_swap_out');
 const decodeSwapRecovery = require('./decode_swap_recovery');
@@ -13,7 +12,6 @@ const swapInAddress = require('./swap_in_address');
 const swapInFee = require('./swap_in_fee');
 
 module.exports = {
-  checkQuote,
   createSwapIn,
   createSwapOut,
   decodeSwapRecovery,

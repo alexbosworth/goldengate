@@ -1,5 +1,13 @@
 # Versions
 
+## 4.0.0
+
+- Add `isSweep` to determine if a raw transaction is a sweep
+
+### Breaking Changes
+
+- `checkQuote`: Eliminate function
+
 ## 3.1.1
 
 - `createSwapOut`: Add `fund_at` attribute to specify an acceptable funding time
