@@ -2,22 +2,40 @@ const {test} = require('tap');
 
 const {getSwapOutQuote} = require('./../../lightninglabs');
 
+const makeArgs = override => {
+  const args = {
+    service: {
+      loopOutQuote: ({}, cbk) => {
+        return cbk(null, {
+          cltv_delta: 1,
+          prepay_amt: '1',
+          swap_fee: '1',
+          swap_payment_dest: Buffer.alloc(33).toString('hex'),
+        });
+      },
+    },
+    tokens: 1,
+  };
+
+  Object.keys(override).forEach(key => args[key] = override[key]);
+
+  return args;
+};
+
 const tests = [
   {
-    args: {
-      service: {
-        loopOutQuote: ({}, cbk) => {
-          return cbk(null, {
-            cltv_delta: 1,
-            prepay_amt: '1',
-            swap_fee: '1',
-            swap_payment_dest: Buffer.alloc(33).toString('hex'),
-          });
-        },
-      },
-      tokens: 1,
-    },
+    args: makeArgs({}),
     description: 'Get a swap quote',
+    expected: {
+      cltv_delta: 1,
+      deposit: 1,
+      destination: Buffer.alloc(33).toString('hex'),
+      fee: 1,
+    },
+  },
+  {
+    args: makeArgs({delay: new Date().toISOString()}),
+    description: 'Get a swap quote with a delay',
     expected: {
       cltv_delta: 1,
       deposit: 1,

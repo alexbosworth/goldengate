@@ -232,6 +232,7 @@ const maxTokens = (await getSwapInTerms({service})).max_tokens;
 Get swap quote from swap service
 
     {
+      [delay]: <Delay Swap Funding Until ISO 8601 Date String>
       service: <Swap Service Object>
       tokens: <Tokens Number>
     }

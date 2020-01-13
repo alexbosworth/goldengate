@@ -2,10 +2,13 @@ const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
 const decBase = 10;
+const msPerSec = 1e3;
+const {round} = Math;
 
 /** Get swap quote from swap service
 
   {
+    [delay]: <Delay Swap Funding Until ISO 8601 Date String>
     service: <Swap Service Object>
     tokens: <Tokens Number>
   }
@@ -18,7 +21,7 @@ const decBase = 10;
     fee: <Total Fee Tokens Number>
   }
 */
-module.exports = ({service, tokens}, cbk) => {
+module.exports = ({delay, service, tokens}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
@@ -34,9 +37,24 @@ module.exports = ({service, tokens}, cbk) => {
         return cbk();
       },
 
+      // Swap publication deadline
+      deadline: ['validate', ({}, cbk) => {
+        if (!delay) {
+          return cbk();
+        }
+
+        const epochMs = new Date(delay).getTime();
+
+        return cbk(null, round(epochMs / msPerSec).toString());
+      }],
+
       // Get quote
-      getQuote: ['validate', ({}, cbk) => {
-        return service.loopOutQuote({amt: tokens.toString()}, (err, res) => {
+      getQuote: ['deadline', ({deadline}, cbk) => {
+        return service.loopOutQuote({
+          amt: tokens.toString(),
+          swap_publication_deadline: deadline,
+        },
+        (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapQuote', {err}]);
           }

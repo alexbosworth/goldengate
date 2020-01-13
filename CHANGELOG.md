@@ -1,5 +1,9 @@
 # Versions
 
+## 4.1.0
+
+- Add delay parameter to swap out quotes
+
 ## 4.0.2
 
 - Add `isSweep` to determine if a raw transaction is a sweep
