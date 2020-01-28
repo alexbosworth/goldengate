@@ -4,6 +4,7 @@ const serviceSocket = require('./service_socket');
 /** Lightning Labs swap service
 
   {
+    [is_free]: <Use Free Service Endpoint Bool>
     network: <Network Name String>
   }
 
@@ -15,8 +16,11 @@ const serviceSocket = require('./service_socket');
     service: <Swap Service gRPC API Object>
   }
 */
-module.exports = ({network}) => {
-  const {socket} = serviceSocket({network});
+module.exports = args => {
+  const {socket} = serviceSocket({
+    is_free: args.is_free,
+    network: args.network,
+  });
 
   return {service: getGrpcInterface({socket}).grpc};
 };

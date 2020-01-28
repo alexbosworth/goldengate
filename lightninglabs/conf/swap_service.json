@@ -1,6 +1,12 @@
 {
   "sockets": {
-    "btc": "swap.lightning.today:11009",
-    "btctestnet": "test.swap.lightning.today:11009"
+    "free": {
+      "btc": "swap.lightning.today:11009",
+      "btctestnet": "test.swap.lightning.today:11009"
+    },
+    "paid": {
+      "btc": "swap.lightning.today:11010",
+      "btctestnet": "test.swap.lightning.today:11010"
+    }
   }
 }

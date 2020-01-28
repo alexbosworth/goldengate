@@ -1,5 +1,11 @@
 # Versions
 
+## 5.0.0
+
+Switch to using paid LightningLabs swap service by default
+
+- `getSwapMacaroon`: add method to get a swap macaroon and auth payment request
+
 ## 4.1.0
 
 - Add delay parameter to swap out quotes

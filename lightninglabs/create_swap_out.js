@@ -3,12 +3,16 @@ const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
 const {ECPair} = require('bitcoinjs-lib');
+const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {addressForScript} = require('./../script');
+const parsePaymentMetadata = require('./parse_payment_metadata');
 const {swapScript} = require('./../script');
 
+const authHeader = 'Authorization';
 const msPerSec = 1e3;
+const paymentRequiredError = 'payment required';
 const preimageLen = 32;
 const randomHex = byteLength => randomBytes(byteLength).toString('hex');
 const {round} = Math;
@@ -19,7 +23,9 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
   {
     [fund_at]: <Request Funding On-Chain Before ISO 8601 Date String>
     [hash]: <Swap Hash String>
+    [macaroon]: <Base64 Encoded Macaroon String>
     network: <Network Name String>
+    [preimage]: <Authentication Preimage Hex String>
     [private_key]: <Private Key Hex String>
     [public_key]: <Public Key Hex String>
     [secret]: <Secret Hex String>
@@ -46,6 +52,10 @@ module.exports = (args, cbk) => {
       validate: cbk => {
         if (!!args.hash && !!args.secret) {
           return cbk([400, 'ExpectedOnlySwapHashOrSwapSecretNotBoth']);
+        }
+
+        if (!!args.macaroon && !args.preimage) {
+          return cbk([400, 'ExpectedPreimageWhenMacaroonIsProvided']);
         }
 
         if (!args.network) {
@@ -101,17 +111,31 @@ module.exports = (args, cbk) => {
 
       // Create the swap
       create: ['deadline', 'keys', ({deadline, keys}, cbk) => {
+        const metadata = new Metadata();
+
+        if (!!args.macaroon) {
+          metadata.add(authHeader, `LSAT ${args.macaroon}:${args.preimage}`);
+        }
+
         return args.service.newLoopOutSwap({
           amt: `${args.tokens}`,
           receiver_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(keys.swap_hash, 'hex'),
           swap_publication_deadline: deadline,
         },
+        metadata,
         (err, res) => {
+          // Exit early when the service requires a macaroon
+          if (!!err && err.details === paymentRequiredError) {
+            return cbk([402, 'PaymentRequiredToCreateSwap']);
+          }
+
+          // Exit early on an unanticipated error from the remote service
           if (!!err) {
             return cbk([503, 'UnexpectedErrorCreatingSwap', {err}]);
           }
 
+          // Exit early when there is no response
           if (!res) {
             return cbk([503, 'ExpectedResponseWhenCreatingSwap']);
           }

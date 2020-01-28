@@ -3,6 +3,7 @@ const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
 const {ECPair} = require('bitcoinjs-lib');
+const {Metadata} = require('grpc');
 const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
 
@@ -10,6 +11,7 @@ const {addressForScript} = require('./../script');
 const {swapScript} = require('./../script');
 
 const alreadyCreatedError = 'contract already exists';
+const authHeader = 'Authorization';
 const decBase = 10;
 const feeDivisor = 1e6;
 const {isBuffer} = Buffer;
@@ -21,7 +23,9 @@ const preimageLen = 32;
 
   {
     fee: <Fee Tokens Number>
+    [macaroon]: <Base64 Encoded Macaroon String>
     max_timeout_height: <Max Timeout Height Number>
+    [preimage]: <Authentication Preimage Hex String>
     [private_key]: <Refund Private Key Hex String>
     [public_key]: <Refund Public Key Hex String>
     request: <BOLT 11 Payment Request String>
@@ -93,12 +97,19 @@ module.exports = (args, cbk) => {
 
       // Create the swap
       create: ['keys', 'parsedRequest', ({keys, parsedRequest}, cbk) => {
+        const metadata = new Metadata();
+
+        if (!!args.macaroon) {
+          metadata.add(authHeader, `LSAT ${args.macaroon}:${args.preimage}`);
+        }
+
         return args.service.newLoopInSwap({
           amt: parsedRequest.tokens + args.fee,
           sender_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(parsedRequest.id, 'hex'),
           swap_invoice: args.request,
         },
+        metadata,
         (err, res) => {
           if (!!err && err.details === alreadyCreatedError) {
             return cbk([400, 'SwapInAlreadyPreviouslyCreatedForThisHash']);

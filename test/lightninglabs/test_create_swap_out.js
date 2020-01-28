@@ -10,7 +10,7 @@ const tests = [
   {
     args: {
       service: {
-        newLoopOutSwap: ({}, cbk) => {
+        newLoopOutSwap: ({}, {}, cbk) => {
           return cbk(null, {
             expiry,
             prepay_invoice: 'prepay_invoice',

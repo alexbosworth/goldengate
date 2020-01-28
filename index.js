@@ -16,6 +16,7 @@ const {getGrpcInterface} = require('./grpc');
 const {getHeight} = require('./chain');
 const {getSwapInQuote} = require('./lightninglabs');
 const {getSwapInTerms} = require('./lightninglabs');
+const {getSwapMacaroon} = require('./lightninglabs');
 const {getSwapOutQuote} = require('./lightninglabs');
 const {getSwapOutTerms} = require('./lightninglabs');
 const {isSweep} = require('./transactions');
@@ -46,6 +47,7 @@ module.exports = {
   getHeight,
   getSwapInQuote,
   getSwapInTerms,
+  getSwapMacaroon,
   getSwapOutQuote,
   getSwapOutTerms,
   isSweep,

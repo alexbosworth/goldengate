@@ -4,9 +4,14 @@ const {serviceSocket} = require('./../../lightninglabs');
 
 const tests = [
   {
-    args: {network: 'btc'},
-    description: 'Get service socket',
+    args: {is_free: true, network: 'btc'},
+    description: 'Get service socket for free endpoint',
     expected: {socket: 'swap.lightning.today:11009'},
+  },
+  {
+    args: {network: 'btc'},
+    description: 'Get service socket for paid endpoint',
+    expected: {socket: 'swap.lightning.today:11010'},
   },
   {
     args: {},
@@ -16,6 +21,11 @@ const tests = [
   {
     args: {network: 'unknown'},
     description: 'Service socket requires known network',
+    error: 'ExpectedKnownNetworkForServiceSocket',
+  },
+  {
+    args: {is_free: true, network: 'unknown'},
+    description: 'Free service socket requires known network',
     error: 'ExpectedKnownNetworkForServiceSocket',
   },
 ];

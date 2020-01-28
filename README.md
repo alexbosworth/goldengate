@@ -227,6 +227,28 @@ const {service} = lightningSwapService({network: 'btctestnet'});
 const maxTokens = (await getSwapInTerms({service})).max_tokens;
 ```
 
+### getSwapMacaroon
+
+Get an unpaid swap macaroon that can be converted to a paid one by paying
+
+    {
+      service: <Unauthenticated Swap Service Object>
+    }
+
+    @returns via cbk or Promise
+    {
+      macaroon: <Base64 Encoded Unpaid Macaroon String>
+      request: <Payment Request To Activate Macaroon BOLT 11 String>
+    }
+
+```node
+const {getSwapMacaroon} = require('goldengate');
+
+const {service} = lightningSwapService({network: 'btctestnet'});
+
+const {macaroon, request} = await getSwapMacaroon({service});
+```
+
 ### getSwapOutQuote
 
 Get swap quote from swap service
