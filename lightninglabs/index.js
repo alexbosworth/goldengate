@@ -11,6 +11,7 @@ const lightningLabsSwapService = require('./lightning_labs_swap_service');
 const serviceSocket = require('./service_socket');
 const swapInAddress = require('./swap_in_address');
 const swapInFee = require('./swap_in_fee');
+const swapUserId = require('./swap_user_id');
 
 module.exports = {
   createSwapIn,
@@ -26,4 +27,5 @@ module.exports = {
   serviceSocket,
   swapInAddress,
   swapInFee,
+  swapUserId,
 };

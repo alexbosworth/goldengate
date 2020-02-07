@@ -1,5 +1,7 @@
 const {parse} = require('@mitmaro/http-authorization-header');
 
+const swapUserId = require('./swap_user_id');
+
 const expectedScheme = 'LSAT';
 const {isArray} = Array;
 const macaroonKey = 'macaroon';
@@ -14,6 +16,7 @@ const requestKey = 'invoice';
   @returns
   {
     [payment]: {
+      id: <User Id Hex String>
       macaroon: <Base64 Serialized Macaroon String>
       request: <BOLT 11 Payment Request>
     }
@@ -66,5 +69,13 @@ module.exports = ({metadata}) => {
     return {};
   }
 
-  return {payment: {macaroon, request}};
+  try {
+    swapUserId({macaroon});
+  } catch (err) {
+    return {};
+  }
+
+  const {id} = swapUserId({macaroon});
+
+  return {payment: {id, macaroon, request}};
 };

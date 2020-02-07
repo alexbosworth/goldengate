@@ -301,3 +301,28 @@ const {isSweep} = require('goldengate');
 // Transaction is a hex encoded raw transaction
 const isTimeoutSweep = isSweep({transaction}).is_timeout_sweep;
 ```
+
+### swapUserId
+
+Derive the swap user id from the swap macaroon
+
+    {
+      macaroon: <Base64 Encoded Macaroon String>
+    }
+
+    @throws
+    <Error>
+
+    @returns
+    {
+      id: <Swap User Id Hex String>
+    }
+
+Example:
+
+```node
+const {swapUserId} = require('goldengate');
+
+// Derive the user id from the swap macaroon
+const {id} = swapUserId({macaroon: 'base64Macaroon'});
+```

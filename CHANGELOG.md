@@ -1,5 +1,9 @@
 # Versions
 
+## 5.1.0
+
+- `swapUserId`: add method to derive a user id that is encoded in a macaroon
+
 ## 5.0.0
 
 Switch to using paid LightningLabs swap service by default

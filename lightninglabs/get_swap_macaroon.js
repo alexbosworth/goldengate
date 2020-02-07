@@ -21,6 +21,7 @@ const paymentRequiredError = 'payment required';
 
   @returns via cbk or Promise
   {
+    id: <Authenticated User Id String>
     macaroon: <Base64 Encoded Unpaid Macaroon String>
     request: <Payment Request To Activate Macaroon BOLT 11 String>
   }
@@ -66,6 +67,7 @@ module.exports = ({service}, cbk) => {
           }
 
           return cbk(null, {
+            id: payment.id,
             macaroon: payment.macaroon,
             request: payment.request,
           });

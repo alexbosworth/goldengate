@@ -27,6 +27,7 @@ const {serviceSocket} = require('./lightninglabs');
 const {subscribeToBlocks} = require('./chain');
 const {swapInFee} = require('./lightninglabs');
 const {swapScript} = require('./script');
+const {swapUserId} = require('./lightninglabs');
 
 module.exports = {
   addressForScript,
@@ -58,4 +59,5 @@ module.exports = {
   subscribeToBlocks,
   swapInFee,
   swapScript,
+  swapUserId,
 };

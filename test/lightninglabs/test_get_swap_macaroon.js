@@ -2,7 +2,9 @@ const {test} = require('tap');
 
 const {getSwapMacaroon} = require('./../../');
 
-const auth = `LSAT macaroon="macaroon", invoice="invoice"`;
+const macaroon = 'AgEEbHNhdAJCAADXNkGQ+faRDM3Ey4M6YGALyTwqnLqDTNVgCBckgnpSZ4vd9z8+Ndr1+zLD6i/AmJIbDVuEAvBwgZBezq2hcys5AAIPc2VydmljZXM9bG9vcDowAAISbG9vcF9jYXBhYmlsaXRpZXM9AAAGIDPTqKe/hckryPR6hINTa7Dg8/bbxqVqq02/eBMpmt7Z';
+
+const auth = `LSAT macaroon="${macaroon}", invoice="invoice"`;
 
 const loopOutTerms = ({}, cbk) => cbk(null, {
   max_swap_amount: '2',
@@ -54,7 +56,7 @@ const tests = [
       },
     },
     description: 'Payment details are expected',
-    expected: {macaroon: 'macaroon', request: 'invoice'},
+    expected: {macaroon, request: 'invoice'},
   },
 ];
 
