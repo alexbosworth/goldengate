@@ -1,5 +1,3 @@
-const request = require('request');
-
 const {apis} = require('./conf/blockstream-info');
 
 /** Publish transaction to the mempool

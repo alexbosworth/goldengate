@@ -1,6 +1,6 @@
 # Versions
 
-## 5.1.0
+## 5.1.2
 
 - `swapUserId`: add method to derive a user id that is encoded in a macaroon
 

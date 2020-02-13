@@ -43,7 +43,7 @@ Example:
 
 ```node
 const {createSwapIn, getSwapInQuote, lightningSwapService} = require('goldengate');
-const request = require('request');
+const request = require('@alexbosworth/request');
 
 const currentBlockHeight = 1500000;
 const {service} = lightningSwapService({network: 'btctestnet'});

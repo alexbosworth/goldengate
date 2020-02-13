@@ -31,7 +31,7 @@ module.exports = ({network, request}, cbk) => {
   },
   (err, r, fees) => {
     if (!!err) {
-      return cbk([503, 'UnexpectedErrorGettingFeeEstimates', err]);
+      return cbk([503, 'UnexpectedErrorGettingFeeEstimates', {err}]);
     }
 
     if (!r || r.statusCode !== 200) {
