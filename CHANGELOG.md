@@ -1,5 +1,9 @@
 # Versions
 
+## 5.2.0
+
+- `createSwapIn`: add `in_through` parameter to specify swap inbound peer
+
 ## 5.1.2
 
 - `swapUserId`: add method to derive a user id that is encoded in a macaroon

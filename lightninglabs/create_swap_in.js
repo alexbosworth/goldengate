@@ -12,7 +12,7 @@ const {swapScript} = require('./../script');
 
 const alreadyCreatedError = 'contract already exists';
 const authHeader = 'Authorization';
-const decBase = 10;
+const bufFromHex = hex => Buffer.from(hex, 'hex');
 const feeDivisor = 1e6;
 const {isBuffer} = Buffer;
 const networks = {bitcoin: 'btc', testnet: 'btctestnet'};
@@ -23,6 +23,7 @@ const preimageLen = 32;
 
   {
     fee: <Fee Tokens Number>
+    [in_through]: <Request Payment In Through Peer With Public Key Hex String>
     [macaroon]: <Base64 Encoded Macaroon String>
     max_timeout_height: <Max Timeout Height Number>
     [preimage]: <Authentication Preimage Hex String>
@@ -105,6 +106,7 @@ module.exports = (args, cbk) => {
 
         return args.service.newLoopInSwap({
           amt: parsedRequest.tokens + args.fee,
+          last_hop: !args.in_through ? undefined : bufFromHex(args.in_through),
           sender_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(parsedRequest.id, 'hex'),
           swap_invoice: args.request,
