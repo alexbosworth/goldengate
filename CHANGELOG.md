@@ -1,6 +1,6 @@
 # Versions
 
-## 5.2.0
+## 5.2.1
 
 - `createSwapIn`: add `in_through` parameter to specify swap inbound peer
 
