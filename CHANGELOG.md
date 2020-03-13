@@ -1,5 +1,9 @@
 # Versions
 
+## 5.3.0
+
+- `attemptSweep`: add `sends` parameter to specify exact amount sends to attempt
+
 ## 5.2.1
 
 - `createSwapIn`: add `in_through` parameter to specify swap inbound peer

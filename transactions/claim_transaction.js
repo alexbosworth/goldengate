@@ -3,16 +3,14 @@ const bip65Encode = require('bip65').encode;
 const {networks} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
-const estimateTxWeight = require('./estimate_tx_weight');
+const claimOutputs = require('./claim_outputs');
 const {names} = require('./../conf/bitcoinjs-lib');
 const witnessForResolution = require('./witness_for_resolution');
 
-const {ceil} = Math;
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
 const minSequenceValue = 0;
 const {toOutputScript} = address;
 const txVersion = 2;
-const vRatio = 4;
 
 /** Make a claim transaction for a swap
 
@@ -22,6 +20,10 @@ const vRatio = 4;
     network: <Network Name String>
     private_key: <Raw Private Key Hex String>
     secret: <HTLC Preimage Hex String>
+    [sends]: [{
+      address: <Send to Address String>
+      tokens: <Send Tokens Number>
+    }]
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
@@ -79,18 +81,24 @@ module.exports = args => {
   }
 
   const network = networks[names[args.network]];
-  const tokensPerVirtualByte = args.fee_tokens_per_vbyte;
   const tx = new Transaction();
 
   // Add UTXO to tx
   tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
 
-  // Add sweep output
-  try {
-    tx.addOutput(toOutputScript(args.sweep_address, network), args.tokens);
-  } catch (err) {
-    throw new Error('FailedToAddSweepAddressOutputScript');
-  }
+  const {outputs} = claimOutputs({
+    address: args.sweep_address,
+    network: args.network,
+    rate: args.fee_tokens_per_vbyte,
+    sends: !args.sends ? [] : args.sends,
+    script: args.witness_script,
+    tokens: args.tokens,
+  });
+
+  // Setup appropriate outputs
+  outputs.forEach(({address, tokens}) => {
+    return tx.addOutput(toOutputScript(address, network), tokens);
+  });
 
   // Set input sequence number
   tx.ins.forEach(n => n.sequence = minSequenceValue);
@@ -100,20 +108,6 @@ module.exports = args => {
 
   // Set tx version
   tx.version = txVersion;
-
-  // Estimate final weight and adjust output down to account for fee
-  const {weight} = estimateTxWeight({
-    unlock: args.secret,
-    weight: tx.weight(),
-    witness_script: args.witness_script,
-  });
-
-  const fee = tokensPerVirtualByte * ceil(weight / vRatio);
-
-  const [out] = tx.outs;
-
-  // Reduce the sweep output by the fee amount
-  out.value = args.tokens - ceil(fee);
 
   // Set witness
   tx.ins.forEach((input, i) => {

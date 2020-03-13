@@ -15,6 +15,40 @@ Supported networks:
 
 ## Methods
 
+### attemptSweep
+
+Attempt a sweep
+
+    {
+      current_height: <Current Chain Height Number>
+      deadline_height: <Ultimate Target Chain Height Number>
+      [is_dry_run]: <Avoid Broadcasting Transaction Bool>
+      [lnd]: <Authenticated gRPC LND API Object>
+      [min_fee_rate]: <Minimum Relay Fee Tokens Per VByte Number>
+      max_fee_multiplier: <Maximum Fee Multiplier Number>
+      network: <Network Name String>
+      private_key: <Sweep Claim Key Private Key Hex String>
+      [request]: <Request Function>
+      secret: <Secret Preimage Hex String>
+      [sends]: [{
+        address: <Send to Address String>
+        tokens: <Send Tokens Number>
+      }]
+      start_height: <Starting Height of Attempts Number>
+      sweep_address: <Bech32 Sweep Address String>
+      tokens: <Sweep Tokens Number>
+      transaction_id: <Deposit Transaction Id String>
+      transaction_vout: <Deposit Transaction Vout Number>
+      witness_script: <Swap Redeem Script Hex String>
+    }
+
+    @returns via cbk or Promise
+    {
+      fee_rate: <Fee Rate Number>
+      min_fee_rate: <Minimum Tokens Per VByte Fee Rate Number>
+      transaction: <Raw Transaction Hex String>
+    }
+
 ### createSwapIn
 
 Create a swap in

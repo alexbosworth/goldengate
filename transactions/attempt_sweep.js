@@ -22,6 +22,10 @@ const longRangeConfTarget = 1008;
     private_key: <Sweep Claim Key Private Key Hex String>
     [request]: <Request Function>
     secret: <Secret Preimage Hex String>
+    [sends]: [{
+      address: <Send to Address String>
+      tokens: <Send Tokens Number>
+    }]
     start_height: <Starting Height of Attempts Number>
     sweep_address: <Bech32 Sweep Address String>
     tokens: <Sweep Tokens Number>
@@ -145,6 +149,7 @@ module.exports = (args, cbk) => {
             network: args.network,
             private_key: args.private_key,
             secret: args.secret,
+            sends: args.sends,
             sweep_address: args.sweep_address,
             tokens: args.tokens,
             transaction_id: args.transaction_id,
