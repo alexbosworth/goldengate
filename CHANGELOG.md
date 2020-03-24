@@ -1,6 +1,6 @@
 # Versions
 
-## 5.3.0
+## 5.3.1
 
 - `attemptSweep`: add `sends` parameter to specify exact amount sends to attempt
 
