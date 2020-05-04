@@ -4,20 +4,33 @@ syntax = "proto3";
 
 package looprpc;
 
-option go_package = "github.com/lightninglabs/loop/looprpc";
-
 service SwapServer {
-    rpc LoopOutTerms(ServerLoopOutTermsRequest) returns (ServerLoopOutTerms);
+    rpc LoopOutTerms (ServerLoopOutTermsRequest) returns (ServerLoopOutTerms);
 
-    rpc NewLoopOutSwap(ServerLoopOutRequest) returns (ServerLoopOutResponse);
+    rpc NewLoopOutSwap (ServerLoopOutRequest) returns (ServerLoopOutResponse);
 
-    rpc LoopOutQuote(ServerLoopOutQuoteRequest) returns (ServerLoopOutQuote);
+    rpc LoopOutQuote (ServerLoopOutQuoteRequest) returns (ServerLoopOutQuote);
 
-    rpc LoopInTerms(ServerLoopInTermsRequest) returns (ServerLoopInTerms);
+    rpc LoopInTerms (ServerLoopInTermsRequest) returns (ServerLoopInTerms);
 
-    rpc NewLoopInSwap(ServerLoopInRequest) returns (ServerLoopInResponse);
+    rpc NewLoopInSwap (ServerLoopInRequest) returns (ServerLoopInResponse);
 
-    rpc LoopInQuote(ServerLoopInQuoteRequest) returns (ServerLoopInQuoteResponse);
+    rpc LoopInQuote (ServerLoopInQuoteRequest)
+        returns (ServerLoopInQuoteResponse);
+}
+
+/**
+This enum defines the protocol versions that clients may adhere to. Note that
+this is not a flagged enum. If a particular protocol version adds a feature,
+then in general all the preceding features are also supported. Exception to this
+is when features get deprecated.
+*/
+enum ProtocolVersion {
+    /// No protocol version reported at all.
+    LEGACY = 0;
+
+    /// Client may attempt to send the loop out payment in multiple parts.
+    MULTI_LOOP_OUT = 1;
 }
 
 message ServerLoopOutRequest {
@@ -29,6 +42,9 @@ message ServerLoopOutRequest {
 
     /// The unix time in seconds we want the on-chain swap to be published by.
     int64 swap_publication_deadline = 4;
+
+    /// The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 5;
 }
 
 message ServerLoopOutResponse {
@@ -47,6 +63,9 @@ message ServerLoopOutQuoteRequest {
 
     /// The unix time in seconds we want the on-chain swap to be published by.
     int64 swap_publication_deadline = 2;
+
+    /// The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 3;
 }
 
 message ServerLoopOutQuote {
@@ -55,18 +74,21 @@ message ServerLoopOutQuote {
     /// The total estimated swap fee given the quote amt.
     int64 swap_fee = 2;
 
-    reserved 3;
+    /// Deprecated, total swap fee given quote amt is calculated in swap_fee.
+    int64 swap_fee_rate = 3 [deprecated = true];
 
     uint64 prepay_amt = 4;
 
-    reserved 5;
+    uint64 min_swap_amount = 5 [deprecated = true];
 
-    reserved 6;
+    uint64 max_swap_amount = 6 [deprecated = true];
 
     int32 cltv_delta = 7;
 }
 
 message ServerLoopOutTermsRequest {
+    /// The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 1;
 }
 
 message ServerLoopOutTerms {
@@ -80,6 +102,9 @@ message ServerLoopInRequest {
     uint64 amt = 3;
     string swap_invoice = 4;
     bytes last_hop = 5;
+
+    /// The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 6;
 }
 
 message ServerLoopInResponse {
@@ -90,17 +115,22 @@ message ServerLoopInResponse {
 message ServerLoopInQuoteRequest {
     /// The swap amount. If zero, a quote for a maximum amt swap will be given.
     uint64 amt = 1;
+
+    /// The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 2;
 }
-    
+
 message ServerLoopInQuoteResponse {
     int64 swap_fee = 1;
-    reserved 2;
-    reserved 4;
-    reserved 5;
+    int64 swap_fee_rate = 2 [deprecated = true];
+    uint64 min_swap_amount = 4 [deprecated = true];
+    uint64 max_swap_amount = 5 [deprecated = true];
     int32 cltv_delta = 6;
 }
 
 message ServerLoopInTermsRequest {
+    /// The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 1;
 }
 
 message ServerLoopInTerms {

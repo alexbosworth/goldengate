@@ -6,6 +6,7 @@ const {returnResult} = require('asyncjs-util');
 const getSwapOutTerms = require('./get_swap_out_terms');
 const lightningLabsSwapService = require('./lightning_labs_swap_service');
 const parsePaymentMetadata = require('./parse_payment_metadata');
+const {protocolVersion} = require('./conf/swap_service');
 
 const authHeader = 'www-authenticate';
 const bufferFromHex = hex => Buffer.from(hex, 'hex');
@@ -45,6 +46,7 @@ module.exports = ({service}, cbk) => {
       getUnpaidMacaroon: ['getSwapValue', ({getSwapValue}, cbk) => {
         return service.newLoopOutSwap({
           amt: getSwapValue.max_tokens.toString(),
+          protocol_version: protocolVersion,
           receiver_key: bufferFromHex(makePublicKeyHex()),
           swap_hash: makeSwapHash(),
         },

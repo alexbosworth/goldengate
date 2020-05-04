@@ -5,7 +5,11 @@ const {getSwapOutQuote} = require('./../../lightninglabs');
 const makeArgs = override => {
   const args = {
     service: {
-      loopOutQuote: ({}, cbk) => {
+      loopOutQuote: (args, cbk) => {
+        if (args.protocol_version !== 'MULTI_LOOP_OUT') {
+          return cbk([400, 'InvalidProtocolVersionSpecified']);
+        }
+
         return cbk(null, {
           cltv_delta: 1,
           prepay_amt: '1',
@@ -78,10 +82,12 @@ const tests = [
   },
   {
     args: {
-      service: {loopOutQuote: ({}, cbk) => cbk(null, {
-        cltv_delta: 1,
-        prepay_amt: '1',
-      })},
+      service: {
+        loopOutQuote: ({}, cbk) => cbk(null, {
+          cltv_delta: 1,
+          prepay_amt: '1',
+        }),
+      },
       tokens: 1,
     },
     description: 'A swap fee is expected in response',
@@ -89,11 +95,13 @@ const tests = [
   },
   {
     args: {
-      service: {loopOutQuote: ({}, cbk) => cbk(null, {
-        cltv_delta: 1,
-        prepay_amt: '1',
-        swap_fee: '1',
-      })},
+      service: {
+        loopOutQuote: ({}, cbk) => cbk(null, {
+          cltv_delta: 1,
+          prepay_amt: '1',
+          swap_fee: '1',
+        },
+      )},
       tokens: 1,
     },
     description: 'A payment destination public key is expected in response',

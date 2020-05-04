@@ -8,6 +8,7 @@ const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
 
 const {addressForScript} = require('./../script');
+const {protocolVersion} = require('./conf/swap_service');
 const {swapScript} = require('./../script');
 
 const alreadyCreatedError = 'contract already exists';
@@ -107,6 +108,7 @@ module.exports = (args, cbk) => {
         return args.service.newLoopInSwap({
           amt: parsedRequest.tokens + args.fee,
           last_hop: !args.in_through ? undefined : bufFromHex(args.in_through),
+          protocol_version: protocolVersion,
           sender_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(parsedRequest.id, 'hex'),
           swap_invoice: args.request,

@@ -19,13 +19,7 @@ const tests = [
   {
     args: {network: 'btctestnet', request: ({}, cbk) => cbk()},
     description: 'Raw transaction is required to broadcast transaction',
-    error: [
-      400,
-      'ExpectedValidTransactionToPublish',
-      {
-        err: new Error('The first argument must be one of type string, Buffer, ArrayBuffer, Array, or Array-like Object. Received type undefined'),
-      },
-    ],
+    error: [400, 'ExpectedValidTransactionToPublish'],
   },
   {
     args: {

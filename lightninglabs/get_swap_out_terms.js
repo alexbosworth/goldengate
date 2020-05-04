@@ -1,6 +1,8 @@
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
+const {protocolVersion} = require('./conf/swap_service');
+
 /** Get swap terms from swap service
 
   {
@@ -27,7 +29,10 @@ module.exports = ({service}, cbk) => {
 
       // Get terms
       getTerms: ['validate', ({}, cbk) => {
-        return service.loopOutTerms({}, (err, res) => {
+        return service.loopOutTerms({
+          protocol_version: protocolVersion,
+        },
+        (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapTerms', {err}]);
           }

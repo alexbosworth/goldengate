@@ -8,6 +8,7 @@ const {returnResult} = require('asyncjs-util');
 
 const {addressForScript} = require('./../script');
 const parsePaymentMetadata = require('./parse_payment_metadata');
+const {protocolVersion} = require('./conf/swap_service');
 const {swapScript} = require('./../script');
 
 const authHeader = 'Authorization';
@@ -204,6 +205,7 @@ module.exports = (args, cbk) => {
           address,
           script,
           private_key: !!args.public_key ? undefined : keys.private_key,
+          protocol_version: protocolVersion,
           secret: !!args.hash ? undefined : keys.swap_secret,
           service_public_key: create.sender_key.toString('hex'),
           swap_execute_request: create.prepay_invoice,

@@ -1,7 +1,8 @@
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
-const decBase = 10;
+const {protocolVersion} = require('./conf/swap_service');
+
 const msPerSec = 1e3;
 const {round} = Math;
 
@@ -52,6 +53,7 @@ module.exports = ({delay, service, tokens}, cbk) => {
       getQuote: ['deadline', ({deadline}, cbk) => {
         return service.loopOutQuote({
           amt: tokens.toString(),
+          protocol_version: protocolVersion,
           swap_publication_deadline: deadline,
         },
         (err, res) => {

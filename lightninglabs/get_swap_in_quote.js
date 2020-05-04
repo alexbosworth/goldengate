@@ -1,7 +1,7 @@
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
-const decBase = 10;
+const {protocolVersion} = require('./conf/swap_service');
 
 /** Get swap in quote from swap service
 
@@ -34,7 +34,11 @@ module.exports = ({service, tokens}, cbk) => {
 
       // Get quote
       getQuote: ['validate', ({}, cbk) => {
-        return service.loopInQuote({amt: tokens.toString()}, (err, res) => {
+        return service.loopInQuote({
+          amt: tokens.toString(),
+          protocol_version: protocolVersion,
+        },
+        (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapInQuote', {err}]);
           }
