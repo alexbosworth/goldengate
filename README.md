@@ -55,7 +55,10 @@ Create a swap in
 
     {
       fee: <Fee Tokens Number>
+      [in_through]: <Request Payment In Through Peer With Public Key Hex String>
+      [macaroon]: <Base64 Encoded Macaroon String>
       max_timeout_height: <Max Timeout Height Number>
+      [preimage]: <Authentication Preimage Hex String>
       [private_key]: <Refund Private Key Hex String>
       [public_key]: <Refund Public Key Hex String>
       request: <BOLT 11 Payment Request String>
@@ -66,6 +69,7 @@ Create a swap in
     {
       address: <Swap Chain Address String>
       id: <Swap Preimage Hash Hex String>
+      nested_address: <Swap P2SH Wrapped P2WSH Chain Address String>
       [private_key]: <Private Key Hex String>
       script: <Witness Script Hex String>
       service_public_key: <Service Public Key Hex String>
@@ -99,7 +103,9 @@ Create a swap out request
     {
       [fund_at]: <Request Funding On-Chain Before ISO 8601 Date String>
       [hash]: <Swap Hash String>
+      [macaroon]: <Base64 Encoded Macaroon String>
       network: <Network Name String>
+      [preimage]: <Authentication Preimage Hex String>
       [private_key]: <Private Key Hex String>
       [public_key]: <Public Key Hex String>
       [secret]: <Secret Hex String>

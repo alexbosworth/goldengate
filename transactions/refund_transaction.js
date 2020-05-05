@@ -22,6 +22,7 @@ const vRatio = 4;
   {
     block_height: <Timelock Block Height Number>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
+    [is_nested]: <Refund Spending From Nested Output Bool>
     network: <Network Name String>
     [private_key]: <Refund Private Key WIF String>
     sweep_address: <Sweep Tokens to Address String>
@@ -87,12 +88,15 @@ module.exports = args => {
   // Set transaction locktime which will be needed for OP_CLTV
   tx.locktime = bip65Encode({blocks: args.block_height});
 
-  const nested = nestedWitnessScript({witness_script: args.witness_script});
+  // When using nested P2SH, the true script hash is added to the scriptSig
+  if (!!args.is_nested) {
+    const nested = nestedWitnessScript({witness_script: args.witness_script});
 
-  const script = hexAsBuf(nested.redeem_script);
+    const script = hexAsBuf(nested.redeem_script);
 
-  // Set the nested redeem script
-  tx.ins.forEach((input, i) => tx.setInputScript(i, script));
+    // Set the nested redeem script
+    tx.ins.forEach((input, i) => tx.setInputScript(i, script));
+  }
 
   // Estimate final weight and reduce output by this estimate
   const {weight} = estimateTxWeight({

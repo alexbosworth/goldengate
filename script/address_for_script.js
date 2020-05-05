@@ -37,11 +37,11 @@ module.exports = ({network, script}) => {
     throw new Error('ExpectedWitnessScriptToDeriveAddress');
   }
 
-  const nested = p2shP2wshOutputScript({script});
+  const nested = p2shP2wshOutputScript({script}).output;
   const {output} = p2wshOutputScript({script});
 
   return {
     address: fromOutputScript(hexAsBuf(output), networks[names[network]]),
-    nested: fromOutputScript(hexAsBuf(nested.output), networks[names[network]]),
+    nested: fromOutputScript(hexAsBuf(nested), networks[names[network]]),
   };
 };

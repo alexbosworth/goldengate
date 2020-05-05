@@ -1,5 +1,10 @@
 # Versions
 
+## 5.4.0
+
+- `createSwapIn`: switch `address` to use native segwit swap address
+- `createSwapIn`: add `nested_address` to show alternative nested swap address
+
 ## 5.3.4
 
 - `attemptSweep`: add `sends` parameter to specify exact amount sends to attempt

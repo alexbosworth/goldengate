@@ -38,6 +38,7 @@ const preimageLen = 32;
   {
     address: <Swap Chain Address String>
     id: <Swap Preimage Hash Hex String>
+    nested_address: <Swap P2SH Wrapped P2WSH Chain Address String>
     [private_key]: <Private Key Hex String>
     script: <Witness Script Hex String>
     service_public_key: <Service Public Key Hex String>
@@ -174,7 +175,7 @@ module.exports = (args, cbk) => {
         const {network} = parsedRequest;
 
         try {
-          return cbk(null, addressForScript({network, script}).nested);
+          return cbk(null, addressForScript({network, script}));
         } catch (err) {
           return cbk([503, 'FailedToDeriveAddressFromOutputScript']);
         }
@@ -190,9 +191,10 @@ module.exports = (args, cbk) => {
         ({address, create, keys, parsedRequest, script}, cbk) =>
       {
         return cbk(null, {
-          address,
           script,
+          address: address.address,
           id: parsedRequest.id,
+          nested_address: address.nested,
           private_key: !!args.public_key ? undefined : keys.private_key,
           service_public_key: create.service_public_key.toString('hex'),
           timeout: create.timeout,
