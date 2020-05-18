@@ -1,5 +1,5 @@
 {
-  "protocolVersion": "MULTI_LOOP_OUT",
+  "protocolVersion": "NATIVE_SEGWIT_LOOP_IN",
   "sockets": {
     "free": {
       "btc": "swap.lightning.today:11009",

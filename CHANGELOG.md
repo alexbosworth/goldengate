@@ -1,6 +1,6 @@
 # Versions
 
-## 5.4.0
+## 5.4.1
 
 - `createSwapIn`: switch `address` to use native segwit swap address
 - `createSwapIn`: add `nested_address` to show alternative nested swap address
