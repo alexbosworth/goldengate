@@ -80,11 +80,12 @@ Create a swap in
 Example:
 
 ```node
-const {createSwapIn, getSwapInQuote, lightningSwapService} = require('goldengate');
+const {createSwapIn, getSwapInQuote} = require('goldengate');
+const {lightningLabsSwapService} = require('goldengate');
 const request = require('@alexbosworth/request');
 
 const currentBlockHeight = 1500000;
-const {service} = lightningSwapService({network: 'btctestnet'});
+const {service} = lightningLabsSwapService({network: 'btctestnet'});
 const tokens = 1000000;
 
 const {address} = await createSwapIn({
@@ -126,11 +127,11 @@ Create a swap out request
     }
 
 ```node
-const {createSwapOut, lightningSwapService} = require('goldengate');
+const {createSwapOut, lightningLabsSwapService} = require('goldengate');
 
 const swap = await createSwapOut({
   network: 'btctestnet',
-  service: lightningSwapService({network: 'btctestnet'}).service,
+  service: lightningLabsSwapService({network: 'btctestnet'}).service,
   tokens: 1000000,
 });
 
@@ -236,10 +237,10 @@ Get swap in quote from swap service
     }
 
 ```node
-const {getSwapInQuote, lightningSwapService} = require('goldengate');
+const {getSwapInQuote, lightningLabsSwapService} = require('goldengate');
 
 const {fee} = await getSwapInQuote({
-  service: lightningSwapService({network: 'btctestnet'}).service,
+  service: lightningLabsSwapService({network: 'btctestnet'}).service,
   tokens: 1000000,
 });
 // Fee required to complete a swap in
@@ -260,9 +261,9 @@ Get swap terms from swap service
     }
 
 ```node
-const {getSwapInTerms, lightningSwapService} = require('goldengate');
+const {getSwapInTerms, lightningLabsSwapService} = require('goldengate');
 
-const {service} = lightningSwapService({network: 'btctestnet'});
+const {service} = lightningLabsSwapService({network: 'btctestnet'});
 
 const maxTokens = (await getSwapInTerms({service})).max_tokens;
 ```
@@ -283,8 +284,9 @@ Get an unpaid swap macaroon that can be converted to a paid one by paying
 
 ```node
 const {getSwapMacaroon} = require('goldengate');
+const {lightningLabsSwapService} = require('goldengate');
 
-const {service} = lightningSwapService({network: 'btctestnet'});
+const {service} = lightningLabsSwapService({network: 'btctestnet'});
 
 const {macaroon, request} = await getSwapMacaroon({service});
 ```
@@ -308,9 +310,9 @@ Get swap quote from swap service
     }
 
 ```node
-const {getSwapOutQuote, lightningSwapService} = require('goldengate');
+const {getSwapOutQuote, lightningLabsSwapService} = require('goldengate');
 
-const {service} = lightningSwapService({network: 'btctestnet'});
+const {service} = lightningLabsSwapService({network: 'btctestnet'});
 
 const {fee} = await getSwapOutQuote({service, tokens: 1000000});
 // Fee is the service fee to perform a swap out
@@ -340,6 +342,34 @@ const {isSweep} = require('goldengate');
 
 // Transaction is a hex encoded raw transaction
 const isTimeoutSweep = isSweep({transaction}).is_timeout_sweep;
+```
+
+### lightningLabsSwapService
+
+Lightning Labs swap service
+
+    {
+      [is_free]: <Use Free Service Endpoint Bool>
+      network: <Network Name String>
+      [socket]: <Custom Socket String>
+    }
+
+    @throws
+    <Error>
+
+    @returns
+    {
+      service: <Swap Service gRPC API Object>
+    }
+
+Example:
+
+```node
+const {lightningLabsSwapService} = require('goldengate');
+
+const {service} = lightningLabsSwapService({network: 'btctestnet'});
+
+const {fee} = await getSwapOutQuote({service, tokens: 1000000});
 ```
 
 ### swapUserId

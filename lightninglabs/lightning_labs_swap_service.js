@@ -6,6 +6,7 @@ const serviceSocket = require('./service_socket');
   {
     [is_free]: <Use Free Service Endpoint Bool>
     network: <Network Name String>
+    [socket]: <Custom Socket String>
   }
 
   @throws
@@ -22,5 +23,5 @@ module.exports = args => {
     network: args.network,
   });
 
-  return {service: getGrpcInterface({socket}).grpc};
+  return {service: getGrpcInterface({socket: args.socket || socket}).grpc};
 };
