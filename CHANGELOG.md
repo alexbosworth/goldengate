@@ -1,5 +1,9 @@
 # Versions
 
+## 5.5.0
+
+- `lightningLabsSwapsService`:  add `socket` argument to specify custom socket
+
 ## 5.4.1
 
 - `createSwapIn`: switch `address` to use native segwit swap address
