@@ -10,11 +10,11 @@
     "asyncjs-util": "1.2.2",
     "bip65": "1.0.3",
     "bitcoin-ops": "1.4.1",
-    "bitcoinjs-lib": "5.1.7",
-    "bn.js": "5.1.1",
+    "bitcoinjs-lib": "5.1.10",
+    "bn.js": "5.1.2",
     "cbor": "5.0.2",
-    "grpc": "1.24.2",
-    "ln-service": "48.1.0",
+    "grpc": "1.24.3",
+    "ln-service": "48.4.0",
     "macaroon": "3.0.4",
     "pushdata-bitcoin": "1.0.1",
     "varuint-bitcoin": "1.1.2"
@@ -36,5 +36,5 @@
   "scripts": {
     "test": "tap test/blockstream/*.js test/chain/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/transactions/*.js"
   },
-  "version": "5.5.0"
+  "version": "5.5.1"
 }

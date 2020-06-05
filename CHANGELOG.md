@@ -1,6 +1,6 @@
 # Versions
 
-## 5.5.0
+## 5.5.1
 
 - `lightningLabsSwapsService`:  add `socket` argument to specify custom socket
 
