@@ -372,6 +372,29 @@ const {service} = lightningLabsSwapService({network: 'btctestnet'});
 const {fee} = await getSwapOutQuote({service, tokens: 1000000});
 ```
 
+### releaseSwapOutSecret
+
+Release the swap secret to the swap server to obtain inbound more quickly
+
+    {
+      secret: <Secret Preimage Hex String>
+      service: <Swap Service Object>
+    }
+
+    @returns via cbk or Promise
+
+Example:
+
+```node
+const {lightningLabsSwapService, releaseSwapOutSecret} = require('goldengate');
+
+const secret = '0000000000000000000000000000000000000000000000000000000000000000';
+const {service} = lightningLabsSwapService({network: 'btctestnet'});
+
+// Tell the server about the preimage to complete the off-chain part of the swap
+await releaseSwapOutSecret({secret, service});
+```
+
 ### swapUserId
 
 Derive the swap user id from the swap macaroon

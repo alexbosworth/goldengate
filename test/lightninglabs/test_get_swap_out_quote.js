@@ -6,7 +6,7 @@ const makeArgs = override => {
   const args = {
     service: {
       loopOutQuote: (args, cbk) => {
-        if (args.protocol_version !== 'NATIVE_SEGWIT_LOOP_IN') {
+        if (args.protocol_version !== 'PREIMAGE_PUSH_LOOP_OUT') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 

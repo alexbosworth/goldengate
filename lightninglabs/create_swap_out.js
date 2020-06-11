@@ -120,6 +120,7 @@ module.exports = (args, cbk) => {
 
         return args.service.newLoopOutSwap({
           amt: `${args.tokens}`,
+          protocol_version: protocolVersion,
           receiver_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(keys.swap_hash, 'hex'),
           swap_publication_deadline: deadline,

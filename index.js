@@ -23,6 +23,7 @@ const {isSweep} = require('./transactions');
 const {lightningLabsSwapService} = require('./lightninglabs');
 const {p2wshOutputScript} = require('./script');
 const {refundTransaction} = require('./transactions');
+const {releaseSwapOutSecret} = require('./lightninglabs');
 const {serviceSocket} = require('./lightninglabs');
 const {subscribeToBlocks} = require('./chain');
 const {swapInFee} = require('./lightninglabs');
@@ -55,6 +56,7 @@ module.exports = {
   lightningLabsSwapService,
   p2wshOutputScript,
   refundTransaction,
+  releaseSwapOutSecret,
   serviceSocket,
   subscribeToBlocks,
   swapInFee,
