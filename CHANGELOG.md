@@ -1,5 +1,9 @@
 # Versions
 
+## 5.6.0
+
+- `releaseSwapOutSecret`: Add method to release the swap secret to the server
+
 ## 5.5.1
 
 - `lightningLabsSwapsService`:  add `socket` argument to specify custom socket
