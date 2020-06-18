@@ -6,7 +6,7 @@ const macaroon = 'AgEEbHNhdAJCAADXNkGQ+faRDM3Ey4M6YGALyTwqnLqDTNVgCBckgnpSZ4vd9z
 
 const auth = `LSAT macaroon="${macaroon}", invoice="invoice"`;
 
-const loopOutTerms = ({}, cbk) => cbk(null, {
+const loopOutTerms = ({}, {}, cbk) => cbk(null, {
   max_swap_amount: '2',
   min_swap_amount: '1',
 });

@@ -251,6 +251,8 @@ const {fee} = await getSwapInQuote({
 Get swap terms from swap service
 
     {
+      [macaroon]: <Base64 Encoded Macaroon String>
+      [preimage]: <Authentication Preimage Hex String>
       service: <Swap Service Object>
     }
 
@@ -297,6 +299,8 @@ Get swap quote from swap service
 
     {
       [delay]: <Delay Swap Funding Until ISO 8601 Date String>
+      [macaroon]: <Base64 Encoded Macaroon String>
+      [preimage]: <Authentication Preimage Hex String>
       service: <Swap Service Object>
       tokens: <Tokens Number>
     }
@@ -316,6 +320,30 @@ const {service} = lightningLabsSwapService({network: 'btctestnet'});
 
 const {fee} = await getSwapOutQuote({service, tokens: 1000000});
 // Fee is the service fee to perform a swap out
+```
+
+### getSwapOutTerms
+
+Get swap terms from swap service
+
+    {
+      [macaroon]: <Base64 Encoded Macaroon String>
+      [preimage]: <Authentication Preimage Hex String>
+      service: <Swap Service Object>
+    }
+
+    @returns via cbk or Promise
+    {
+      max_tokens: <Maximum Swap Tokens Number>
+      min_tokens: <Minimum Swap Tokens Number>
+    }
+
+```node
+const {getSwapOutTerms, lightningLabsSwapService} = require('goldengate');
+
+const {service} = lightningLabsSwapService({network: 'btc'});
+
+const swapOutLimit = (await getSwapOutTerms({service})).max_tokens;
 ```
 
 ### isSweep

@@ -1,8 +1,10 @@
 const asyncAuto = require('async/auto');
+const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
 
+const authHeader = 'Authorization';
 const msPerSec = 1e3;
 const {round} = Math;
 
@@ -10,6 +12,8 @@ const {round} = Math;
 
   {
     [delay]: <Delay Swap Funding Until ISO 8601 Date String>
+    [macaroon]: <Base64 Encoded Macaroon String>
+    [preimage]: <Authentication Preimage Hex String>
     service: <Swap Service Object>
     tokens: <Tokens Number>
   }
@@ -22,7 +26,7 @@ const {round} = Math;
     fee: <Total Fee Tokens Number>
   }
 */
-module.exports = ({delay, service, tokens}, cbk) => {
+module.exports = ({delay, macaroon, preimage, service, tokens}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
@@ -51,11 +55,18 @@ module.exports = ({delay, service, tokens}, cbk) => {
 
       // Get quote
       getQuote: ['deadline', ({deadline}, cbk) => {
+        const metadata = new Metadata();
+
+        if (!!macaroon) {
+          metadata.add(authHeader, `LSAT ${macaroon}:${preimage}`);
+        }
+
         return service.loopOutQuote({
           amt: tokens.toString(),
           protocol_version: protocolVersion,
           swap_publication_deadline: deadline,
         },
+        metadata,
         (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapQuote', {err}]);

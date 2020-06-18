@@ -1,11 +1,16 @@
 const asyncAuto = require('async/auto');
+const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
 
+const authHeader = 'Authorization';
+
 /** Get swap terms from swap service
 
   {
+    [macaroon]: <Base64 Encoded Macaroon String>
+    [preimage]: <Authentication Preimage Hex String>
     service: <Swap Service Object>
   }
 
@@ -15,7 +20,7 @@ const {protocolVersion} = require('./conf/swap_service');
     min_tokens: <Minimum Swap Tokens Number>
   }
 */
-module.exports = ({service}, cbk) => {
+module.exports = ({macaroon, preimage, service}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
@@ -29,9 +34,16 @@ module.exports = ({service}, cbk) => {
 
       // Get terms
       getTerms: ['validate', ({}, cbk) => {
+        const metadata = new Metadata();
+
+        if (!!macaroon) {
+          metadata.add(authHeader, `LSAT ${macaroon}:${preimage}`);
+        }
+
         return service.loopInTerms({
           protocol_version: protocolVersion,
         },
+        metadata,
         (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapInTerms', {err}]);

@@ -14,29 +14,29 @@ const tests = [
     error: [400, 'ExpectedServiceToGetSwapOutTerms'],
   },
   {
-    args: {service: {loopOutTerms: ({}, cbk) => cbk('err')}},
+    args: {service: {loopOutTerms: ({}, {}, cbk) => cbk('err')}},
     description: 'Errors are passed back',
     error: [503, 'UnexpectedErrorGettingSwapTerms', {err: 'err'}],
   },
   {
-    args: {service: {loopOutTerms: ({}, cbk) => cbk()}},
+    args: {service: {loopOutTerms: ({}, {}, cbk) => cbk()}},
     description: 'A response is expected',
     error: [503, 'ExpectedResponseWhenGettingSwapTerms'],
   },
   {
-    args: {service: {loopOutTerms: ({}, cbk) => cbk(null, {})}},
+    args: {service: {loopOutTerms: ({}, {}, cbk) => cbk(null, {})}},
     description: 'A max swap amount is expected',
     error: [503, 'ExpectedMaxSwapAmountInSwapTermsResponse'],
   },
   {
-    args: {service: {loopOutTerms: ({}, cbk) => cbk(null, {
+    args: {service: {loopOutTerms: ({}, {}, cbk) => cbk(null, {
       max_swap_amount: '1',
     })}},
     description: 'A min swap amount is expected',
     error: [503, 'ExpectedMinSwapAmountInSwapTermsResponse'],
   },
   {
-    args: {service: {loopOutTerms: ({}, cbk) => cbk(null, {
+    args: {service: {loopOutTerms: ({}, {}, cbk) => cbk(null, {
       max_swap_amount: '2',
       min_swap_amount: '1',
     })}},

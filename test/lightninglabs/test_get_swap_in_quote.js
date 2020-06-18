@@ -14,28 +14,28 @@ const tests = [
     error: [400, 'ExpectedServiceToGetSwapInQuote'],
   },
   {
-    args: {service: {loopInQuote: ({}, cbk) => cbk()}},
+    args: {service: {loopInQuote: ({}, {}, cbk) => cbk()}},
     description: 'Swap service with swap method is required',
     error: [400, 'ExpectedTokensAmountToGetSwapInQuote'],
   },
   {
-    args: {service: {loopInQuote: ({}, cbk) => cbk('err')}, tokens: 1},
+    args: {service: {loopInQuote: ({}, {}, cbk) => cbk('err')}, tokens: 1},
     description: 'Errors are passed back',
     error: [503, 'UnexpectedErrorGettingSwapInQuote', {err: 'err'}],
   },
   {
-    args: {service: {loopInQuote: ({}, cbk) => cbk()}, tokens: 1},
+    args: {service: {loopInQuote: ({}, {}, cbk) => cbk()}, tokens: 1},
     description: 'A response is expected',
     error: [503, 'ExpectedResponseWhenGettingSwapInQuote'],
   },
   {
-    args: {service: {loopInQuote: ({}, cbk) => cbk(null, {})}, tokens: 1},
+    args: {service: {loopInQuote: ({}, {}, cbk) => cbk(null, {})}, tokens: 1},
     description: 'A cltv is expected',
     error: [503, 'ExpectedCltvDeltaInSwapInQuoteResponse'],
   },
   {
     args: {
-      service: {loopInQuote: ({}, cbk) => cbk(null, {cltv_delta: 1})},
+      service: {loopInQuote: ({}, {}, cbk) => cbk(null, {cltv_delta: 1})},
       tokens: 1,
     },
     description: 'A swap fee is expected',
@@ -44,7 +44,7 @@ const tests = [
   {
     args: {
       service: {
-        loopInQuote: ({}, cbk) => cbk(null, {cltv_delta: 5, swap_fee: '1'}),
+        loopInQuote: ({}, _, cbk) => cbk(null, {cltv_delta: 5, swap_fee: '1'}),
       },
       tokens: 1,
     },
@@ -56,7 +56,7 @@ const tests = [
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async ({equal, end, rejects}) => {
     if (!!error) {
-      rejects(getSwapInQuote(args), error, 'Got expected error');
+      await rejects(getSwapInQuote(args), error, 'Got expected error');
     } else {
       const res = await getSwapInQuote(args);
 

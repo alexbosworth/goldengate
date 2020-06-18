@@ -14,22 +14,22 @@ const tests = [
     error: [400, 'ExpectedServiceToGetSwapInTerms'],
   },
   {
-    args: {service: {loopInTerms: ({}, cbk) => cbk('err')}},
+    args: {service: {loopInTerms: ({}, {}, cbk) => cbk('err')}},
     description: 'Error returned from loop in',
     error: [503, 'UnexpectedErrorGettingSwapInTerms', {err: 'err'}],
   },
   {
-    args: {service: {loopInTerms: ({}, cbk) => cbk()}},
+    args: {service: {loopInTerms: ({}, {}, cbk) => cbk()}},
     description: 'Result expected in swap in terms',
     error: [503, 'ExpectedResponseWhenGettingSwapInTerms'],
   },
   {
-    args: {service: {loopInTerms: ({}, cbk) => cbk(null, {})}},
+    args: {service: {loopInTerms: ({}, {}, cbk) => cbk(null, {})}},
     description: 'Max swap amount expected in terms response',
     error: [503, 'ExpectedMaxSwapAmountInSwapInTermsResponse'],
   },
   {
-    args: {service: {loopInTerms: ({}, cbk) => cbk(null, {
+    args: {service: {loopInTerms: ({}, {}, cbk) => cbk(null, {
       max_swap_amount: '2',
     })}},
     description: 'Min swap amount expected in terms response',
@@ -38,7 +38,7 @@ const tests = [
   {
     args: {
       service: {
-        loopInTerms: ({}, cbk) => cbk(null, {
+        loopInTerms: ({}, {}, cbk) => cbk(null, {
           max_swap_amount: '2',
           min_swap_amount: '1',
         }),

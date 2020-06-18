@@ -1,5 +1,12 @@
 # Versions
 
+## 5.7.0
+
+- `getSwapInQuote`: Add support for macaroon and preimage for an api-key quote
+- `getSwapInTerms`: Add support for macaroon and preimage for api-key terms
+- `getSwapOutQuote`: Add support for macaroon and preimage for an api-key quote
+- `getSwapOutTerms`: Add support for macaroon and preimage for api-key terms
+
 ## 5.6.0
 
 - `releaseSwapOutSecret`: Add method to release the swap secret to the server

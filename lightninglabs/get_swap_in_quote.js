@@ -1,7 +1,10 @@
 const asyncAuto = require('async/auto');
+const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
+
+const authHeader = 'Authorization';
 
 /** Get swap in quote from swap service
 
@@ -16,7 +19,7 @@ const {protocolVersion} = require('./conf/swap_service');
     fee: <Total Fee Tokens Number>
   }
 */
-module.exports = ({service, tokens}, cbk) => {
+module.exports = ({macaroon, preimage, service, tokens}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
@@ -34,10 +37,17 @@ module.exports = ({service, tokens}, cbk) => {
 
       // Get quote
       getQuote: ['validate', ({}, cbk) => {
+        const metadata = new Metadata();
+
+        if (!!macaroon) {
+          metadata.add(authHeader, `LSAT ${macaroon}:${preimage}`);
+        }
+
         return service.loopInQuote({
           amt: tokens.toString(),
           protocol_version: protocolVersion,
         },
+        metadata,
         (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapInQuote', {err}]);

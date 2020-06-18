@@ -5,7 +5,7 @@ const {getSwapOutQuote} = require('./../../lightninglabs');
 const makeArgs = override => {
   const args = {
     service: {
-      loopOutQuote: (args, cbk) => {
+      loopOutQuote: (args, {}, cbk) => {
         if (args.protocol_version !== 'PREIMAGE_PUSH_LOOP_OUT') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
@@ -58,23 +58,23 @@ const tests = [
     error: [400, 'ExpectedTokensToGetSwapOutQuote'],
   },
   {
-    args: {service: {loopOutQuote: ({}, cbk) => cbk('error')}, tokens: 1},
+    args: {service: {loopOutQuote: ({}, {}, cbk) => cbk('error')}, tokens: 1},
     description: 'Unexpected connection error from service returns error',
     error: [503, 'UnexpectedErrorGettingSwapQuote', {err: 'error'}],
   },
   {
-    args: {service: {loopOutQuote: ({}, cbk) => cbk()}, tokens: 1},
+    args: {service: {loopOutQuote: ({}, {}, cbk) => cbk()}, tokens: 1},
     description: 'Unexpected empty response from service returns error',
     error: [503, 'ExpectedResponseWhenGettingSwapQuote'],
   },
   {
-    args: {service: {loopOutQuote: ({}, cbk) => cbk(null, {})}, tokens: 1},
+    args: {service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {})}, tokens: 1},
     description: 'A cltv is expected in response',
     error: [503, 'ExpectedCltvDeltaInSwapQuoteResponse'],
   },
   {
     args: {
-      service: {loopOutQuote: ({}, cbk) => cbk(null, {cltv_delta: 1})},
+      service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {cltv_delta: 1})},
       tokens: 1,
     },
     description: 'A prepay amount is expected in response',
@@ -83,7 +83,7 @@ const tests = [
   {
     args: {
       service: {
-        loopOutQuote: ({}, cbk) => cbk(null, {
+        loopOutQuote: ({}, {}, cbk) => cbk(null, {
           cltv_delta: 1,
           prepay_amt: '1',
         }),
@@ -96,7 +96,7 @@ const tests = [
   {
     args: {
       service: {
-        loopOutQuote: ({}, cbk) => cbk(null, {
+        loopOutQuote: ({}, {}, cbk) => cbk(null, {
           cltv_delta: 1,
           prepay_amt: '1',
           swap_fee: '1',
