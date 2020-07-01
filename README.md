@@ -72,6 +72,7 @@ Create a swap in
       nested_address: <Swap P2SH Wrapped P2WSH Chain Address String>
       [private_key]: <Private Key Hex String>
       script: <Witness Script Hex String>
+      [service_message]: <Service Message String>
       service_public_key: <Service Public Key Hex String>
       timeout: <Swap Timeout Chain Height Number>
       tokens: <Tokens To Pay to Address Number>
@@ -120,6 +121,7 @@ Create a swap out request
       [private_key]: <Claim Private Key Hex String>
       script: <Redeem Script Hex String>
       [secret]: <Swap Preimage Hex String>
+      [service_message]: <Service Message String>
       service_public_key: <Service Public Key Hex String>
       swap_execute_request: <Execute Swap Payment Request String>
       swap_fund_request: <Swap Funding Payment Request String>

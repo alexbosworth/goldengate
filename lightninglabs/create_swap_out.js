@@ -40,6 +40,7 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
     [private_key]: <Claim Private Key Hex String>
     script: <Redeem Script Hex String>
     [secret]: <Swap Preimage Hex String>
+    service_message: <Service Message String>
     service_public_key: <Service Public Key Hex String>
     swap_execute_request: <Execute Swap Payment Request String>
     swap_fund_request: <Swap Funding Payment Request String>
@@ -146,6 +147,7 @@ module.exports = (args, cbk) => {
             expiry: res.expiry,
             prepay_invoice: res.prepay_invoice,
             sender_key: res.sender_key,
+            service_message: res.server_message,
             swap_invoice: res.swap_invoice,
           });
         });
@@ -208,6 +210,7 @@ module.exports = (args, cbk) => {
           private_key: !!args.public_key ? undefined : keys.private_key,
           protocol_version: protocolVersion,
           secret: !!args.hash ? undefined : keys.swap_secret,
+          service_message: create.service_message || undefined,
           service_public_key: create.sender_key.toString('hex'),
           swap_execute_request: create.prepay_invoice,
           swap_fund_request: create.swap_invoice,

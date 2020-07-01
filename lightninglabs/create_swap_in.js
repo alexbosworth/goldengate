@@ -41,6 +41,7 @@ const preimageLen = 32;
     nested_address: <Swap P2SH Wrapped P2WSH Chain Address String>
     [private_key]: <Private Key Hex String>
     script: <Witness Script Hex String>
+    [service_message]: <Service Message String>
     service_public_key: <Service Public Key Hex String>
     timeout: <Swap Timeout Chain Height Number>
     tokens: <Tokens To Pay to Address Number>
@@ -143,6 +144,7 @@ module.exports = (args, cbk) => {
           }
 
           return cbk(null, {
+            service_message: res.server_message || undefined,
             service_public_key: res.receiver_key.toString('hex'),
             timeout: res.expiry,
           });
@@ -196,6 +198,7 @@ module.exports = (args, cbk) => {
           id: parsedRequest.id,
           nested_address: address.nested,
           private_key: !!args.public_key ? undefined : keys.private_key,
+          service_message: create.service_message,
           service_public_key: create.service_public_key.toString('hex'),
           timeout: create.timeout,
           tokens: parsedRequest.tokens + args.fee,

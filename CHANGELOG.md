@@ -1,5 +1,10 @@
 # Versions
 
+## 5.8.0
+
+- `createSwapIn`: Add suppoort for `service_message`
+- `createSwapOut`: Add suppoort for `service_message`
+
 ## 5.7.0
 
 - `getSwapInQuote`: Add support for macaroon and preimage for an api-key quote
