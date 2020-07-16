@@ -1,6 +1,6 @@
 # Versions
 
-## 5.8.0
+## 5.8.1
 
 - `createSwapIn`: Add suppoort for `service_message`
 - `createSwapOut`: Add suppoort for `service_message`

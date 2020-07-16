@@ -1,6 +1,6 @@
 const EventEmitter = require('events');
 
-const {test} = require('tap');
+const {test} = require('@alexbosworth/tap');
 const {Transaction} = require('bitcoinjs-lib');
 
 const {findDeposit} = require('./../../chain');
@@ -8,6 +8,8 @@ const {findDeposit} = require('./../../chain');
 const confirmationsEmitter = new EventEmitter();
 const {fromHex} = Transaction;
 const transaction = '01000000000101a39553582e2d797aa0d31042b9a737758aeac3691f302c11224e36da128a59f20100000000ffffffff02dfed160000000000160014594dcb8eb9c9be306ae8786fc37bd5d3c44e5ea190d003000000000022002086daa389646653a4d447d2c29edeea0699f7c4bf62e2b2ee9fe5bdb6ec21b82b02483045022100ce17fb91481425494dc96e92855de5af916737c23b882410f511195b01ee081e022015a4b06847dda99bbe5512a728f55fe551ef4561fe8cc792056a82e43c88cd8b012103c33feb98c803a306163e0c29a87b18787f11c37f89cdcd0d4122536d6e2044ee00000000';
+
+confirmationsEmitter.cancel = () => {};
 
 const tests = [
   {
