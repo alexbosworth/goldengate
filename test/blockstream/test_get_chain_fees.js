@@ -4,6 +4,47 @@ const {getChainFees} = require('./../../blockstream');
 
 const tests = [
   {
+    args: {request: ({url}, cbk) => cbk('err')},
+    description: 'Network is required',
+    error: [400, 'ExpectedKnownNetworkToGetFeeEstimates'],
+  },
+  {
+    args: {network: 'btctestnet'},
+    description: 'Request function is required',
+    error: [400, 'ExpectedRequestToGetFeeEstimates'],
+  },
+  {
+    args: {network: 'btctestnet', request: ({url}, cbk) => cbk('err')},
+    description: 'Get chain fee errors are passed back',
+    error: [503, 'UnexpectedErrorGettingFeeEstimates'],
+  },
+  {
+    args: {network: 'btctestnet', request: ({url}, cbk) => cbk()},
+    description: 'Get chain fee response is expected',
+    error: [503, 'UnexpectedStatusCodeGettingFeeEstimates'],
+  },
+  {
+    args: {network: 'btctestnet', request: ({url}, cbk) => cbk(null, {})},
+    description: 'Get chain fee response status is expected',
+    error: [503, 'UnexpectedStatusCodeGettingFeeEstimates'],
+  },
+  {
+    args: {
+      network: 'btctestnet',
+      request: ({url}, cbk) => cbk(null, {statusCode: 200}),
+    },
+    description: 'Chain fee response is expected',
+    error: [503, 'ExpectedFeesFromFeeEstimatesApi'],
+  },
+  {
+    args: {
+      network: 'btctestnet',
+      request: ({url}, cbk) => cbk(null, {statusCode: 200}, {}),
+    },
+    description: 'Chain fee response normal fee target is expected',
+    error: [503, 'ExpectedNormalFeeEstimateInFeeEstimatesApi'],
+  },
+  {
     args: {
       network: 'btctestnet',
       request: ({url}, cbk) => {
@@ -21,14 +62,16 @@ const tests = [
   },
 ];
 
-tests.forEach(({args, description, expected}) => {
-  return test(description, ({equal, end}) => {
-    return getChainFees(args, (err, res) => {
-      equal(err, null, 'No error getting chain fees');
+tests.forEach(({args, description, error, expected}) => {
+  return test(description, async ({deepIs, equal, end, rejects}) => {
+    if (!!error) {
+      await rejects(getChainFees(args), error, 'Got expected error');
+    } else {
+      const {fees} = await getChainFees(args);
 
-      equal(res.fees['6'], expected.fees['6'], 'Got chain fee');
+      deepIs(fees, expected.fees, 'Got expected fees');
+    }
 
-      return end();
-    });
+    return end();
   });
 });

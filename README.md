@@ -102,6 +102,8 @@ const {address} = await createSwapIn({
 
 Create a swap out request
 
+Get the `timeout` value by getting swap out terms to determine a CLTV delta
+
     {
       [fund_at]: <Request Funding On-Chain Before ISO 8601 Date String>
       [hash]: <Swap Hash String>
@@ -112,6 +114,7 @@ Create a swap out request
       [public_key]: <Public Key Hex String>
       [secret]: <Secret Hex String>
       service: <gRPC Swap Service Object>
+      timeout: <Requested Timeout Height Number>
       tokens: <Swap Tokens Number>
     }
 
@@ -299,11 +302,14 @@ const {macaroon, request} = await getSwapMacaroon({service});
 
 Get swap quote from swap service
 
+Obtain CLTV delta for `timeout` by getting swap terms
+
     {
       [delay]: <Delay Swap Funding Until ISO 8601 Date String>
       [macaroon]: <Base64 Encoded Macaroon String>
       [preimage]: <Authentication Preimage Hex String>
       service: <Swap Service Object>
+      timeout: <Timeout Height Number>
       tokens: <Tokens Number>
     }
 
@@ -336,7 +342,9 @@ Get swap terms from swap service
 
     @returns via cbk or Promise
     {
+      max_cltv_delta: <Maximum Permissible CLTV Delta Number>
       max_tokens: <Maximum Swap Tokens Number>
+      min_cltv_delta: <Minimum Permissible CLTV Delta Number>
       min_tokens: <Minimum Swap Tokens Number>
     }
 
@@ -424,6 +432,62 @@ const {service} = lightningLabsSwapService({network: 'btctestnet'});
 // Tell the server about the preimage to complete the off-chain part of the swap
 await releaseSwapOutSecret({secret, service});
 ```
+
+### subscribeToSwapInStatus
+
+Subscribe to the server status of a swap in
+
+    {
+      id: <Swap Funding Hash Hex String>
+      macaroon: <Base64 Encoded Macaroon String>
+      preimage: <Authentication Preimage Hex String>
+      service: <Swap Service Object>
+    }
+
+    @throws
+    <Error Object>
+
+    @returns
+    <EventEmitter Object>
+
+    @event 'status_update'
+    {
+      at: <Last Updated At ISO 8601 Date String>
+      [is_broadcast]: <HTLC Published To Mempool Bool>
+      [is_claimed]: <HTLC Claimed With Preimage Bool>
+      [is_confirmed]: <HTLC Confirmed In Blockchain Bool>
+      [is_failed]: <Swap Failed Bool>
+      [is_known]: <Swap Is Recognized By Server Bool>
+      [is_refunded]: <Swap Is Refunded With Timeout On Chain Bool>
+    }
+
+### subscribeToSwapOutStatus
+
+Subscribe to the server status of a swap out
+
+    {
+      id: <Swap Funding Hash Hex String>
+      macaroon: <Base64 Encoded Macaroon String>
+      preimage: <Authentication Preimage Hex String>
+      service: <Swap Service Object>
+    }
+
+    @throws
+    <Error Object>
+
+    @returns
+    <EventEmitter Object>
+
+    @event 'status_update'
+    {
+      at: <Last Updated At ISO 8601 Date String>
+      [is_broadcast]: <HTLC Published To Mempool Bool>
+      [is_claimed]: <HTLC Claimed With Preimage Bool>
+      [is_confirmed]: <HTLC Confirmed In Blockchain Bool>
+      [is_failed]: <Swap Failed Bool>
+      [is_known]: <Swap Is Recognized By Server Bool>
+      [is_refunded]: <Swap Is Refunded With Timeout On Chain Bool>
+    }
 
 ### swapUserId
 

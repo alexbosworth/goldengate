@@ -10,11 +10,14 @@ const {round} = Math;
 
 /** Get swap quote from swap service
 
+  Obtain CLTV delta for `timeout` by getting swap terms
+
   {
     [delay]: <Delay Swap Funding Until ISO 8601 Date String>
     [macaroon]: <Base64 Encoded Macaroon String>
     [preimage]: <Authentication Preimage Hex String>
     service: <Swap Service Object>
+    timeout: <Timeout Height Number>
     tokens: <Tokens Number>
   }
 
@@ -26,16 +29,20 @@ const {round} = Math;
     fee: <Total Fee Tokens Number>
   }
 */
-module.exports = ({delay, macaroon, preimage, service, tokens}, cbk) => {
+module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
-        if (!service || !service.loopOutQuote) {
+        if (!args.service || !args.service.loopOutQuote) {
           return cbk([400, 'ExpectedServiceToGetSwapOutQuote']);
         }
 
-        if (!tokens) {
+        if (!args.timeout) {
+          return cbk([400, 'ExpectedTimeoutToGetSwapOutQuote']);
+        }
+
+        if (!args.tokens) {
           return cbk([400, 'ExpectedTokensToGetSwapOutQuote']);
         }
 
@@ -44,11 +51,11 @@ module.exports = ({delay, macaroon, preimage, service, tokens}, cbk) => {
 
       // Swap publication deadline
       deadline: ['validate', ({}, cbk) => {
-        if (!delay) {
+        if (!args.delay) {
           return cbk();
         }
 
-        const epochMs = new Date(delay).getTime();
+        const epochMs = new Date(args.delay).getTime();
 
         return cbk(null, round(epochMs / msPerSec).toString());
       }],
@@ -57,14 +64,16 @@ module.exports = ({delay, macaroon, preimage, service, tokens}, cbk) => {
       getQuote: ['deadline', ({deadline}, cbk) => {
         const metadata = new Metadata();
 
-        if (!!macaroon) {
-          metadata.add(authHeader, `LSAT ${macaroon}:${preimage}`);
+        if (!!args.macaroon) {
+          metadata.add(authHeader, `LSAT ${args.macaroon}:${args.preimage}`);
         }
 
-        return service.loopOutQuote({
-          amt: tokens.toString(),
+        return args.service.loopOutQuote({
+          amt: args.tokens.toString(),
+          expiry: args.timeout || undefined,
           protocol_version: protocolVersion,
           swap_publication_deadline: deadline,
+          timeout: args.timeout,
         },
         metadata,
         (err, res) => {

@@ -16,7 +16,9 @@ const authHeader = 'Authorization';
 
   @returns via cbk or Promise
   {
+    max_cltv_delta: <Maximum Permissible CLTV Delta Number>
     max_tokens: <Maximum Swap Tokens Number>
+    min_cltv_delta: <Minimum Permissible CLTV Delta Number>
     min_tokens: <Minimum Swap Tokens Number>
   }
 */
@@ -59,8 +61,16 @@ module.exports = ({macaroon, preimage, service}, cbk) => {
 
       // Loop out terms
       terms: ['getTerms', ({getTerms}, cbk) => {
+        if (!getTerms.max_cltv_delta) {
+          return cbk([503, 'ExpectedMaxCltvDeltaInSwapTermsResponse']);
+        }
+
         if (!getTerms.max_swap_amount) {
           return cbk([503, 'ExpectedMaxSwapAmountInSwapTermsResponse']);
+        }
+
+        if (!getTerms.min_cltv_delta) {
+          return cbk([503, 'ExpectedMinCltvDeltaInSwapTermsResponse']);
         }
 
         if (!getTerms.min_swap_amount) {
@@ -68,7 +78,9 @@ module.exports = ({macaroon, preimage, service}, cbk) => {
         }
 
         return cbk(null, {
+          max_cltv_delta: getTerms.max_cltv_delta,
           max_tokens: Number(getTerms.max_swap_amount),
+          min_cltv_delta: getTerms.min_cltv_delta,
           min_tokens: Number(getTerms.min_swap_amount),
         });
       }],

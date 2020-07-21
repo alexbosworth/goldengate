@@ -20,6 +20,12 @@ service SwapServer {
 
     rpc LoopInQuote (ServerLoopInQuoteRequest)
         returns (ServerLoopInQuoteResponse);
+
+    rpc SubscribeLoopOutUpdates(SubscribeUpdatesRequest)
+        returns (stream SubscribeLoopOutUpdatesResponse);
+
+    rpc SubscribeLoopInUpdates(SubscribeUpdatesRequest)
+        returns (stream SubscribeLoopInUpdatesResponse);
 }
 
 /**
@@ -48,6 +54,9 @@ enum ProtocolVersion {
     claim tx).
     */
     PREIMAGE_PUSH_LOOP_OUT = 3;
+
+    // The client will propose a cltv expiry height for loop out.
+    USER_EXPIRY_LOOP_OUT = 4;
 }
 
 message ServerLoopOutRequest {
@@ -62,6 +71,11 @@ message ServerLoopOutRequest {
 
     /// The protocol version that the client adheres to.
     ProtocolVersion protocol_version = 5;
+
+    // The requested absolute block height of the on-chain htlc. This is
+    // subjected to min and max constraints as reported in the LoopOutTerms
+    // response.
+    int32 expiry = 6;
 }
 
 message ServerLoopOutResponse {
@@ -71,7 +85,9 @@ message ServerLoopOutResponse {
 
     bytes sender_key = 3;
 
-    int32 expiry = 4;
+    // The height at which the on-chain htlc will expire. Deprecated because the
+    // field is already specified in the request.
+    int32 expiry = 4 [deprecated = true];
 
     // A human-readable message from the loop server.
     string server_message = 5;
@@ -86,6 +102,11 @@ message ServerLoopOutQuoteRequest {
 
     /// The protocol version that the client adheres to.
     ProtocolVersion protocol_version = 3;
+
+    // The requested absolute block height of the on-chain htlc. This is
+    // subjected to min and max constraints as reported in the LoopOutTerms
+    // response.
+    int32 expiry = 4;
 }
 
 message ServerLoopOutQuote {
@@ -103,7 +124,9 @@ message ServerLoopOutQuote {
 
     uint64 max_swap_amount = 6 [deprecated = true];
 
-    int32 cltv_delta = 7;
+    // The server-proposed cltv delta of the on-chain htlc. Deprecated because
+    // the field is already specified in the request.
+    int32 cltv_delta = 7 [deprecated = true];
 }
 
 message ServerLoopOutTermsRequest {
@@ -114,6 +137,12 @@ message ServerLoopOutTermsRequest {
 message ServerLoopOutTerms {
     uint64 min_swap_amount = 1;
     uint64 max_swap_amount = 2;
+
+    // The minimally accepted cltv delta of the on-chain htlc.
+    int32 min_cltv_delta = 3;
+
+    // The maximally accepted cltv delta of the on-chain htlc.
+    int32 max_cltv_delta = 4;
 }
 
 message ServerLoopInRequest {
@@ -176,4 +205,80 @@ message ServerLoopOutPushPreimageRequest {
 }
 
 message ServerLoopOutPushPreimageResponse {
+}
+
+message SubscribeUpdatesRequest {
+    // The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 1;
+
+    // Swap hash is the hash of the swap to subscribe to updates for.
+    bytes swap_hash = 2;
+}
+
+// ServerSwapState is an enum which represents all the states a swap may have
+// from the server's perspective.
+enum ServerSwapState {
+    // The server has created the swap.
+    INITIATED = 0;
+
+    // The server has published the loop out on chain htlc.
+    HTLC_PUBLISHED = 1;
+
+    // The swap completed successfully.
+    SUCCESS = 2;
+
+    /*
+    The swap failed for a reason that is unknown to the server, this is only
+    set for older swaps.
+    */
+    FAILED_UNKNOWN = 3;
+
+    // No htlc was confirmed in time for the loop in swap to complete.
+    FAILED_NO_HTLC = 4;
+
+    // A loop in htlc confirmed on chain, but it did not have the correct value.
+    FAILED_INVALID_HTLC_AMOUNT = 5;
+
+    /*
+    We did not succeed in completing the loop in off chain payment before the
+    timeout.
+    */
+    FAILED_OFF_CHAIN_TIMEOUT = 6;
+
+    // The on chain timeout was claimed.
+    FAILED_TIMEOUT = 7;
+
+    /*
+    The server could not publish the loop out on chain htlc before the deadline
+    provided.
+    */
+    FAILED_SWAP_DEADLINE = 8;
+
+    // The server could not publish the loop out on chain htlc.
+    FAILED_HTLC_PUBLICATION = 9;
+
+    // The server has published the loop out on chain timeout tx.
+    TIMEOUT_PUBLISHED = 10;
+
+    // The swap has failed for unknown reasons, it will not be completed.
+    UNEXPECTED_FAILURE = 11;
+
+    // The swap htlc has confirmed on chain.
+    HTLC_CONFIRMED = 12;
+}
+
+message SubscribeLoopOutUpdatesResponse {
+    // The unix timestamp in nanoseconds when the swap was updated.
+    int64 timestamp_ns = 1;
+
+    // The swap's current state.
+    ServerSwapState state = 2;
+}
+
+message SubscribeLoopInUpdatesResponse {
+    // The unix timestamp in nanoseconds when the swap was updated.
+    int64 timestamp_ns = 1;
+
+    // The swap's current state.
+    ServerSwapState state = 2;
 }

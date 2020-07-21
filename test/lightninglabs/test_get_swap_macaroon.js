@@ -1,15 +1,13 @@
 const {test} = require('@alexbosworth/tap');
 
 const {getSwapMacaroon} = require('./../../');
+const {loopOutTermsResponse} = require('./fixtures');
 
 const macaroon = 'AgEEbHNhdAJCAADXNkGQ+faRDM3Ey4M6YGALyTwqnLqDTNVgCBckgnpSZ4vd9z8+Ndr1+zLD6i/AmJIbDVuEAvBwgZBezq2hcys5AAIPc2VydmljZXM9bG9vcDowAAISbG9vcF9jYXBhYmlsaXRpZXM9AAAGIDPTqKe/hckryPR6hINTa7Dg8/bbxqVqq02/eBMpmt7Z';
 
 const auth = `LSAT macaroon="${macaroon}", invoice="invoice"`;
 
-const loopOutTerms = ({}, {}, cbk) => cbk(null, {
-  max_swap_amount: '2',
-  min_swap_amount: '1',
-});
+const loopOutTerms = ({}, {}, cbk) => cbk(null, loopOutTermsResponse);
 
 const tests = [
   {
@@ -68,7 +66,7 @@ tests.forEach(({args, description, error, expected}) => {
       const {macaroon, request} = await getSwapMacaroon(args);
 
       equal(macaroon, expected.macaroon, 'Got expected unpaid macaroon');
-      equal(request, expected.request, 'Got expected paymetn request');
+      equal(request, expected.request, 'Got expected payment request');
     }
 
     return end();

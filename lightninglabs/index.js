@@ -10,6 +10,8 @@ const getSwapOutTerms = require('./get_swap_out_terms');
 const lightningLabsSwapService = require('./lightning_labs_swap_service');
 const releaseSwapOutSecret = require('./release_swap_out_secret');
 const serviceSocket = require('./service_socket');
+const subscribeToSwapInStatus = require('./subscribe_to_swap_in_status');
+const subscribeToSwapOutStatus = require('./subscribe_to_swap_out_status');
 const swapInAddress = require('./swap_in_address');
 const swapInFee = require('./swap_in_fee');
 const swapUserId = require('./swap_user_id');
@@ -27,6 +29,8 @@ module.exports = {
   lightningLabsSwapService,
   releaseSwapOutSecret,
   serviceSocket,
+  subscribeToSwapInStatus,
+  subscribeToSwapOutStatus,
   swapInAddress,
   swapInFee,
   swapUserId,

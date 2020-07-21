@@ -1,0 +1,8 @@
+{
+  "loopOutTermsResponse": {
+    "max_cltv_delta": 2,
+    "max_swap_amount": "2",
+    "min_cltv_delta": 1,
+    "min_swap_amount": "1"
+  }
+}

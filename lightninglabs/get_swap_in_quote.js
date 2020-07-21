@@ -9,6 +9,8 @@ const authHeader = 'Authorization';
 /** Get swap in quote from swap service
 
   {
+    [macaroon]: <Base64 Encoded Macaroon String>
+    [preimage]: <Authentication Preimage Hex String>
     service: <Swap Service Object>
     tokens: <Tokens to Swap Number>
   }

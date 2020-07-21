@@ -21,6 +21,8 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
 /** Create a swap out request
 
+  Get the `timeout` value by getting swap out terms to determine a CLTV delta
+
   {
     [fund_at]: <Request Funding On-Chain Before ISO 8601 Date String>
     [hash]: <Swap Hash String>
@@ -31,6 +33,7 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
     [public_key]: <Public Key Hex String>
     [secret]: <Secret Hex String>
     service: <gRPC Swap Service Object>
+    timeout: <Requested Timeout Height Number>
     tokens: <Swap Tokens Number>
   }
 
@@ -70,6 +73,10 @@ module.exports = (args, cbk) => {
 
         if (!args.service || !args.service.newLoopOutSwap) {
           return cbk([400, 'ExpectedServiceToCreateSwap']);
+        }
+
+        if (!args.timeout) {
+          return cbk([400, 'ExpectedSwapServerTimeoutHeightToCreateSwapOut']);
         }
 
         if (!args.tokens) {
@@ -121,6 +128,7 @@ module.exports = (args, cbk) => {
 
         return args.service.newLoopOutSwap({
           amt: `${args.tokens}`,
+          expiry: args.timeout,
           protocol_version: protocolVersion,
           receiver_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(keys.swap_hash, 'hex'),
@@ -144,7 +152,7 @@ module.exports = (args, cbk) => {
           }
 
           return cbk(null, {
-            expiry: res.expiry,
+            expiry: args.timeout,
             prepay_invoice: res.prepay_invoice,
             sender_key: res.sender_key,
             service_message: res.server_message,

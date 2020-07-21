@@ -1,9 +1,23 @@
 # Versions
 
+## 6.0.0
+
+- `createSwapOut`: Add argument `timeout` to request a specific swap timeout
+- `getSwapOutQuote`: Add argument `timeout` to request a specific swap timeout
+- `getSwapOutTerms` add `max_cltv_delta` for server maximum cltv delta tolerance
+- `getSwapOutTerms` add `min_cltv_delta` for server minimum cltv delta tolerance
+- `subscribeToSwapInStatus`: Add method to track server's view of swap in
+- `subscribeToSwapOutStatus`: Add method to track server's view of swap out
+
+### Breaking Changes
+
+- `createSwapOut`: The argument `timeout` is now required
+- `getSwapOutQuote`: The argument `timeout` is now required
+
 ## 5.8.1
 
-- `createSwapIn`: Add suppoort for `service_message`
-- `createSwapOut`: Add suppoort for `service_message`
+- `createSwapIn`: Add support for `service_message`
+- `createSwapOut`: Add support for `service_message`
 
 ## 5.7.0
 

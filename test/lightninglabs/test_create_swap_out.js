@@ -23,6 +23,7 @@ const makeArgs = overrides => {
   const args = {
     network: 'btctestnet',
     service: makeService({}),
+    timeout: expiry,
     tokens: 100,
   };
 
@@ -41,6 +42,11 @@ const tests = [
     args: makeArgs({service: undefined}),
     description: 'A service object is expected',
     error: [400, 'ExpectedServiceToCreateSwap'],
+  },
+  {
+    args: makeArgs({timeout: undefined}),
+    description: 'A timeout height is expected',
+    error: [400, 'ExpectedSwapServerTimeoutHeightToCreateSwapOut'],
   },
   {
     args: makeArgs({tokens: undefined}),

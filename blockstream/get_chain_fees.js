@@ -1,3 +1,6 @@
+const asyncAuto = require('async/auto');
+const {returnResult} = require('asyncjs-util');
+
 const {apis} = require('./conf/blockstream-info');
 
 const normalFeeTarget = 6;
@@ -9,7 +12,7 @@ const normalFeeTarget = 6;
     request: <Request Function>
   }
 
-  @returns via cbk
+  @returns via cbk or Promise
   {
     fees: {
       'confirmation number': <Confirmation Fee Tokens Per Virtual Byte Number>
@@ -17,35 +20,48 @@ const normalFeeTarget = 6;
   }
 */
 module.exports = ({network, request}, cbk) => {
-  if (!network || !apis[network]) {
-    return cbk([400, 'ExpectedKnownNetworkToGetFeeEstimates']);
-  }
+  return new Promise((resolve, reject) => {
+    return asyncAuto({
+      // Check arguments
+      validate: cbk => {
+        if (!network || !apis[network]) {
+          return cbk([400, 'ExpectedKnownNetworkToGetFeeEstimates']);
+        }
 
-  if (!request) {
-    return cbk([400, 'ExpectedRequestToGetFeeEstimates']);
-  }
+        if (!request) {
+          return cbk([400, 'ExpectedRequestToGetFeeEstimates']);
+        }
 
-  return request({
-    json: true,
-    url: `${apis[network]}/fee-estimates`,
-  },
-  (err, r, fees) => {
-    if (!!err) {
-      return cbk([503, 'UnexpectedErrorGettingFeeEstimates', {err}]);
-    }
+        return cbk();
+      },
 
-    if (!r || r.statusCode !== 200) {
-      return cbk([503, 'UnexpectedStatusCodeGettingFeeEstimates']);
-    }
+      // Get fee estimates
+      getEstimates: ['validate', ({}, cbk) => {
+        return request({
+          json: true,
+          url: `${apis[network]}/fee-estimates`,
+        },
+        (err, r, fees) => {
+          if (!!err) {
+            return cbk([503, 'UnexpectedErrorGettingFeeEstimates', {err}]);
+          }
 
-    if (!fees) {
-      return cbk([503, 'ExpectedFeesFromFeeEstimatesApi']);
-    }
+          if (!r || r.statusCode !== 200) {
+            return cbk([503, 'UnexpectedStatusCodeGettingFeeEstimates']);
+          }
 
-    if (!fees[normalFeeTarget]) {
-      return cbk([503, 'ExpectedNormalFeeEstimateInFeeEstimatesApi']);
-    }
+          if (!fees) {
+            return cbk([503, 'ExpectedFeesFromFeeEstimatesApi']);
+          }
 
-    return cbk(null, {fees});
+          if (!fees[normalFeeTarget]) {
+            return cbk([503, 'ExpectedNormalFeeEstimateInFeeEstimatesApi']);
+          }
+
+          return cbk(null, {fees});
+        });
+      }],
+    },
+    returnResult({reject, resolve, of: 'getEstimates'}, cbk));
   });
 };

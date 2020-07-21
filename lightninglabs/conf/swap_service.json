@@ -1,5 +1,22 @@
 {
-  "protocolVersion": "PREIMAGE_PUSH_LOOP_OUT",
+  "protocolVersion": "USER_EXPIRY_LOOP_OUT",
+  "serverSwapFailure": {
+    "incorrect_htlc_amount": "FAILED_INVALID_HTLC_AMOUNT",
+    "late_or_missing_htlc_onchain": "FAILED_NO_HTLC",
+    "payment_not_completed_offchain": "FAILED_OFF_CHAIN_TIMEOUT",
+    "publish_onchain_htlc_failed": "FAILED_HTLC_PUBLICATION",
+    "publish_onchain_htlc_too_slow": "FAILED_SWAP_DEADLINE",
+    "refunded": "FAILED_TIMEOUT",
+    "refunding": "TIMEOUT_PUBLISHED",
+    "unexpected": "UNEXPECTED_FAILURE",
+    "unknown": "FAILED_UNKNOWN"
+  },
+  "serverSwapProgress": {
+    "broadcast": "HTLC_PUBLISHED",
+    "claimed": "SUCCESS",
+    "confirmed": "HTLC_CONFIRMED",
+    "started": "INITIATED"
+  },
   "sockets": {
     "free": {
       "btc": "swap.lightning.today:11009",

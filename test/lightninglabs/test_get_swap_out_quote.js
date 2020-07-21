@@ -6,7 +6,7 @@ const makeArgs = override => {
   const args = {
     service: {
       loopOutQuote: (args, {}, cbk) => {
-        if (args.protocol_version !== 'PREIMAGE_PUSH_LOOP_OUT') {
+        if (args.protocol_version !== 'USER_EXPIRY_LOOP_OUT') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 
@@ -18,6 +18,7 @@ const makeArgs = override => {
         });
       },
     },
+    timeout: 1,
     tokens: 1,
   };
 
@@ -48,62 +49,64 @@ const tests = [
     },
   },
   {
-    args: {},
+    args: makeArgs({service: undefined}),
     description: 'Swap out quote requires swap service',
     error: [400, 'ExpectedServiceToGetSwapOutQuote'],
   },
   {
-    args: {service: {loopOutQuote: () => {}}},
+    args: makeArgs({timeout: undefined}),
+    description: 'Swap out quote requires timeout',
+    error: [400, 'ExpectedTimeoutToGetSwapOutQuote'],
+  },
+  {
+    args: makeArgs({tokens: undefined}),
     description: 'Swap out quote requires tokens',
     error: [400, 'ExpectedTokensToGetSwapOutQuote'],
   },
   {
-    args: {service: {loopOutQuote: ({}, {}, cbk) => cbk('error')}, tokens: 1},
+    args: makeArgs({service: {loopOutQuote: ({}, {}, cbk) => cbk('error')}}),
     description: 'Unexpected connection error from service returns error',
     error: [503, 'UnexpectedErrorGettingSwapQuote', {err: 'error'}],
   },
   {
-    args: {service: {loopOutQuote: ({}, {}, cbk) => cbk()}, tokens: 1},
+    args: makeArgs({service: {loopOutQuote: ({}, {}, cbk) => cbk()}}),
     description: 'Unexpected empty response from service returns error',
     error: [503, 'ExpectedResponseWhenGettingSwapQuote'],
   },
   {
-    args: {service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {})}, tokens: 1},
+    args: makeArgs({service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {})}}),
     description: 'A cltv is expected in response',
     error: [503, 'ExpectedCltvDeltaInSwapQuoteResponse'],
   },
   {
-    args: {
-      service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {cltv_delta: 1})},
-      tokens: 1,
-    },
+    args: makeArgs({
+      service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {cltv_delta: 1})}
+    }),
     description: 'A prepay amount is expected in response',
     error: [503, 'ExpectedPrepayAmountInSwapQuoteResponse'],
   },
   {
-    args: {
+    args: makeArgs({
       service: {
         loopOutQuote: ({}, {}, cbk) => cbk(null, {
           cltv_delta: 1,
           prepay_amt: '1',
         }),
       },
-      tokens: 1,
-    },
+    }),
     description: 'A swap fee is expected in response',
     error: [503, 'ExpectedSwapFeeAmountInSwapQuoteResponse'],
   },
   {
-    args: {
+    args: makeArgs({
       service: {
         loopOutQuote: ({}, {}, cbk) => cbk(null, {
           cltv_delta: 1,
           prepay_amt: '1',
           swap_fee: '1',
-        },
-      )},
-      tokens: 1,
-    },
+        }),
+      },
+    }),
     description: 'A payment destination public key is expected in response',
     error: [503, 'ExpectedSwapPaymentDestinationPublicKey'],
   },

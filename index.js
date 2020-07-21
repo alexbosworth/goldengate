@@ -26,6 +26,8 @@ const {refundTransaction} = require('./transactions');
 const {releaseSwapOutSecret} = require('./lightninglabs');
 const {serviceSocket} = require('./lightninglabs');
 const {subscribeToBlocks} = require('./chain');
+const {subscribeToSwapInStatus} = require('./lightninglabs');
+const {subscribeToSwapOutStatus} = require('./lightninglabs');
 const {swapInFee} = require('./lightninglabs');
 const {swapScript} = require('./script');
 const {swapUserId} = require('./lightninglabs');
@@ -59,6 +61,8 @@ module.exports = {
   releaseSwapOutSecret,
   serviceSocket,
   subscribeToBlocks,
+  subscribeToSwapInStatus,
+  subscribeToSwapOutStatus,
   swapInFee,
   swapScript,
   swapUserId,
