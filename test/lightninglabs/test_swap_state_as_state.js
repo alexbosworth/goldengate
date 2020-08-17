@@ -1,4 +1,4 @@
-const {test} = require('@alexbosworth/tap');
+const {test} = require('tap');
 
 const swapStateAsState = require('./../../lightninglabs/swap_state_as_state');
 

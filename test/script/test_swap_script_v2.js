@@ -1,6 +1,6 @@
 const {test} = require('tap');
 
-const {swapScript} = require('./../../');
+const {swapScriptV2} = require('./../../');
 
 const tests = [
   {
@@ -11,7 +11,7 @@ const tests = [
       timeout: 1515658,
     },
     description: 'Derive script from privkey, preimage secret, service key.',
-    expected: '8201208763a914c792bea2f08a4dcada80a2e848e01f236bd139278821031cb9fba5d8cbc3dad06185e49de60fac484944c3c12682b604e0261b5375d3bf6775038a2017b17521027e919ee986cd0ad6e012932c709e82396321a82faee5355ca5def9d0934b526c68ac',
+    expected: '21031cb9fba5d8cbc3dad06185e49de60fac484944c3c12682b604e0261b5375d3bfac6476a9148525070acdc33883ad3cb016d91a3aa52409461888ad038a2017b16782012088a914c792bea2f08a4dcada80a2e848e01f236bd139278851b268',
   },
   {
     args: {
@@ -30,8 +30,8 @@ const tests = [
       refund_private_key: '79957dc2091c8b024e14ee7f338869174ae39674342f40cc804cb099145d1d97',
       timeout: 1515658,
     },
-    description: 'Derive script given hash, refund privkey, claim pubkey',
-    expected: '8201208763a914d1a70126ff7a149ca6f9b638db084480440ff8428821027e919ee986cd0ad6e012932c709e82396321a82faee5355ca5def9d0934b526c6775038a2017b17521031cb9fba5d8cbc3dad06185e49de60fac484944c3c12682b604e0261b5375d3bf68ac',
+    description: 'Derive script v2 given hash, refund privkey, claim pubkey',
+    expected: '21027e919ee986cd0ad6e012932c709e82396321a82faee5355ca5def9d0934b526cac6476a91438094ac225a8544d227656f6f4ad99f3447cb07288ad038a2017b16782012088a914d1a70126ff7a149ca6f9b638db084480440ff8428851b268',
   },
   {
     args: {},
@@ -91,12 +91,12 @@ const tests = [
 tests.forEach(({args, description, error, expected}) => {
   return test(description, ({equal, end, throws}) => {
     if (!!error) {
-      throws(() => swapScript(args), new Error(error), 'Error returned');
+      throws(() => swapScriptV2(args), new Error(error), 'Error returned');
 
       return end();
     }
 
-    const {script} = swapScript(args);
+    const {script} = swapScriptV2(args);
 
     equal(script, expected, 'Swap script derived');
 

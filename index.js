@@ -30,6 +30,7 @@ const {subscribeToSwapInStatus} = require('./lightninglabs');
 const {subscribeToSwapOutStatus} = require('./lightninglabs');
 const {swapInFee} = require('./lightninglabs');
 const {swapScript} = require('./script');
+const {swapScriptV2} = require('./script');
 const {swapUserId} = require('./lightninglabs');
 
 module.exports = {
@@ -65,5 +66,6 @@ module.exports = {
   subscribeToSwapOutStatus,
   swapInFee,
   swapScript,
+  swapScriptV2,
   swapUserId,
 };

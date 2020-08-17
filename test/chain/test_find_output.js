@@ -1,6 +1,6 @@
 const {address} = require('bitcoinjs-lib');
 const {networks} = require('bitcoinjs-lib');
-const {test} = require('@alexbosworth/tap');
+const {test} = require('tap');
 const {Transaction} = require('bitcoinjs-lib');
 
 const findOutput = require('./../../chain/find_output');

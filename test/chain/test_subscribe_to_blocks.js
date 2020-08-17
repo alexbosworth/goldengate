@@ -1,7 +1,7 @@
 const EventEmitter = require('events');
 const {readFileSync} = require('fs');
 
-const {test} = require('@alexbosworth/tap');
+const {test} = require('tap');
 
 const {subscribeToBlocks} = require('./../../');
 
@@ -20,12 +20,6 @@ test(`Subscribe to blocks`, ({end, equal, fail}) => {
 
   const request = ({url}, cbk) => {
     if (url === 'https://blockstream.info/testnet/api/blocks/tip/hash') {
-      if (!!err) {
-        err = null;
-
-        return cbk(err);
-      }
-
       return cbk(null, okStatus, hashes[confs - 1]);
     }
 

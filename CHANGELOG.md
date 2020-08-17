@@ -1,5 +1,9 @@
 # Versions
 
+## 6.1.0
+
+- `swapScriptV2`: Add method to support future swap script version
+
 ## 6.0.0
 
 - `createSwapOut`: Add argument `timeout` to request a specific swap timeout

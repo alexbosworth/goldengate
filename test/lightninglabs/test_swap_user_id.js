@@ -1,5 +1,5 @@
 const {newMacaroon} = require('macaroon');
-const {test} = require('@alexbosworth/tap');
+const {test} = require('tap');
 
 const {swapUserId} = require('./../../');
 

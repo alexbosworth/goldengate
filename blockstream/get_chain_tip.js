@@ -10,88 +10,90 @@ const {apis} = require('./conf/blockstream-info');
     request: <Request Function>
   }
 
-  @returns via cbk
+  @returns via cbk or Promise
   {
     height: <Chain Tip Height Number>
     id: <Chain Tip Hash Hex String>
   }
 */
 module.exports = ({network, request}, cbk) => {
-  return asyncAuto({
-    // Check arguments
-    validate: cbk => {
-      if (!network) {
-        return cbk([400, 'ExpectedNetworkToGetChainTip']);
-      }
+  return new Promise((resolve, reject) => {
+    return asyncAuto({
+      // Check arguments
+      validate: cbk => {
+        if (!network) {
+          return cbk([400, 'ExpectedNetworkToGetChainTip']);
+        }
 
-      if (!request) {
-        return cbk([400, 'ExpectedRequestToGetChainTip']);
-      }
+        if (!request) {
+          return cbk([400, 'ExpectedRequestToGetChainTip']);
+        }
 
-      return cbk();
-    },
-
-    // Get chain tip hash
-    getHash: cbk => {
-      return request({
-        url: `${apis[network]}/blocks/tip/hash`,
+        return cbk();
       },
-      (err, r, hash) => {
-        if (!!err) {
-          return cbk([503, 'UnexpectedErrorGettingChainTipHash', {err}]);
-        }
 
-        if (!r) {
-          return cbk([503, 'UnexpectedResponseGettingChainTipHash']);
-        }
+      // Get chain tip hash
+      getHash: cbk => {
+        return request({
+          url: `${apis[network]}/blocks/tip/hash`,
+        },
+        (err, r, hash) => {
+          if (!!err) {
+            return cbk([503, 'UnexpectedErrorGettingChainTipHash', {err}]);
+          }
 
-        if (r.statusCode !== 200) {
-          return cbk([503, 'UnexpectedStatusCodeGettingChainTipHash']);
-        }
+          if (!r) {
+            return cbk([503, 'UnexpectedResponseGettingChainTipHash']);
+          }
 
-        if (!hash) {
-          return cbk([503, 'ExpectedBlockHashWhenGettingChainTipHash']);
-        }
+          if (r.statusCode !== 200) {
+            return cbk([503, 'UnexpectedStatusCodeGettingChainTipHash']);
+          }
 
-        return cbk(null, hash);
-      });
-    },
+          if (!hash) {
+            return cbk([503, 'ExpectedBlockHashWhenGettingChainTipHash']);
+          }
 
-    // Get block info
-    getHeight: ['getHash', ({getHash}, cbk) => {
-      return request({
-        json: true,
-        url: `${apis[network]}/block/${getHash}`,
+          return cbk(null, hash);
+        });
       },
-      (err, r, block) => {
-        if (!!err) {
-          return cbk([503, 'UnexpectedErrorGettingTipBlockDetails', {err}]);
-        }
 
-        if (!r) {
-          return cbk([503, 'ExpectedResponseWhenGettingChainTipBlock']);
-        }
+      // Get block info
+      getHeight: ['getHash', ({getHash}, cbk) => {
+        return request({
+          json: true,
+          url: `${apis[network]}/block/${getHash}`,
+        },
+        (err, r, block) => {
+          if (!!err) {
+            return cbk([503, 'UnexpectedErrorGettingTipBlockDetails', {err}]);
+          }
 
-        if (r.statusCode !== 200) {
-          return cbk([503, 'UnexpectedStatusCodeGettingBlockDetails']);
-        }
+          if (!r) {
+            return cbk([503, 'ExpectedResponseWhenGettingChainTipBlock']);
+          }
 
-        if (!block) {
-          return cbk([503, 'ExpectedBlockDetailsInBlockLookupResponse']);
-        }
+          if (r.statusCode !== 200) {
+            return cbk([503, 'UnexpectedStatusCodeGettingBlockDetails']);
+          }
 
-        if (block.height === undefined) {
-          return cbk([503, 'ExpectedBlockHeightInBlockLookupDetails']);
-        }
+          if (!block) {
+            return cbk([503, 'ExpectedBlockDetailsInBlockLookupResponse']);
+          }
 
-        return cbk(null, block.height);
-      });
-    }],
+          if (block.height === undefined) {
+            return cbk([503, 'ExpectedBlockHeightInBlockLookupDetails']);
+          }
 
-    // Chain tip
-    tip: ['getHash', 'getHeight', ({getHash, getHeight}, cbk) => {
-      return cbk(null, {height: getHeight, id: getHash});
-    }],
-  },
-  returnResult({of: 'tip'}, cbk));
+          return cbk(null, block.height);
+        });
+      }],
+
+      // Chain tip
+      tip: ['getHash', 'getHeight', ({getHash, getHeight}, cbk) => {
+        return cbk(null, {height: getHeight, id: getHash});
+      }],
+    },
+    returnResult({reject, resolve, of: 'tip'}, cbk));
+  });
 };

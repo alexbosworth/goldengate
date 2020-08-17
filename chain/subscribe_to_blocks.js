@@ -83,11 +83,21 @@ module.exports = ({delay, lnd, network, request}) => {
         return getChainTip({network, request}, (err, res) => {
           lastAttempt = now();
 
+          // Exit early with error
           if (!!err) {
             emitter.emit('error', err);
-          } else {
-            emitter.emit('block', {height: res.height, id: res.id});
+
+            return cbk(err);
           }
+
+          // Exit early when the block height is unchanged
+          if (currentHeight === res.height) {
+            return cbk();
+          }
+
+          currentHeight = res.height;
+
+          emitter.emit('block', {height: res.height, id: res.id});
 
           return cbk();
         });

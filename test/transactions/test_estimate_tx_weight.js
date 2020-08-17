@@ -1,4 +1,4 @@
-const {test} = require('@alexbosworth/tap');
+const {test} = require('tap');
 
 const estimateTxWeight = require('./../../transactions/estimate_tx_weight');
 
