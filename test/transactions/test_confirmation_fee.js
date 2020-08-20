@@ -1,6 +1,6 @@
 const {test} = require('tap');
 
-const {confirmationFee} = require('./../../transactions');
+const {confirmationFee} = require('./../../');
 
 const tests = [
   {

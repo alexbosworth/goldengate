@@ -7,6 +7,7 @@ const p2shP2wshOutputScript = require('./p2sh_p2wsh_output_script');
 const p2wshOutputScript = require('./p2wsh_output_script');
 const swapScript = require('./swap_script');
 const swapScriptV2 = require('./swap_script_v2');
+const versionOfSwapScript = require('./version_of_swap_script');
 
 module.exports = {
   addressForScript,
@@ -18,4 +19,5 @@ module.exports = {
   p2wshOutputScript,
   swapScript,
   swapScriptV2,
+  versionOfSwapScript,
 };

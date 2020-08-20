@@ -11,7 +11,19 @@ const network = 'btctestnet';
 const okStatus = {statusCode: 200};
 
 // Subscribers to blocks should receive block notifications
-test(`Subscribe to blocks`, ({end, equal, fail}) => {
+test(`Subscribe to blocks`, ({end, equal, fail, throws}) => {
+  throws(
+    () => subscribeToBlocks({}),
+    new Error('ExpectedLndOrRequestToSubscribeToBlocks'),
+    'LND or request is required'
+  )
+
+  throws(
+    () => subscribeToBlocks({request: ({}) => {}}),
+    new Error('ExpectedNetworkNameToSubscribeToBlocks'),
+    'A network is required when request is given'
+  )
+
   let confs = confirmationCount;
   let err = 503;
 

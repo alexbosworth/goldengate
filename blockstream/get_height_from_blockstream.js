@@ -1,6 +1,7 @@
-const {apis} = require('./conf/blockstream-info');
+const asyncAuto = require('async/auto');
+const {returnResult} = require('asyncjs-util');
 
-const decBase = 10;
+const {apis} = require('./conf/blockstream-info');
 
 /** Get chain tip height from blockstream
 
@@ -15,30 +16,53 @@ const decBase = 10;
   }
 */
 module.exports = ({network, request}, cbk) => {
-  if (!network || !apis[network]) {
-    return cbk([400, 'ExpectedKnownNetworkNameToGetChainTipHeight']);
-  }
+  return new Promise((resolve, reject) => {
+    return asyncAuto({
+      // Check arguments
+      validate: cbk => {
+        if (!network || !apis[network]) {
+          return cbk([400, 'ExpectedKnownNetworkNameToGetChainTipHeight']);
+        }
 
-  if (!request) {
-    return cbk([400, 'ExpectedRequestFunctionToGetChainTipHeight']);
-  }
+        if (!request) {
+          return cbk([400, 'ExpectedRequestFunctionToGetChainTipHeight']);
+        }
 
-  return request({
-    url: `${apis[network]}/blocks/tip/height`,
-  },
-  (err, r, height) => {
-    if (!!err) {
-      return cbk([503, 'UnexpectedErrorGettingChainTipHeight', err]);
-    }
+        return cbk();
+      },
 
-    if (!r || r.statusCode !== 200) {
-      return cbk([503, 'UnexpectedStatusCodeGettingChainTipHeight']);
-    }
+      // Get height
+      getHeight: ['validate', ({}, cbk) => {
+        return request({
+          url: `${apis[network]}/blocks/tip/height`,
+        },
+        (err, r, res) => {
+          if (!!err) {
+            return cbk([503, 'UnexpectedErrorGettingChainTipHeight', {err}]);
+          }
 
-    if (!height) {
-      return cbk([503, 'ExpectedHeightInGetChainTipHeightResponse']);
-    }
+          if (!r) {
+            return cbk([503, 'UnexpectedEmptyResponseGettingChainTipHeight']);
+          }
 
-    return cbk(null, {height: parseInt(height, decBase)});
+          if (r.statusCode !== 200) {
+            return cbk([503, 'UnexpectedStatusCodeGettingChainTipHeight']);
+          }
+
+          if (!res) {
+            return cbk([503, 'ExpectedHeightInGetChainTipHeightResponse']);
+          }
+
+          const height = Number(res);
+
+          if (isNaN(height)) {
+            return cbk([503, 'UnexpectedHeightValueInChainTipHeightResponse']);
+          }
+
+          return cbk(null, {height});
+        });
+      }],
+    },
+    returnResult({reject, resolve, of: 'getHeight'}, cbk));
   });
 };

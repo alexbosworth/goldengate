@@ -1,14 +1,16 @@
 const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
+const bip68Encode = require('bip68').encode;
 const {networks} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
 const claimOutputs = require('./claim_outputs');
 const {names} = require('./../conf/bitcoinjs-lib');
+const {versionOfSwapScript} = require('./../script');
 const witnessForResolution = require('./witness_for_resolution');
 
+const blocks = 1;
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
-const minSequenceValue = 0;
 const {toOutputScript} = address;
 const txVersion = 2;
 
@@ -80,8 +82,13 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForClaimTransaction');
   }
 
+  if (!versionOfSwapScript({script: args.witness_script}).version) {
+    throw new Error('ExpectedKnownSwapScriptTypeForClaimTransaction');
+  }
+
   const network = networks[names[args.network]];
   const tx = new Transaction();
+  const {version} = versionOfSwapScript({script: args.witness_script});
 
   // Add UTXO to tx
   tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
@@ -101,7 +108,7 @@ module.exports = args => {
   });
 
   // Set input sequence number
-  tx.ins.forEach(n => n.sequence = minSequenceValue);
+  tx.ins.forEach(n => n.sequence = bip68Encode({blocks}));
 
   // Set tx locktime
   tx.locktime = bip65Encode({blocks: args.block_height});

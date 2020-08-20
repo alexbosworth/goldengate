@@ -1,5 +1,9 @@
+const {versionOfSwapScript} = require('./../script');
+
 const bufferFromHex = hex => Buffer.from(hex, 'hex');
 const maxSignatureLength = 72;
+const preimageLength = 32;
+const publicKeyLength = 33;
 const sequenceLength = 4;
 const shortPushdataLength = 1;
 const sumOf = arr => arr.reduce((sum, n) => sum + n, 0);
@@ -33,15 +37,55 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForTxWeightEstimation');
   }
 
-  const weight = sumOf([
-    args.weight,
-    shortPushdataLength,
-    maxSignatureLength,
-    shortPushdataLength,
-    bufferFromHex(args.unlock).length,
-    sequenceLength,
-    bufferFromHex(args.witness_script).length,
-  ]);
+  const {version} = versionOfSwapScript({script: args.witness_script});
 
-  return {weight};
+  switch (version) {
+  case 1:
+    return {
+      weight: sumOf([
+        args.weight,
+        shortPushdataLength,
+        maxSignatureLength,
+        shortPushdataLength,
+        bufferFromHex(args.unlock).length,
+        sequenceLength,
+        bufferFromHex(args.witness_script).length,
+      ]),
+    };
+
+  case 2:
+    const unlock = bufferFromHex(args.unlock);
+
+    switch (unlock.length) {
+    case preimageLength:
+      return {
+        weight: sumOf([
+          args.weight,
+          shortPushdataLength,
+          maxSignatureLength,
+          shortPushdataLength,
+          unlock.length,
+          sequenceLength,
+          bufferFromHex(args.witness_script).length,
+        ]),
+      };
+
+    default:
+      return {
+        weight: sumOf([
+          args.weight,
+          shortPushdataLength,
+          maxSignatureLength,
+          shortPushdataLength,
+          publicKeyLength,
+          shortPushdataLength,
+          sequenceLength,
+          bufferFromHex(args.witness_script).length,
+        ]),
+      };
+    }
+
+  default:
+    throw new Error('ExpectedKnownWitnessScriptForTxWeightEstimation');
+  }
 };

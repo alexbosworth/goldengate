@@ -39,6 +39,11 @@ const tests = [
     error: [400, 'ExpectedNetworkWhenCreatingSwap'],
   },
   {
+    args: makeArgs({network: 'network'}),
+    description: 'A known network name is expected',
+    error: [503, 'FailedToDeriveAddressFromOutputScript'],
+  },
+  {
     args: makeArgs({service: undefined}),
     description: 'A service object is expected',
     error: [400, 'ExpectedServiceToCreateSwap'],
@@ -62,10 +67,47 @@ const tests = [
   },
   {
     args: makeArgs({
+      service: makeService({overrides: {sender_key: ''}}),
+    }),
+    description: 'A sender key is expected',
+    error: [503, 'ExpectedSenderKeyInSwapCreationResponse'],
+  },
+  {
+    args: makeArgs({
+      service: {newLoopOutSwap: ({}, {}, cbk) => cbk()},
+    }),
+    description: 'A response is expected',
+    error: [503, 'ExpectedResponseWhenCreatingSwap'],
+  },
+  {
+    args: makeArgs({
+      service: {newLoopOutSwap: ({}, {}, cbk) => cbk('err')},
+    }),
+    description: 'Errors are passed back',
+    error: [503, 'UnexpectedErrorCreatingSwap', {err: 'err'}],
+  },
+  {
+    args: makeArgs({
+      macaroon: Buffer.alloc(33).toString('base64'),
+      preimage: Buffer.alloc(32).toString('hex'),
+      service: {
+        newLoopOutSwap: ({}, {}, cbk) => cbk({details: 'payment required'}),
+      },
+    }),
+    description: 'Payment required error is passed back',
+    error: [402, 'PaymentRequiredToCreateSwap'],
+  },
+  {
+    args: makeArgs({
       service: makeService({overrides: {swap_invoice: undefined}}),
     }),
     description: 'A swap invoice is expected',
     error: [503, 'ExpectedSwapInvoiceInSwapCreationResponse'],
+  },
+  {
+    args: makeArgs({timeout: Infinity}),
+    description: 'A reasonable timeout is required',
+    error: [500, 'FailedToDeriveSwapScriptWhenCreatingSwap'],
   },
   {
     args: makeArgs({}),

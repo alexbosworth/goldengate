@@ -24,7 +24,7 @@ const vRatio = 4;
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
     [is_nested]: <Refund Spending From Nested Output Bool>
     network: <Network Name String>
-    [private_key]: <Refund Private Key WIF String>
+    [private_key]: <Refund Private Key Hex String>
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>

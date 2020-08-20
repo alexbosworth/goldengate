@@ -5,6 +5,7 @@ const {broadcastTransaction} = require('./chain');
 const {checkQuote} = require('./lightninglabs');
 const {checkSwapTiming} = require('./chain');
 const {claimTransaction} = require('./transactions');
+const {confirmationFee} = require('./transactions');
 const {createSwapIn} = require('./lightninglabs');
 const {createSwapOut} = require('./lightninglabs');
 const {decodeSwapRecovery} = require('./lightninglabs');
@@ -41,6 +42,7 @@ module.exports = {
   checkQuote,
   checkSwapTiming,
   claimTransaction,
+  confirmationFee,
   createSwapIn,
   createSwapOut,
   decodeSwapRecovery,

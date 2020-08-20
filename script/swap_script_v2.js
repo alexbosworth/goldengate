@@ -20,6 +20,7 @@ const getPublicKey = require('./get_public_key');
 const scriptElementsAsScript = require('./script_elements_as_script');
 
 const encodeNumber = script.number.encode;
+const {hash160} = crypto;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const pubKey = key => getPublicKey({private_key: key}).public_key;
 const {ripemd160} = crypto;
@@ -78,7 +79,7 @@ module.exports = args => {
     const elements = [
       hexAsBuffer(claim), OP_CHECKSIG,
       OP_NOTIF,
-        OP_DUP, OP_HASH160, ripemd160(hexAsBuffer(refund)),
+        OP_DUP, OP_HASH160, hash160(hexAsBuffer(refund)),
         OP_EQUALVERIFY,
         OP_CHECKSIGVERIFY,
         cltv, OP_CHECKLOCKTIMEVERIFY,

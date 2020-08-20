@@ -59,10 +59,10 @@ module.exports = ({lnd, network, request}, cbk) => {
         'getLndTip',
         ({getBlockstreamTip, getLndTip}, cbk) =>
       {
-        const blockstreamTip = !getBlockstreamTip ? 0 : getBlockstreamTip.height;
-        const lndTip = !getLndTip ? 0 : getLndTip.current_block_height;
+        const bsTip = !getBlockstreamTip ? Number() : getBlockstreamTip.height;
+        const lndTip = !getLndTip ? Number() : getLndTip.current_block_height;
 
-        return cbk(null, {height: max(blockstreamTip, lndTip)});
+        return cbk(null, {height: max(bsTip, lndTip)});
       }],
     },
     returnResult({reject, resolve, of: 'tip'}, cbk));

@@ -1,5 +1,9 @@
 # Versions
 
+## 6.1.1
+
+- `swapScriptV2`: Improve overall support for future swap script version
+
 ## 6.1.0
 
 - `swapScriptV2`: Add method to support future swap script version

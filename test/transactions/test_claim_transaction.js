@@ -15,142 +15,120 @@ const {script} = swapScript({
   timeout: 1571879,
 });
 
+const makeArgs = overrides => {
+  const args = {
+    block_height: 1571579,
+    fee_tokens_per_vbyte: 1,
+    network: 'btctestnet',
+    private_key: ECPair.makeRandom().privateKey.toString('hex'),
+    secret: Buffer.alloc(32).toString('hex'),
+    sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
+    tokens: 1e4,
+    transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
+    transaction_vout: 0,
+    witness_script: script,
+  };
+
+  Object.keys(overrides).forEach(k => args[k] = overrides[k]);
+
+  return args;
+};
+
 const tests = [
   {
-    args: {},
+    args: makeArgs({block_height: undefined}),
     description: 'A block height is required',
     error: 'ExpectedBlockHeightForClaimTransaction',
   },
   {
-    args: {block_height: 1},
+    args: makeArgs({fee_tokens_per_vbyte: undefined}),
     description: 'Fee rate is required',
     error: 'ExpectedFeeTokensPerVbyte',
   },
   {
-    args: {block_height: 1, fee_tokens_per_vbyte: 1},
+    args: makeArgs({network: undefined}),
     description: 'Network is required',
     error: 'ExpectedNetworkNameForClaimTransaction',
   },
   {
-    args: {block_height: 1, fee_tokens_per_vbyte: 1, network: 'network'},
+    args: makeArgs({network: 'network'}),
     description: 'Known network is required',
     error: 'ExpectedNetworkNameForClaimTransaction',
   },
   {
-    args: {block_height: 1, fee_tokens_per_vbyte: 1, network: 'btctestnet'},
+    args: makeArgs({private_key: undefined}),
     description: 'Private key is required',
     error: 'ExpectedPrivateKeyForClaimTransaction',
   },
   {
-    args: {
-      block_height: 1,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-    },
+    args: makeArgs({secret: undefined}),
     description: 'Preimage is required',
     error: 'ExpectedPreimageSecretForClaimTransaction',
   },
   {
-    args: {
-      block_height: 1,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
-    },
+    args: makeArgs({sweep_address: undefined}),
     description: 'A sweep address is required',
     error: 'ExpectedSweepAddressForClaimTransaction',
   },
   {
-    args: {
-      block_height: 1,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
-      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-    },
+    args: makeArgs({tokens: undefined}),
     description: 'Tokens are required',
     error: 'ExpectedTokensForClaimTransaction',
   },
   {
-    args: {
-      block_height: 1,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
-      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-      tokens: 1,
-    },
-    description: 'A transaction id is required',
-    error: 'ExpectedTransactionIdForClaimTransaction',
-  },
-  {
-    args: {
-      block_height: 1,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
-      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-      tokens: 1,
-      transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
-    },
-    description: 'A transaction vout is required',
-    error: 'ExpectedTransactionVoutForClaimTransaction',
-  },
-  {
-    args: {
-      block_height: 1,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
-      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-      tokens: 1,
-      transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
-      transaction_vout: 0,
-    },
-    description: 'A witness script is required',
-    error: 'ExpectedWitnessScriptForClaimTransaction',
-  },
-  {
-    args: {
-      block_height: 1,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
-      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-      tokens: -1,
-      transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
-      transaction_vout: 0,
-      witness_script: script,
-    },
+    args: makeArgs({tokens: -1}),
     description: 'A valid tokens value is required',
     error: 'FailedToAddSweepAddressOutputScript',
   },
   {
-    args: {
-      block_height: 1571579,
-      fee_tokens_per_vbyte: 1,
-      network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
-      sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-      tokens: 1e4,
-      transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
-      transaction_vout: 0,
-      witness_script: script,
-    },
+    args: makeArgs({transaction_id: undefined}),
+    description: 'A transaction id is required',
+    error: 'ExpectedTransactionIdForClaimTransaction',
+  },
+  {
+    args: makeArgs({transaction_vout: undefined}),
+    description: 'A transaction vout is required',
+    error: 'ExpectedTransactionVoutForClaimTransaction',
+  },
+  {
+    args: makeArgs({witness_script: undefined}),
+    description: 'A witness script is required',
+    error: 'ExpectedWitnessScriptForClaimTransaction',
+  },
+  {
+    args: makeArgs({witness_script: '00'}),
+    description: 'A known witness script type is required',
+    error: 'ExpectedKnownSwapScriptTypeForClaimTransaction',
+  },
+  {
+    args: makeArgs({}),
     description: 'Claim transaction formed',
     expected: {
       input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
       input_index: 0,
       input_script: '',
-      input_sequence: 0,
+      input_sequence: 1,
+      locktime: 1571579,
+      out_script: '0014362a2872a1c9988ef71c31bb332dfff68d895f0d',
+      out_value: 9864,
+      version: 2,
+      witness_script: script,
+      witness_unlock: Buffer.alloc(32).toString('hex'),
+    },
+  },
+  {
+    args: makeArgs({
+      sends: [{
+        address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
+        tokens: 1e5,
+      }],
+    }),
+    description: 'Claim transaction formed',
+    expected: {
+      input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
+      input_index: 0,
+      input_script: '',
+      input_sequence: 1,
       locktime: 1571579,
       out_script: '0014362a2872a1c9988ef71c31bb332dfff68d895f0d',
       out_value: 9864,

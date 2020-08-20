@@ -151,6 +151,10 @@ module.exports = (args, cbk) => {
             return cbk([503, 'ExpectedResponseWhenCreatingSwap']);
           }
 
+          if (!res.sender_key) {
+            return cbk([503, 'ExpectedSenderKeyInSwapCreationResponse']);
+          }
+
           return cbk(null, {
             expiry: args.timeout,
             prepay_invoice: res.prepay_invoice,
@@ -196,16 +200,8 @@ module.exports = (args, cbk) => {
         'script',
         ({address, create, keys, script}, cbk) =>
       {
-        if (!create.expiry) {
-          return cbk([503, 'ExpectedExpiryHeightWhenCreatingSwap']);
-        }
-
         if (!create.prepay_invoice) {
           return cbk([503, 'ExpectedPrepayInvoiceInSwapCreationResponse']);
-        }
-
-        if (!create.sender_key) {
-          return cbk([503, 'ExpectedSenderKeyInSwapCreationResponse']);
         }
 
         if (!create.swap_invoice) {

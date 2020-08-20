@@ -36,16 +36,16 @@ module.exports = args => {
     throw new Error('ExpectedRefundPublicKeyToEncodeClaimRecovery');
   }
 
+  if (!args.claim_public_key && !!args.refund_private_key) {
+    throw new Error('ExpectedClaimPublicKeyToEncodeRefundRecovery');
+  }
+
   if (!args.execution_id && !!args.secret) {
     throw new Error('ExpectedSwapHashHexStringToEncodeRecovery');
   }
 
   if (!args.refund_private_key && !args.refund_public_key) {
     throw new Error('ExpectedRefundKeyToEncodeSwapRecovery');
-  }
-
-  if (!!args.refund_private_key && !args.claim_public_key) {
-    throw new Error('ExpectedClaimPublicKeyToEncodeRefundRecovery');
   }
 
   if (!args.secret && !!args.claim_private_key) {

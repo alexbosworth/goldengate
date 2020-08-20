@@ -13,6 +13,52 @@ Supported networks:
 - `btc`: Bitcoin mainnet
 - `btctestnet`: Bitcoin testnet3
 
+## Swap Execution
+
+An HTLC swap is carried out in two phases.
+
+In the first phase, the swap partners setup the details of the swap. Once the
+first phase is set, the funding party funds an HTLC with those details
+on-chain.
+
+In the second phase either party sweeps the funds using either the successful
+claim path or the unsuccessful refund path.
+
+### Phase 1: Setup
+
+In this phase, the following elements must be synchronized between the swappers:
+
+- A claim public key
+- A refund public key
+- A timeout block height
+- A claim hash
+- A number of tokens
+
+Aside from tokens, these values are the inputs to the `swapScript` or
+`swapScriptV2` method that produces the witness script.
+
+This script may be converted into an address with `addressForScript`, and phase
+1 completes when the funder spends to this address with the given tokens.
+
+### Phase 2: Resolution
+
+In this phase each party must derive an address to sweep the funds out to, and
+they must determine the UTXO or UTXOs that they will sweep.
+
+The funder knows the UTXO details because they crafted the output, but either
+party can use `findDeposit` to find a UTXO given the swap address.
+
+Now either party can attempt to claim the funds out to their address, through
+either `claimTransaction` or `refundTransaction`.
+
+These transactions will also require a fee rate, which can be derived from a
+backing estimator using `getChainFeeRate` or it can be derived using blind RBF
+with `confirmationFee`
+
+And they will require a chain height, which can be retrieved using `getHeight`.
+
+Once a transaction is formed, it can be broadcast with `broadcastTransaction`.
+
 ## Methods
 
 ### attemptSweep
@@ -487,6 +533,32 @@ Subscribe to the server status of a swap out
       [is_failed]: <Swap Failed Bool>
       [is_known]: <Swap Is Recognized By Server Bool>
       [is_refunded]: <Swap Is Refunded With Timeout On Chain Bool>
+    }
+
+### swapScript
+
+Get swap redeem script / witness program
+
+A hash or secret is required
+
+A private key or public key is required
+
+    {
+      [claim_private_key]: <Claim Private Key Hex String>
+      [claim_public_key]: <Claim Public Key Hex String>
+      [hash]: <Preimage Hash Hex String>
+      [refund_private_key]: <Refund Private Key Hex String>
+      [refund_public_key]: <Refund Public Key Hex String>
+      [secret]: <Preimage Hex String>
+      timeout: <CLTV Timeout Height Number>
+    }
+
+    @throws
+    <Error> on a script generation error
+
+    @returns
+    {
+      script: <Hex Serialized Witness Script String>
     }
 
 ### swapUserId

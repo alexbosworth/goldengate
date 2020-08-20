@@ -45,7 +45,7 @@ module.exports = ({delay, lnd, network, request}) => {
 
   let currentHeight;
   const emitter = new EventEmitter();
-  let lastAttempt = 0;
+  let lastAttempt = Number();
 
   if (!!lnd) {
     const sub = subscribeToBlocks({lnd});
