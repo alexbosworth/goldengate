@@ -4,6 +4,10 @@ const {returnResult} = require('asyncjs-util');
 
 const encodeSwapRecovery = require('./encode_swap_recovery');
 const {swapScript} = require('./../script');
+const {swapScriptV2} = require('./../script');
+
+const scriptVersion1 = undefined;
+const scriptVersion2 = 2;
 
 /** Decode encoded swap recovery blob
 
@@ -25,6 +29,7 @@ const {swapScript} = require('./../script');
     [sweep_address]: <Sweep Address String>
     timeout: <Swap Timeout Height Number>
     tokens: <Swap Tokens Number>
+    [version]: <Swap Script Version Number>
   }
 */
 module.exports = ({recovery}, cbk) => {
@@ -50,33 +55,32 @@ module.exports = ({recovery}, cbk) => {
         });
       }],
 
-      // Derive swap script from components
-      script: ['recovery', ({recovery}, cbk) => {
-        try {
-          const {script} = swapScript({
-            claim_private_key: recovery.claim_private_key || undefined,
-            claim_public_key: recovery.claim_public_key || undefined,
-            hash: recovery.id || undefined,
-            refund_private_key: recovery.refund_private_key || undefined,
-            refund_public_key: recovery.refund_public_key || undefined,
-            secret: recovery.secret || undefined,
-            timeout: recovery.timeout,
-          });
+      // Script details
+      scriptDetails: ['recovery', ({recovery}, cbk) => {
+        return cbk(null, {
+          claim_private_key: recovery.claim_private_key || undefined,
+          claim_public_key: recovery.claim_public_key || undefined,
+          hash: recovery.id || undefined,
+          refund_private_key: recovery.refund_private_key || undefined,
+          refund_public_key: recovery.refund_public_key || undefined,
+          secret: recovery.secret || undefined,
+          timeout: recovery.timeout,
+        });
+      }],
 
-          return cbk(null, {
-            script,
-            claim_private_key: recovery.claim_private_key,
-            claim_public_key: recovery.claim_public_key,
-            execution_id: recovery.execution_id,
-            id: recovery.id,
-            refund_private_key: recovery.refund_private_key,
-            refund_public_key: recovery.refund_public_key,
-            secret: recovery.secret,
-            start_height: recovery.start_height,
-            sweep_address: recovery.sweep_address,
-            timeout: recovery.timeout,
-            tokens: recovery.tokens,
-          });
+      // Derive swap script from components
+      deriveScript: ['scriptDetails', ({scriptDetails}, cbk) => {
+        try {
+          switch (recovery.version) {
+          case scriptVersion1:
+            return cbk(null, swapScript(scriptDetails));
+
+          case scriptVersion2:
+            return cbk(null, swapScriptV2(scriptDetails));
+
+          default:
+            return cbk([400, 'UnrecognizedSwapVersionNumber']);
+          }
         } catch (err) {
           return cbk([400, 'ExpectedValidRecoveryDetails', {err}]);
         }
@@ -96,6 +100,7 @@ module.exports = ({recovery}, cbk) => {
             sweep_address: recovery.sweep_address,
             timeout: recovery.timeout,
             tokens: recovery.tokens,
+            version: recovery.version,
           });
 
           return cbk();
@@ -103,7 +108,30 @@ module.exports = ({recovery}, cbk) => {
           return cbk([400, 'ExpectedValidSwapRecoveryToDecode', {err}]);
         }
       }],
+
+      // Final decoded result
+      decoded: [
+        'deriveScript',
+        'recovery',
+        ({deriveScript, recovery}, cbk) =>
+      {
+        return cbk(null, {
+          claim_private_key: recovery.claim_private_key,
+          claim_public_key: recovery.claim_public_key,
+          execution_id: recovery.execution_id,
+          id: recovery.id,
+          refund_private_key: recovery.refund_private_key,
+          refund_public_key: recovery.refund_public_key,
+          script: deriveScript.script,
+          secret: recovery.secret,
+          start_height: recovery.start_height,
+          sweep_address: recovery.sweep_address,
+          timeout: recovery.timeout,
+          tokens: recovery.tokens,
+          version: recovery.version,
+        });
+      }],
     },
-    returnResult({reject, resolve, of: 'script'}, cbk));
+    returnResult({reject, resolve, of: 'decoded'}, cbk));
   });
 };

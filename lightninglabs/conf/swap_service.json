@@ -1,5 +1,5 @@
 {
-  "protocolVersion": "USER_EXPIRY_LOOP_OUT",
+  "protocolVersion": "HTLC_V2",
   "serverSwapFailure": {
     "incorrect_htlc_amount": "FAILED_INVALID_HTLC_AMOUNT",
     "late_or_missing_htlc_onchain": "FAILED_NO_HTLC",

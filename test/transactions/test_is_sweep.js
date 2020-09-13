@@ -4,11 +4,12 @@ const {Transaction} = require('bitcoinjs-lib');
 
 const {isSweep} = require('./../../');
 const {swapScript} = require('./../../script');
+const {swapScriptV2} = require('./../../script');
 
 const {compile} = script;
 const {decompile} = script;
 
-const makeTx = ({input, program, witness}) => {
+const makeTx = ({input, program, witness, scriptVersion}) => {
   const tx = new Transaction();
 
   if (!!input) {
@@ -16,7 +17,7 @@ const makeTx = ({input, program, witness}) => {
   }
 
   if (!!witness) {
-    const {script} = !program ? {} : swapScript({
+    const {script} = !program ? {} : (scriptVersion || swapScript)({
       claim_public_key: Buffer.alloc(33).toString('hex'),
       hash: Buffer.alloc(32).toString('hex'),
       refund_private_key: Buffer.alloc(32, 1).toString('hex'),
@@ -56,7 +57,7 @@ const tests = [
     expected: {},
   },
   {
-    args: {transaction: makeTx({input: true, witness: ['00']})},
+    args: {transaction: makeTx({input: true, program: [], witness: ['00']})},
     description: 'A witness with three stack elements is expected in a sweep',
     expected: {},
   },
@@ -72,10 +73,34 @@ const tests = [
       transaction: makeTx({
         input: true,
         program: [],
-        witness: ['00', Buffer.alloc(32).toString('hex')],
+        witness: ['00', Buffer.alloc(33).toString('hex')],
+        scriptVersion: swapScriptV2,
+      },
+    )},
+    description: 'A v2 timeout sweep is returned',
+    expected: {is_success_sweep: false, is_timeout_sweep: true},
+  },
+  {
+    args: {
+      transaction: makeTx({
+        input: true,
+        program: [],
+        witness: ['00', Buffer.alloc(32).toString('hex'), ''],
       },
     )},
     description: 'A success sweep is returned',
+    expected: {is_success_sweep: true, is_timeout_sweep: false},
+  },
+  {
+    args: {
+      transaction: makeTx({
+        input: true,
+        program: [],
+        witness: [Buffer.alloc(32).toString('hex'), '00'],
+        scriptVersion: swapScriptV2,
+      },
+    )},
+    description: 'A v2 success sweep is returned',
     expected: {is_success_sweep: true, is_timeout_sweep: false},
   },
   {

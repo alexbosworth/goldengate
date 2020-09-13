@@ -1,34 +1,15 @@
-const {OP_CHECKLOCKTIMEVERIFY} = require('bitcoin-ops');
-const {OP_CHECKSIG} = require('bitcoin-ops');
-const {OP_DROP} = require('bitcoin-ops');
-const {OP_ELSE} = require('bitcoin-ops');
-const {OP_ENDIF} = require('bitcoin-ops');
-const {OP_EQUAL} = require('bitcoin-ops');
-const {OP_EQUALVERIFY} = require('bitcoin-ops');
-const {OP_HASH160} = require('bitcoin-ops');
-const {OP_IF} = require('bitcoin-ops');
-const {OP_SIZE} = require('bitcoin-ops');
-const {script} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
-const {decompile} = script;
-const {fromHex} = Transaction;
-const nullByte = Buffer.alloc(1);
-const preimageByteLength = 32;
-const sweepInputLength = 1;
-const timeoutWitnessStackLength = 3;
+const {versionOfSwapScript} = require('./../script');
 
-const template = [
-  OP_SIZE, (preimageByteLength).toString(16), OP_EQUAL,
-  OP_IF,
-    OP_HASH160, Buffer.alloc(20), OP_EQUALVERIFY,
-    Buffer.alloc(33),
-  OP_ELSE,
-    OP_DROP, Buffer.alloc(1), OP_CHECKLOCKTIMEVERIFY, OP_DROP,
-    Buffer.alloc(33),
-  OP_ENDIF,
-  OP_CHECKSIG,
-];
+const bufferAsHex = buffer => buffer.toString('hex');
+const {fromHex} = Transaction;
+const minWitnessStackLength = 3;
+const preimageByteLength = 32;
+const publicKeyByteLength = 33;
+const swapV1 = 1;
+const swapV2 = 2;
+const sweepInputLength = 1;
 
 /** Determine if a transaction is an HTLC sweep
 
@@ -59,41 +40,37 @@ module.exports = ({transaction}) => {
 
   const [{witness}] = ins;
 
+  const [script] = witness.slice().reverse();
+
+  if (!script) {
+    return {};
+  }
+
+  const {version} = versionOfSwapScript({script: bufferAsHex(script)});
+
   // Exit early when the number of witness stack elements is not expected
-  if (witness.length !== timeoutWitnessStackLength) {
+  if (witness.length < minWitnessStackLength) {
     return {};
   }
 
-  const [signature, unlock, program] = witness;
+  switch (version) {
+  case swapV1:
+    const [signature, unlock] = witness;
 
-  const unexpectedElement = decompile(program).find((element, i) => {
-    const expected = template[i];
+    return {
+      is_success_sweep: unlock.length === preimageByteLength,
+      is_timeout_sweep: unlock.length !== preimageByteLength,
+    };
 
-    // When a buffer is expected, the element should be a buffer
-    if (Buffer.isBuffer(expected) && !Buffer.isBuffer(element)) {
-      return true;
-    }
+  case swapV2:
+    const [stackItem1, stackItem2] = witness;
 
-    // When the expected element is a string, check hex serialized
-    if (typeof expected === 'string') {
-      return element.toString('hex') !== expected;
-    }
+    return {
+      is_success_sweep: stackItem1.length === preimageByteLength,
+      is_timeout_sweep: stackItem2.length === publicKeyByteLength,
+    };
 
-    // Buffers must be greater than or equal to the expected length
-    if (Buffer.isBuffer(expected)) {
-      return element.length < expected.length;
-    }
-
-    // The op code should match the expected op code
-    return element !== expected;
-  });
-
-  if (!!unexpectedElement) {
+  default:
     return {};
   }
-
-  return {
-    is_success_sweep: unlock.length === preimageByteLength,
-    is_timeout_sweep: unlock.length !== preimageByteLength,
-  };
 };

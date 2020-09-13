@@ -6,7 +6,7 @@ const makeArgs = override => {
   const args = {
     service: {
       loopOutQuote: (args, {}, cbk) => {
-        if (args.protocol_version !== 'USER_EXPIRY_LOOP_OUT') {
+        if (args.protocol_version !== 'HTLC_V2') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 

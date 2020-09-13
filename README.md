@@ -61,6 +61,32 @@ Once a transaction is formed, it can be broadcast with `broadcastTransaction`.
 
 ## Methods
 
+### attemptRefund
+
+Attempt a refund
+
+    {
+      [fee_tokens_per_vbyte]: <Fee Tokens Per Virtual Byte Number>
+      hash: <Swap Hash Hex String>
+      [lnd]: <Authenticated LND API gRPC Object>
+      [network]: <Network Name String>
+      refund_private_key: <Refund Private Key Hex String>
+      [request]: <Request Function>
+      service_public_key: <Service Public Key Hex String>
+      start_height: <Swap Start Height Number>
+      sweep_address: <Sweep Address String>
+      timeout_height: <Timeout Block Height Number>
+      tokens: <Swap Tokens Number>
+      [version]: <Swap Version Number>
+    }
+
+    @returns via cbk or Promise
+    {
+      refund_transaction: <Transaction Hex String>
+      transaction_id: <Transaction Id Hex String>
+      transaction_vout: <Transaction Vout Number>
+    }
+
 ### attemptSweep
 
 Attempt a sweep
@@ -122,6 +148,7 @@ Create a swap in
       service_public_key: <Service Public Key Hex String>
       timeout: <Swap Timeout Chain Height Number>
       tokens: <Tokens To Pay to Address Number>
+      version: <Swap Script Version Number>
     }
 
 Example:
@@ -175,6 +202,7 @@ Get the `timeout` value by getting swap out terms to determine a CLTV delta
       swap_execute_request: <Execute Swap Payment Request String>
       swap_fund_request: <Swap Funding Payment Request String>
       timeout: <Swap Timeout Chain Height Number>
+      version: <Swap Version Number>
     }
 
 ```node
@@ -192,6 +220,7 @@ const swap = await createSwapOut({
 // swap.swap_execute_request: Payment request for pre-paying
 // swap.swap_fund_request: Payment request for funding the swap
 // swap.timeout: Server refund timeout height
+// swap.version: HTLC script version number
 ```
 
 ### decodeSwapRecovery
@@ -216,6 +245,7 @@ Decode encoded swap recovery blob
       [sweep_address]: <Sweep Address String>
       timeout: <Swap Timeout Height Number>
       tokens: <Swap Tokens Number>
+      [version]: <Swap Script Version Number>
     }
 
 ```node
@@ -231,7 +261,10 @@ const recoveryDetails = await decodeSwapRecovery({recovery});
 
 Encode recovery blob
 
+Note: Make sure to encode the version given by swap creation
+
 Either a private key or public key is required for claim/refund
+
 Either the secret preimage or the preimage hash is required for claim/refund 
 
     {
@@ -246,6 +279,7 @@ Either the secret preimage or the preimage hash is required for claim/refund
       [sweep_address]: <Sweep Address String>
       timeout: <Swap Timeout Height Number>
       tokens: <Swap Tokens Number>
+      [version]: <Recovery Blob Version Number>
     }
 
     @throws
@@ -268,6 +302,7 @@ const {recovery} = encodeSwapRecovery({
   sweep_address: sendRefundFundsToChainAddress,
   timeout: swapTimeoutNumber,
   tokens: swapTokensAmount,
+  version: swapVersionNumber,
 });
 // Recovery is a blob with the inputs required for a refund attempt
 ```

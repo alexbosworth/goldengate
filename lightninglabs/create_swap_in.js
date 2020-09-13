@@ -9,10 +9,11 @@ const {returnResult} = require('asyncjs-util');
 
 const {addressForScript} = require('./../script');
 const {protocolVersion} = require('./conf/swap_service');
-const {swapScript} = require('./../script');
+const {swapScriptV2} = require('./../script');
 
 const alreadyCreatedError = 'contract already exists';
 const authHeader = 'Authorization';
+const currentSwapScriptVersion = 2;
 const bufFromHex = hex => Buffer.from(hex, 'hex');
 const feeDivisor = 1e6;
 const {isBuffer} = Buffer;
@@ -45,6 +46,7 @@ const preimageLen = 32;
     service_public_key: <Service Public Key Hex String>
     timeout: <Swap Timeout Chain Height Number>
     tokens: <Tokens To Pay to Address Number>
+    version: <Swap Script Version Number>
   }
 */
 module.exports = (args, cbk) => {
@@ -159,7 +161,7 @@ module.exports = (args, cbk) => {
         ({create, keys, parsedRequest}, cbk) =>
       {
         try {
-          const {script} = swapScript({
+          const {script} = swapScriptV2({
             hash: parsedRequest.id,
             claim_public_key: create.service_public_key,
             refund_private_key: keys.private_key,
@@ -172,36 +174,27 @@ module.exports = (args, cbk) => {
         }
       }],
 
-      // Swap address
-      address: ['parsedRequest', 'script', ({parsedRequest, script}, cbk) => {
-        const {network} = parsedRequest;
-
-        try {
-          return cbk(null, addressForScript({network, script}));
-        } catch (err) {
-          return cbk([503, 'FailedToDeriveAddressFromOutputScript']);
-        }
-      }],
-
       // Final swap details
       swap: [
-        'address',
         'create',
         'keys',
         'parsedRequest',
         'script',
-        ({address, create, keys, parsedRequest, script}, cbk) =>
+        ({create, keys, parsedRequest, script}, cbk) =>
       {
+        const {network} = parsedRequest;
+
         return cbk(null, {
           script,
-          address: address.address,
+          address: addressForScript({network, script}).address,
           id: parsedRequest.id,
-          nested_address: address.nested,
+          nested_address: addressForScript({network, script}).nested,
           private_key: !!args.public_key ? undefined : keys.private_key,
           service_message: create.service_message,
           service_public_key: create.service_public_key.toString('hex'),
           timeout: create.timeout,
           tokens: parsedRequest.tokens + args.fee,
+          version: currentSwapScriptVersion,
         });
       }],
     },

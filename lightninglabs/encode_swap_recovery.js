@@ -1,8 +1,14 @@
 const {encode} = require('cbor');
 
+const swapV1 = undefined;
+const swapV2 = 2;
+
 /** Encode recovery blob
 
+  Note: Make sure to encode the version given by swap creation
+
   Either a private key or public key is required for claim/refund
+
   Either the secret preimage or the preimage hash is required for claim/refund 
 
   {
@@ -17,6 +23,7 @@ const {encode} = require('cbor');
     [sweep_address]: <Sweep Address String>
     timeout: <Swap Timeout Height Number>
     tokens: <Swap Tokens Number>
+    [version]: <Recovery Blob Version Number>
   }
 
   @throws
@@ -64,6 +71,10 @@ module.exports = args => {
     throw new Error('ExpectedSwapTokensToEncodeSwapRecovery');
   }
 
+  if (args.version !== swapV1 && args.version !== swapV2) {
+    throw new Error('ExpectedSwapVersionToEncodeSwapRecovery');
+  }
+
   const recovery = encode({
     claim_private_key: args.claim_private_key || undefined,
     claim_public_key: args.claim_public_key || undefined,
@@ -76,6 +87,7 @@ module.exports = args => {
     sweep_address: args.sweep_address || undefined,
     timeout: args.timeout,
     tokens: args.tokens,
+    version: args.version || undefined,
   });
 
   return {recovery: recovery.toString('hex')};

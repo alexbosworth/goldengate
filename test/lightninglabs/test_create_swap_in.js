@@ -114,6 +114,7 @@ const tests = [
     args: {
       request,
       fee: 3,
+      in_through: Buffer.alloc(33).toString('hex'),
       macaroon: Buffer.alloc(32).toString('base64'),
       preimage: Buffer.alloc(32).toString('hex'),
       service: makeService({}),
@@ -121,8 +122,31 @@ const tests = [
     description: 'Create a swap in',
     expected: {
       id: '6a3332ea2e1a37122bf038de063d1c7205a94b219e9c789df1bff8a206951a93',
+      private_key: true,
+      script: '21034ee0ae3699f1b423286a8e19396365e1246c5b161f36924366189369c5027943ac6476a914a6c608cb65b77279465241c90d8a476cc065c0d188ad02c800b16782012088a914b0b56f62f01c2bf02d954b258d566106078cc33e8851b268',
       timeout: 200,
       tokens: 153,
+      version: 2,
+    },
+  },
+  {
+    args: {
+      request,
+      fee: 3,
+      in_through: Buffer.alloc(33).toString('hex'),
+      macaroon: Buffer.alloc(32).toString('base64'),
+      preimage: Buffer.alloc(32).toString('hex'),
+      public_key: Buffer.alloc(33).toString('hex'),
+      service: makeService({}),
+    },
+    description: 'Create a swap in and specify a public key',
+    expected: {
+      id: '6a3332ea2e1a37122bf038de063d1c7205a94b219e9c789df1bff8a206951a93',
+      private_key: false,
+      script: '21034ee0ae3699f1b423286a8e19396365e1246c5b161f36924366189369c5027943ac6476a914a6c608cb65b77279465241c90d8a476cc065c0d188ad02c800b16782012088a914b0b56f62f01c2bf02d954b258d566106078cc33e8851b268',
+      timeout: 200,
+      tokens: 153,
+      version: 2,
     },
   },
 ];
@@ -131,18 +155,18 @@ tests.forEach(({args, description, error, expected}) => {
   return test(description, async ({equal, end, rejects}) => {
     if (!!error) {
       await rejects(createSwapIn(args), error, 'Got expected error');
+    } else {
+      const res = await createSwapIn(args);
 
-      return end();
+      equal(!!res.address, true, 'Address returned');
+      equal(res.id, expected.id, 'Id returned');
+      equal(!!res.nested_address, true, 'Nested address returned');
+      equal(!!res.script, true, 'Script returned');
+      equal(!!res.private_key, expected.private_key, 'Private key creation');
+      equal(res.timeout, expected.timeout, 'Swap timeout height');
+      equal(res.tokens, expected.tokens, 'Swap tokens returned');
+      equal(res.version, expected.version, 'Swap version returned');
     }
-
-    const res = await createSwapIn(args);
-
-    equal(!!res.address, true, 'Address returned');
-    equal(res.id, expected.id, 'Id returned');
-    equal(!!res.script, true, 'Script returned');
-    equal(!!res.private_key, true, 'Private key created');
-    equal(res.timeout, expected.timeout, 'Swap timeout height');
-    equal(res.tokens, expected.tokens, 'Swap tokens returned');
 
     return end();
   });

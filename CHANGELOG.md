@@ -1,5 +1,24 @@
 # Versions
 
+## 7.0.0
+
+Switch swap script to V2:
+
+- `attemptRefund`: Allow specifying the `version` of the swap script
+- `createSwapIn`: Returns `version` of the created swap
+- `createSwapOut`: Returns `version` of the created swap
+- `decodeSwapRecovery`: Returns `version` of the swap recovery
+- `encodeSwapRecovery`: Allow specifying `version` of the swap script
+- `isSweep`: Add support for detecting v2 sweeps
+
+### Breaking Changes
+
+- `attemptRefund`: Specifying the `version` of the swap script required for v2
+- `createSwapIn`: Now creates a version 2 swap
+- `createSwapOut`: Now creates a version 2 swap
+- `encodeSwapRecovery`: You must now specify the swap version
+- `swapInAddress`: Method is removed, use `createSwapIn`: `address`
+
 ## 6.1.1
 
 - `swapScriptV2`: Improve overall support for future swap script version

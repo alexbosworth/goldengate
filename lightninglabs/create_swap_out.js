@@ -9,9 +9,10 @@ const {returnResult} = require('asyncjs-util');
 const {addressForScript} = require('./../script');
 const parsePaymentMetadata = require('./parse_payment_metadata');
 const {protocolVersion} = require('./conf/swap_service');
-const {swapScript} = require('./../script');
+const {swapScriptV2} = require('./../script');
 
 const authHeader = 'Authorization';
+const currentSwapVersion = 2;
 const msPerSec = 1e3;
 const paymentRequiredError = 'payment required';
 const preimageLen = 32;
@@ -48,6 +49,7 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
     swap_execute_request: <Execute Swap Payment Request String>
     swap_fund_request: <Swap Funding Payment Request String>
     timeout: <Swap Timeout Chain Height Number>
+    version: <Swap Version Number>
   }
 */
 module.exports = (args, cbk) => {
@@ -168,7 +170,7 @@ module.exports = (args, cbk) => {
       // Swap script
       script: ['create', 'keys', ({create, keys}, cbk) => {
         try {
-          const {script} = swapScript({
+          const {script} = swapScriptV2({
             claim_private_key: keys.private_key,
             refund_public_key: create.sender_key.toString('hex'),
             secret: keys.swap_secret,
@@ -219,6 +221,7 @@ module.exports = (args, cbk) => {
           swap_execute_request: create.prepay_invoice,
           swap_fund_request: create.swap_invoice,
           timeout: create.expiry,
+          version: currentSwapVersion,
         });
       }],
     },

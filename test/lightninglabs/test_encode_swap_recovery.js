@@ -28,6 +28,10 @@ const tests = [
     description: 'Encode swap recovery for a claim',
   },
   {
+    args: makeArgs({version: 2}),
+    description: 'Encode swap recovery for a v2 claim',
+  },
+  {
     args: makeArgs({sweep_address: undefined}),
     description: 'Encode swap with no sweep address',
   },
@@ -64,7 +68,7 @@ const tests = [
     args: makeArgs({
       refund_private_key: Buffer.alloc(33).toString('hex'),
     }),
-    description: 'An ',
+    description: 'A claim public key is expected',
     error: 'ExpectedClaimPublicKeyToEncodeRefundRecovery',
   },
   {
@@ -81,6 +85,11 @@ const tests = [
     args: makeArgs({tokens: undefined}),
     description: 'A swap tokens amount is expected',
     error: 'ExpectedSwapTokensToEncodeSwapRecovery',
+  },
+  {
+    args: makeArgs({version: 'version'}),
+    description: 'A known version is expected',
+    error: 'ExpectedSwapVersionToEncodeSwapRecovery',
   },
 ];
 

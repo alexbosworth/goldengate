@@ -8,9 +8,12 @@ const {getHeight} = require('./../chain');
 const {makeAddressForScript} = require('./../script');
 const makeRefundTransaction = require('./make_refund_transaction');
 const {swapScript} = require('./../script');
+const {swapScriptV2} = require('./../script');
 
 const defaultTimeoutMs = 1000 * 30;
 const minRelayFee = 1;
+const scriptVersion1 = undefined;
+const scriptVersion2 = 2;
 
 /** Attempt a refund
 
@@ -26,6 +29,7 @@ const minRelayFee = 1;
     sweep_address: <Sweep Address String>
     timeout_height: <Timeout Block Height Number>
     tokens: <Swap Tokens Number>
+    [version]: <Swap Version Number>
   }
 
   @returns via cbk or Promise
@@ -92,14 +96,26 @@ module.exports = (args, cbk) => {
       // Swap script
       script: ['validate', ({}, cbk) => {
         try {
-          const {script} = swapScript({
-            hash: args.hash,
-            claim_public_key: args.service_public_key,
-            refund_private_key: args.refund_private_key,
-            timeout: args.timeout_height,
-          });
+          switch (args.version) {
+          case scriptVersion1:
+            return cbk(null, swapScript({
+              hash: args.hash,
+              claim_public_key: args.service_public_key,
+              refund_private_key: args.refund_private_key,
+              timeout: args.timeout_height,
+            }).script);
 
-          return cbk(null, script);
+          case scriptVersion2:
+            return cbk(null, swapScriptV2({
+              hash: args.hash,
+              claim_public_key: args.service_public_key,
+              refund_private_key: args.refund_private_key,
+              timeout: args.timeout_height,
+            }).script);
+
+          default:
+            return cbk([400, 'UnrecognizedScriptVersionForRefundAttempt']);
+          }
         } catch (err) {
           return cbk([400, 'FailedToDeriveSwapScriptForRefundAttempt', {err}]);
         }
