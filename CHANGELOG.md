@@ -1,5 +1,9 @@
 # Versions
 
+##  7.0.1
+
+- `isSweep`: Add support for more raw transaction scenarios
+
 ## 7.0.0
 
 Switch swap script to V2:

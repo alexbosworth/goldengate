@@ -34,7 +34,7 @@ module.exports = ({transaction}) => {
   const {ins} = fromHex(transaction);
 
   // Exit early when the number of inputs is not the expected number
-  if (ins.length !== sweepInputLength) {
+  if (!ins || ins.length !== sweepInputLength) {
     return {};
   }
 
@@ -49,7 +49,7 @@ module.exports = ({transaction}) => {
   const {version} = versionOfSwapScript({script: bufferAsHex(script)});
 
   // Exit early when the number of witness stack elements is not expected
-  if (witness.length < minWitnessStackLength) {
+  if (!witness || witness.length < minWitnessStackLength) {
     return {};
   }
 
