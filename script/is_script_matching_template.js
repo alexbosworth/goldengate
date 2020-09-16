@@ -32,7 +32,7 @@ module.exports = ({script, template}) => {
   const decompiled = decompile(hexAsBuffer(script));
 
   // Exit early when the script element count does not match the template
-  if (decompiled.length !== template.length) {
+  if (!decompiled || decompiled.length !== template.length) {
     return false;
   }
 

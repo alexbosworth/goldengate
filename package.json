@@ -15,7 +15,7 @@
     "bn.js": "5.1.3",
     "cbor": "5.1.0",
     "grpc": "1.24.3",
-    "ln-service": "49.9.3",
+    "ln-service": "49.10.0",
     "macaroon": "3.0.4",
     "pushdata-bitcoin": "1.0.1",
     "varuint-bitcoin": "1.1.2"
@@ -37,5 +37,5 @@
   "scripts": {
     "test": "tap test/blockstream/*.js test/chain/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/transactions/*.js"
   },
-  "version": "7.0.1"
+  "version": "7.0.2"
 }
