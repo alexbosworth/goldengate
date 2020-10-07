@@ -1,5 +1,9 @@
 # Versions
 
+## 7.1.0
+
+- `genericSwapService`: Add method to create generic swap server object
+
 ##  7.0.2
 
 - `isSweep`: Add support for more raw transaction scenarios

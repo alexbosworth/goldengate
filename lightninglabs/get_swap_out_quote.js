@@ -70,10 +70,9 @@ module.exports = (args, cbk) => {
 
         return args.service.loopOutQuote({
           amt: args.tokens.toString(),
-          expiry: args.timeout || undefined,
+          expiry: args.timeout,
           protocol_version: protocolVersion,
           swap_publication_deadline: deadline,
-          timeout: args.timeout,
         },
         metadata,
         (err, res) => {

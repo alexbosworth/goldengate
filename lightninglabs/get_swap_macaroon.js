@@ -1,6 +1,7 @@
 const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
+const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const getSwapOutTerms = require('./get_swap_out_terms');
@@ -10,6 +11,7 @@ const {protocolVersion} = require('./conf/swap_service');
 
 const authHeader = 'www-authenticate';
 const bufferFromHex = hex => Buffer.from(hex, 'hex');
+const expiry = 1;
 const makePublicKeyHex = () => `02${randomBytes(32).toString('hex')}`;
 const makeSwapHash = () => randomBytes(32);
 const paymentRequiredError = 'payment required';
@@ -44,12 +46,16 @@ module.exports = ({service}, cbk) => {
 
       // Get an unpaid macaroon
       getUnpaidMacaroon: ['getSwapValue', ({getSwapValue}, cbk) => {
+        const metadata = new Metadata();
+
         return service.newLoopOutSwap({
+          expiry,
           amt: getSwapValue.max_tokens.toString(),
           protocol_version: protocolVersion,
           receiver_key: bufferFromHex(makePublicKeyHex()),
           swap_hash: makeSwapHash(),
         },
+        metadata,
         err => {
           // An error is expected
           if (!err) {

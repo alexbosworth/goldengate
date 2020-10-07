@@ -58,6 +58,20 @@ const tests = [
     expected: 5,
   },
   {
+    args: makeArgs({
+      is_dry_run: true,
+      lnd: {
+        wallet: {
+          estimateFee: ({}, cbk) => cbk(null, {sat_per_kw: 5000/4}),
+          publishTransaction: (args, cbk) => cbk(null, {})
+        },
+      },
+      min_fee_rate: 1,
+    }),
+    description: 'Min fee rate can be specified',
+    expected: 1,
+  },
+  {
     args: makeArgs({current_height: undefined}),
     description: 'Current height is required',
     error: [400, 'ExpectedCurrentHeightForHtlcSweepAttempt'],
@@ -66,6 +80,16 @@ const tests = [
     args: makeArgs({deadline_height: undefined}),
     description: 'Deadline height is required',
     error: [400, 'ExpectedDeadlineHeightWhenAttemptingHtlcSweep'],
+  },
+  {
+    args: makeArgs({deadline_height: current_height}),
+    description: 'Deadline cannot be equal to current height',
+    error: [500, 'FailedToGenerateSweepTransaction'],
+  },
+  {
+    args: makeArgs({deadline_height: start_height}),
+    description: 'Deadline cannot be equal to start height',
+    error: [500, 'FailedToCalculateConfirmationFeeRate'],
   },
   {
     args: makeArgs({lnd: undefined}),

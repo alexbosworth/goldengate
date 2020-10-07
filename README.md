@@ -156,16 +156,18 @@ Example:
 ```node
 const {createSwapIn, getSwapInQuote} = require('goldengate');
 const {lightningLabsSwapService} = require('goldengate');
-const request = require('@alexbosworth/request');
+
+const tokens = 1000000;
+const {fee} = await getSwapInQuote({service, tokens});
 
 const currentBlockHeight = 1500000;
+const request = 'bolt11RequestForTokensMinusFee';
 const {service} = lightningLabsSwapService({network: 'btctestnet'});
-const tokens = 1000000;
 
 const {address} = await createSwapIn({
+  fee,
   request,
   service,
-  fee: (await getSwapInQuote({service, tokens})).fee,
   max_timeout_height: currentBlockHeight + 1000,
 });
 // address is the swap on-chain address to send to for the swap
@@ -306,6 +308,25 @@ const {recovery} = encodeSwapRecovery({
 });
 // Recovery is a blob with the inputs required for a refund attempt
 ```
+
+### genericSwapService
+
+Generic swap service
+
+For fetch, pass a function like 'node-fetch' that returns a URL
+
+    {
+      fetch: <Fetch Function>
+      socket: <Custom Socket String>
+    }
+
+    @throws
+    <Error>
+
+    @returns
+    {
+      service: <Swap Service API Object>
+    }
 
 ### getSwapInQuote
 

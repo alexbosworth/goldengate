@@ -1,0 +1,11 @@
+{
+  "methods": [
+    "loopInQuote",
+    "loopInTerms",
+    "loopOutQuote",
+    "loopOutPushPreimage",
+    "loopOutTerms",
+    "newLoopInSwap",
+    "newLoopOutSwap"
+  ]
+}

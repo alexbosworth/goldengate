@@ -7,6 +7,21 @@ const expiry = 150;
 const request = 'lntb1500n1pwne5trpp5dgen963wrgm3y2ls8r0qv0guwgz6jjepn6w83803hlu2yp54r2fsdqvg9jxgg8zn2sscqzpgxqr23s02xlzwwanxyun29cgggcytlepmu352v2njq6cuvhl6uz6wlv7jzx8pxgvlf0983n43g243uxgv6ejt58ps035lerdulymarz9j98nqqp8340y4';
 const serviceKey = ECPair.makeRandom().publicKey.toString('hex');
 
+const makeArgs = overrides => {
+  const args = {
+    request,
+    fee: 3,
+    in_through: Buffer.alloc(33).toString('hex'),
+    macaroon: Buffer.alloc(32).toString('base64'),
+    preimage: Buffer.alloc(32).toString('hex'),
+    service: makeService({}),
+  };
+
+  Object.keys(overrides).forEach(k => args[k] = overrides[k]);
+
+  return args;
+};
+
 const makeService = ({err, res}) => {
   const goodRes = {expiry: 200, receiver_key: Buffer.from(serviceKey, 'hex')};
 
@@ -19,40 +34,36 @@ const makeService = ({err, res}) => {
 
 const tests = [
   {
-    args: {},
+    args: makeArgs({fee: undefined}),
     description: 'Expected fee to create swap in',
     error: [400, 'ExpectedFeeToCreateSwapIn'],
   },
   {
-    args: {fee: 1},
+    args: makeArgs({request: undefined}),
     description: 'Expected payment request to create swap in',
     error: [400, 'ExpectedPaymentRequestToCreateSwapIn'],
   },
   {
-    args: {
-      fee: 1,
+    args: makeArgs({
       request: 'lnxx1500n1pwne5trpp5dgen963wrgm3y2ls8r0qv0guwgz6jjepn6w83803hlu2yp54r2fsdqvg9jxgg8zn2sscqzpgxqr23s02xlzwwanxyun29cgggcytlepmu352v2njq6cuvhl6uz6wlv7jzx8pxgvlf0983n43g243uxgv6ejt58ps035lerdulymarz9j98nqqp8340y4',
-      service: makeService({}),
-    },
+    }),
     description: 'Expected valid payment request to create swap in',
     error: [400, 'ExpectedValidPayReqToCreateSwapIn'],
   },
   {
-    args: {
-      fee: 1,
+    args: makeArgs({
       request: 'lnltc4200n1p0nmawspp5x6su30qwu02ltde8tjyff3snlrkv8ns6hg5g7sxj8flzz4ue7jsqdp6f45kcmrfdahzqnrfw3jkxmmfdcsysmmdv4cxzem9yp8hyer9wgszxd3hxvcqzjqxqzfvua2paum05jcda70kvm4d7j066spu07fdwmx2zxdmpcx8esykq9hpm337xyxcdvtzsmwnkhm9rvh9fxm5z9lfdkq3kl2erpgr6qhpfuspx4p8e6',
-      service: makeService({}),
-    },
+    }),
     description: 'Expected supported network to create swap in',
     error: [400, 'ExpectedKnownNetworkForSwapInPaymentRequest'],
   },
   {
-    args: {request, fee: 1},
+    args: makeArgs({service: undefined}),
     description: 'Expected service to create swap in',
     error: [400, 'ExpectedServiceToCreateSwapIn'],
   },
   {
-    args: {request, fee: 1, service: makeService({err: 'err'})},
+    args: makeArgs({service: makeService({err: 'err'})}),
     description: 'Error creating swap passed back',
     error: [503, 'UnexpectedErrorCreatingSwapIn', {err: 'err'}],
   },
@@ -97,7 +108,7 @@ const tests = [
       service: makeService({res: {expiry: 2, receiver_key: Buffer.alloc(0)}}),
     },
     description: 'A receiver key of pubkey length is expected',
-    error: [503, 'ExpectedReceiverKeyWhenCreatingSwapIn'],
+    error: [503, 'ExpectedReceiverPublicKeyWhenCreatingSwapIn'],
   },
   {
     args: {
@@ -111,14 +122,7 @@ const tests = [
     error: [500, 'FailedToDeriveSwapScriptWhenCreatingSwap'],
   },
   {
-    args: {
-      request,
-      fee: 3,
-      in_through: Buffer.alloc(33).toString('hex'),
-      macaroon: Buffer.alloc(32).toString('base64'),
-      preimage: Buffer.alloc(32).toString('hex'),
-      service: makeService({}),
-    },
+    args: makeArgs({}),
     description: 'Create a swap in',
     expected: {
       id: '6a3332ea2e1a37122bf038de063d1c7205a94b219e9c789df1bff8a206951a93',

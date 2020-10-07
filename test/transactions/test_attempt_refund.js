@@ -11,6 +11,29 @@ const refund_private_key = Buffer.alloc(32).toString('hex');
 const request = ({}, cbk) => cbk();
 const service_public_key = Buffer.alloc(33).toString('hex');
 
+const makeRequest = () => {
+  return ({method, url}, cbk) => {
+    if (/height/.test(url)) {
+      return cbk(null, {statusCode: 200}, 200);
+    }
+
+    if (/address/.test(url)) {
+      return cbk(null, {statusCode: 200}, [{
+        status: {block_height: 200},
+        txid: Buffer.alloc(32).toString('hex'),
+        value: 1000,
+        vout: 0,
+      }]);
+    }
+
+    if (method === 'POST') {
+      return cbk(null, {statusCode: 200}, 'txid');
+    }
+
+    return cbk();
+  };
+};
+
 const tests = [
   {
     args: {},
@@ -153,42 +176,55 @@ const tests = [
     args: {
       hash,
       network,
-      request: ({method, url}, cbk) => {
-        if (/height/.test(url)) {
-          return cbk(null, {statusCode: 200}, 200);
-        }
-
-        if (/address/.test(url)) {
-          return cbk(null, {statusCode: 200}, [{
-            status: {block_height: 200},
-            txid: Buffer.alloc(32).toString('hex'),
-            value: 1000,
-            vout: 0,
-          }]);
-        }
-
-        if (method === 'POST') {
-          return cbk(null, {statusCode: 200}, 'txid');
-        }
-
-        return cbk();
-      },
       service_public_key,
       refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      request: makeRequest({}),
       start_height: 1,
       sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
       timeout_height: 100,
       tokens: 1000,
     },
-    description: 'Refund with request requires valid request response',
+    description: 'Refund with request returns refund details',
     expected: {},
+  },
+  {
+    args: {
+      hash,
+      network,
+      service_public_key,
+      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      request: makeRequest({}),
+      start_height: 1,
+      sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
+      timeout_height: 100,
+      tokens: 1000,
+      version: 2,
+    },
+    description: 'Refund with request v2 returns refund details',
+    expected: {},
+  },
+  {
+    args: {
+      hash,
+      network,
+      service_public_key,
+      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      request: makeRequest({}),
+      start_height: 1,
+      sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
+      timeout_height: 100,
+      tokens: 1000,
+      version: Number.MAX_SAFE_INTEGER,
+    },
+    description: 'Refund with unknown request version returns error',
+    error: [400, 'UnrecognizedScriptVersionForRefundAttempt'],
   },
 ];
 
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async ({equal, end, rejects}) => {
     if (!!error) {
-      rejects(attemptRefund(args), error, 'Got expected error');
+      await rejects(attemptRefund(args), error, 'Got expected error');
 
       return end();
     }

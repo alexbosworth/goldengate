@@ -10,7 +10,7 @@ const makeService = ({overrides}) => {
   const res = {
     expiry,
     prepay_invoice: 'prepay_invoice',
-    sender_key: serviceKey,
+    sender_key: Buffer.from(serviceKey, 'hex'),
     swap_invoice: 'swap_invoice',
   };
 

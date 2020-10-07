@@ -13,6 +13,7 @@ const {swapScriptV2} = require('./../script');
 
 const alreadyCreatedError = 'contract already exists';
 const authHeader = 'Authorization';
+const bufferize = n => Buffer.from(n.toString('base64'), 'base64');
 const currentSwapScriptVersion = 2;
 const bufFromHex = hex => Buffer.from(hex, 'hex');
 const feeDivisor = 1e6;
@@ -110,7 +111,7 @@ module.exports = (args, cbk) => {
         }
 
         return args.service.newLoopInSwap({
-          amt: parsedRequest.tokens + args.fee,
+          amt: (parsedRequest.tokens + args.fee).toString(),
           last_hop: !args.in_through ? undefined : bufFromHex(args.in_through),
           protocol_version: protocolVersion,
           sender_key: Buffer.from(keys.public_key, 'hex'),
@@ -139,15 +140,19 @@ module.exports = (args, cbk) => {
             return cbk([503, 'ExpectedLowerExpiryHeightForCreatedSwapIn']);
           }
 
-          const receiverKey = res.receiver_key;
-
-          if (!isBuffer(receiverKey) || receiverKey.length !== pkLen) {
+          if (!res.receiver_key) {
             return cbk([503, 'ExpectedReceiverKeyWhenCreatingSwapIn']);
+          }
+
+          const receiverKey = bufferize(res.receiver_key);
+
+          if (receiverKey.length !== pkLen) {
+            return cbk([503, 'ExpectedReceiverPublicKeyWhenCreatingSwapIn']);
           }
 
           return cbk(null, {
             service_message: res.server_message || undefined,
-            service_public_key: res.receiver_key.toString('hex'),
+            service_public_key: receiverKey.toString('hex'),
             timeout: res.expiry,
           });
         });

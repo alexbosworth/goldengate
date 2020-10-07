@@ -12,6 +12,7 @@ const {decodeSwapRecovery} = require('./lightninglabs');
 const {encodeSwapRecovery} = require('./lightninglabs');
 const {findDeposit} = require('./chain');
 const {findSecret} = require('./blockstream');
+const {genericSwapService} = require('./service');
 const {getChainFeeRate} = require('./chain');
 const {getGrpcInterface} = require('./grpc');
 const {getHeight} = require('./chain');
@@ -49,6 +50,7 @@ module.exports = {
   encodeSwapRecovery,
   findDeposit,
   findSecret,
+  genericSwapService,
   getChainFeeRate,
   getGrpcInterface,
   getHeight,

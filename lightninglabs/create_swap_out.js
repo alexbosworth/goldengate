@@ -11,6 +11,7 @@ const parsePaymentMetadata = require('./parse_payment_metadata');
 const {protocolVersion} = require('./conf/swap_service');
 const {swapScriptV2} = require('./../script');
 
+const asKey = n => Buffer.from(n.toString('base64'), 'base64');
 const authHeader = 'Authorization';
 const currentSwapVersion = 2;
 const msPerSec = 1e3;
@@ -160,7 +161,7 @@ module.exports = (args, cbk) => {
           return cbk(null, {
             expiry: args.timeout,
             prepay_invoice: res.prepay_invoice,
-            sender_key: res.sender_key,
+            sender_key: asKey(res.sender_key),
             service_message: res.server_message,
             swap_invoice: res.swap_invoice,
           });

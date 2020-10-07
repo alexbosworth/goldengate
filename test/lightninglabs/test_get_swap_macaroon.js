@@ -16,7 +16,7 @@ const tests = [
     error: [400, 'ExpectedServiceToGetSwapMacaroonPaymentDetails'],
   },
   {
-    args: {service: {loopOutTerms, newLoopOutSwap: ({}, cbk) => cbk()}},
+    args: {service: {loopOutTerms, newLoopOutSwap: ({}, {}, cbk) => cbk()}},
     description: 'An error is expected',
     error: [503, 'ExpectedPaymentErrWhenPurchasingSwapMacaroon'],
   },
@@ -24,7 +24,7 @@ const tests = [
     args: {
       service: {
         loopOutTerms,
-        newLoopOutSwap: ({}, cbk) => cbk({details: 'details'}),
+        newLoopOutSwap: ({}, {}, cbk) => cbk({details: 'details'}),
       },
     },
     description: 'A payment error is expected',
@@ -34,7 +34,7 @@ const tests = [
     args: {
       service: {
         loopOutTerms,
-        newLoopOutSwap: ({}, cbk) => cbk({
+        newLoopOutSwap: ({}, {}, cbk) => cbk({
           details: 'payment required',
           metadata: {get: () => []},
         }),
@@ -47,7 +47,7 @@ const tests = [
     args: {
       service: {
         loopOutTerms,
-        newLoopOutSwap: ({}, cbk) => cbk({
+        newLoopOutSwap: ({}, {}, cbk) => cbk({
           details: 'payment required',
           metadata: {get: () => [auth]},
         }),
