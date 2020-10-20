@@ -23,6 +23,7 @@
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
+    "express": "4.17.1",
     "tap": "14.10.8"
   },
   "engines": {
