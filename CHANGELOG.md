@@ -1,5 +1,9 @@
 # Versions
 
+## 7.1.1
+
+- `decodeSwapRecovery`: Pull out version field from recovery details
+
 ## 7.1.0
 
 - `genericSwapService`: Add method to create generic swap server object

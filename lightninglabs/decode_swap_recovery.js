@@ -65,13 +65,14 @@ module.exports = ({recovery}, cbk) => {
           refund_public_key: recovery.refund_public_key || undefined,
           secret: recovery.secret || undefined,
           timeout: recovery.timeout,
+          version: recovery.version,
         });
       }],
 
       // Derive swap script from components
       deriveScript: ['scriptDetails', ({scriptDetails}, cbk) => {
         try {
-          switch (recovery.version) {
+          switch (scriptDetails.version) {
           case scriptVersion1:
             return cbk(null, swapScript(scriptDetails));
 
