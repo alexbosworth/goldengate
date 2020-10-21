@@ -1,6 +1,6 @@
 # Versions
 
-## 7.1.1
+## 7.1.2
 
 - `decodeSwapRecovery`: Pull out version field from recovery details
 

@@ -26,14 +26,19 @@ const tests = [
   {
     args: makeArgs({}),
     description: 'Encode swap recovery for a claim',
+    expected: {},
   },
   {
     args: makeArgs({version: 2}),
     description: 'Encode swap recovery for a v2 claim',
+    expected: {
+      script: '210366d6a3884e943c40a10c85220753548fb7e15dd20752f6fa026d5dd5737f4a5aac6476a914bab88c089ed2a31125d8af7b3c3819b942dacfa988ad03d2f017b16782012088a91423d93e25796298628506157d4ab530aa0b255b308851b268',
+    },
   },
   {
     args: makeArgs({sweep_address: undefined}),
     description: 'Encode swap with no sweep address',
+    expected: {},
   },
   {
     args: makeArgs({secret: undefined}),
@@ -93,7 +98,7 @@ const tests = [
   },
 ];
 
-tests.forEach(({args, description, error}) => {
+tests.forEach(({args, description, error, expected}) => {
   return test(description, async ({end, equal, throws}) => {
     if (!!error) {
       throws(() => encodeSwapRecovery(args), new Error(error), 'Got error');
@@ -108,7 +113,7 @@ tests.forEach(({args, description, error}) => {
       equal(got.id, args.id, 'Got swap id');
       equal(got.refund_private_key, args.refund_private_key, 'Got refund key');
       equal(got.refund_public_key, args.refund_public_key, 'Got refund key');
-      equal(got.script, script, 'Got script');
+      equal(got.script, expected.script || script, 'Got script');
       equal(got.secret, args.secret, 'Got secret');
       equal(got.start_height, args.start_height, 'Got start height');
       equal(got.sweep_address, args.sweep_address, 'Got sweep address');
