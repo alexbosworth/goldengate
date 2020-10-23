@@ -3,21 +3,25 @@ const {test} = require('tap');
 
 const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
-const {releaseSwapOutSecret} = require('./../../');
+const {getSwapOutQuote} = require('./../../');
 
-const port = 2353;
+const port = 2351;
 
 const socket = `http://localhost:${port}`;
 
 const tests = [
   {
     args: {
-      auth_macaroon: Buffer.alloc(1).toString('base64'),
-      auth_preimage: Buffer.alloc(32).toString('hex'),
-      secret: Buffer.alloc(32).toString('hex'),
       service: genericSwapService({fetch, socket}).service,
+      timeout: 100,
+      tokens: 250000,
     },
-    description: 'Generic swap service can be used to release a swap secret',
+    description: 'Generic swap service can be used to get swap out quotes',
+    expected: {
+      deposit: 30000,
+      destination: '000000000000000000000000000000000000000000000000000000000000000000',
+      fee: 625,
+    },
   },
 ];
 
@@ -35,14 +39,16 @@ const stopSwapServer = ({server}) => new Promise((resolve, reject) => {
 
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async ({deepIs, end, equal, throws, rejects}) => {
-    const {app} = genericSwapServer({});
+    const {app} = genericSwapServer({
+      destination: Buffer.alloc(33).toString('hex'),
+    });
 
     const {server} = await startSwapServer({app, port});
 
     if (!!error) {
-      await rejects(releaseSwapOutSecret(args), error, 'Got ExpectedError');
+      await rejects(getSwapOutQuote(args), error, 'Got ExpectedError');
     } else {
-      const result = await releaseSwapOutSecret(args);
+      const result = await getSwapOutQuote(args);
 
       deepIs(result, expected, 'Got expected result');
     }

@@ -33,7 +33,7 @@ const preimageLen = 32;
     [private_key]: <Refund Private Key Hex String>
     [public_key]: <Refund Public Key Hex String>
     request: <BOLT 11 Payment Request String>
-    service: <gRPC Swap Service API Object>
+    service: <Swap Service API Object>
   }
 
   @returns via cbk or Promise

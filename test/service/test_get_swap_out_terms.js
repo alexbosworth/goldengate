@@ -5,7 +5,7 @@ const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
 const {getSwapOutTerms} = require('./../../');
 
-const port = 2349;
+const port = 2352;
 
 const socket = `http://localhost:${port}`;
 

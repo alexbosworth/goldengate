@@ -74,25 +74,15 @@ const tests = [
     error: [503, 'ExpectedResponseWhenGettingSwapQuote'],
   },
   {
-    args: makeArgs({service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {})}}),
-    description: 'A cltv is expected in response',
-    error: [503, 'ExpectedCltvDeltaInSwapQuoteResponse'],
-  },
-  {
     args: makeArgs({
-      service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {cltv_delta: 1})}
+      service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {})}
     }),
     description: 'A prepay amount is expected in response',
     error: [503, 'ExpectedPrepayAmountInSwapQuoteResponse'],
   },
   {
     args: makeArgs({
-      service: {
-        loopOutQuote: ({}, {}, cbk) => cbk(null, {
-          cltv_delta: 1,
-          prepay_amt: '1',
-        }),
-      },
+      service: {loopOutQuote: ({}, {}, cbk) => cbk(null, {prepay_amt: '1'})},
     }),
     description: 'A swap fee is expected in response',
     error: [503, 'ExpectedSwapFeeAmountInSwapQuoteResponse'],
@@ -101,7 +91,6 @@ const tests = [
     args: makeArgs({
       service: {
         loopOutQuote: ({}, {}, cbk) => cbk(null, {
-          cltv_delta: 1,
           prepay_amt: '1',
           swap_fee: '1',
         }),
@@ -122,7 +111,6 @@ tests.forEach(({args, description, error, expected}) => {
 
     const quote = await getSwapOutQuote(args);
 
-    equal(quote.cltv_delta, expected.cltv_delta, 'Swap quote cltv delta');
     equal(quote.deposit, expected.deposit, 'Swap quote deposit');
     equal(quote.destination, expected.destination, 'Swap quote destination');
     equal(quote.fee, expected.fee, 'Swap quote fee');

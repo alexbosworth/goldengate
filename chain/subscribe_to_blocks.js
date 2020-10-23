@@ -17,7 +17,7 @@ const tickDelayMs = 20;
 
   {
     [delay]: <Poll Delay Milliseconds Number> // default 10 minutes
-    [lnd]: <Authenticated LND gRPC Object>
+    [lnd]: <Authenticated LND API Object>
     [network]: <Network Name String>
     [request]: <Request Function>
   }

@@ -90,10 +90,6 @@ module.exports = (args, cbk) => {
 
       // Loop out quote
       quote: ['getQuote', ({getQuote}, cbk) => {
-        if (!getQuote.cltv_delta) {
-          return cbk([503, 'ExpectedCltvDeltaInSwapQuoteResponse']);
-        }
-
         if (!getQuote.prepay_amt) {
           return cbk([503, 'ExpectedPrepayAmountInSwapQuoteResponse']);
         }
@@ -107,7 +103,6 @@ module.exports = (args, cbk) => {
         }
 
         return cbk(null, {
-          cltv_delta: getQuote.cltv_delta,
           deposit: Number(getQuote.prepay_amt),
           destination: getQuote.swap_payment_dest,
           fee: Number(getQuote.swap_fee),

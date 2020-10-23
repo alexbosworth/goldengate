@@ -1,5 +1,13 @@
 # Versions
 
+## 8.0.0
+
+- `getSwapOutQuote`: remove `cltv_delta` from response
+
+### Breaking Change
+
+- `getSwapOutQuote`: `cltv_delta` is undefined, use the `cltv_delta` from the request instead
+
 ## 7.1.2
 
 - `decodeSwapRecovery`: Pull out version field from recovery details
