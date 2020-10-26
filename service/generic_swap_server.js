@@ -15,6 +15,7 @@ const defaultMinSwapOutTokens = 250e3;
 const defaultSwapOutDeposit = 30e3;
 const feeRateDenominator = BigInt(1e6);
 const methodNewSwapIn = 'newLoopInSwap';
+const methodNewSwapOut = 'newLoopOutSwap';
 const methodSwapInQuote = 'loopInQuote';
 const methodSwapInTerms = 'loopInTerms';
 const methodSwapOutPushPreimage = 'loopOutPushPreimage';
@@ -27,6 +28,7 @@ const path = method => `/v0/${method}`;
   {
     destination: <Destination Hex String>
     handle_swap_in: <Respond to Swap In Promise>
+    handle_swap_out: <Respond to Swap Out Promise>
     [max_swap_in_tokens]: <Maximum Swap In Tokens Number>
     [min_swap_in_tokens]: <Minimum Swap In Tokens Number>
     [max_swap_out_cltv]: <Maximum Swap Out CLTV Delta Number>
@@ -51,6 +53,7 @@ module.exports = args => {
 
   app.use(bodyParser.json());
 
+  // Create new swap in
   app.post(path(methodNewSwapIn), async (req, res) => {
     try {
       return res.json(await args.handle_swap_in({}));
@@ -59,6 +62,16 @@ module.exports = args => {
     }
   });
 
+  // Create new swap out
+  app.post(path(methodNewSwapOut), async (req, res) => {
+    try {
+      return res.json(await args.handle_swap_out({}));
+    } catch (err) {
+      return res.json(err);
+    }
+  });
+
+  // Get the price of a swap given the current fee configuration
   app.post(path(methodSwapInQuote), (req, res) => {
     const swapInBaseFee = args.swap_in_base_fee || defaultSwapInBaseFee;
     const swapInFeeRate = args.swap_in_fee_rate || defaultSwapInFeeRate;
@@ -72,6 +85,7 @@ module.exports = args => {
     });
   });
 
+  // Get the limits of the swap given the current limits configuration
   app.post(path(methodSwapInTerms), (req, res) => {
     return res.json({
       max_swap_amount: args.max_swap_in_tokens || defaultMaxSwapInTokens,
@@ -79,8 +93,10 @@ module.exports = args => {
     });
   });
 
+  // Release the preimage to the server to take the swap out off-chain HTLC
   app.post(path(methodSwapOutPushPreimage), (req, res) => res.json({}));
 
+  // Get the price of a swap out given the current fee configuration
   app.post(path(methodSwapOutQuote), (req, res) => {
     const swapOutBaseFee = args.swap_out_base_fee || defaultSwapOutBaseFee;
     const swapOutFeeRate = args.swap_out_fee_rate || defaultSwapOutFeeRate;
@@ -95,6 +111,7 @@ module.exports = args => {
     });
   });
 
+  // Get the limits of swap outs based on the current configuration
   app.post(path(methodSwapOutTerms), (req, res) => {
     return res.json({
       max_cltv_delta: args.max_swap_out_cltv || defaultMaxSwapOutCltv,
