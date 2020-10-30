@@ -1,6 +1,6 @@
 # Versions
 
-## 8.0.0
+## 8.0.1
 
 - `getSwapOutQuote`: remove `cltv_delta` from response
 
