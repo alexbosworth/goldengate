@@ -1,5 +1,11 @@
 # Versions
 
+## 9.0.0
+
+### Breaking Changes
+
+- Pass a `metadata` object instead of `macaroon` and `preimage` for authentication.
+
 ## 8.0.1
 
 - `getSwapOutQuote`: remove `cltv_delta` from response

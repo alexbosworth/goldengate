@@ -21,6 +21,7 @@ const makeService = ({overrides}) => {
 
 const makeArgs = overrides => {
   const args = {
+    metadata: {},
     network: 'btctestnet',
     service: makeService({}),
     timeout: expiry,

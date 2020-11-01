@@ -5,13 +5,14 @@ const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
 const {releaseSwapOutSecret} = require('./../../');
 
+const metadata = {get: () => [String()]};
 const port = 2353;
-
 const socket = `http://localhost:${port}`;
 
 const tests = [
   {
     args: {
+      metadata,
       auth_macaroon: Buffer.alloc(1).toString('base64'),
       auth_preimage: Buffer.alloc(32).toString('hex'),
       secret: Buffer.alloc(32).toString('hex'),

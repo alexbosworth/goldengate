@@ -5,13 +5,13 @@ const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
 const {getSwapInTerms} = require('./../../');
 
+const metadata = {get: () => [String()]};
 const port = 2350;
-
 const socket = `http://localhost:${port}`;
 
 const tests = [
   {
-    args: {service: genericSwapService({fetch, socket}).service},
+    args: {metadata, service: genericSwapService({fetch, socket}).service},
     description: 'Generic swap service can be used to get swap in terms',
     expected: {max_tokens: 30e6, min_tokens: 250000},
   },

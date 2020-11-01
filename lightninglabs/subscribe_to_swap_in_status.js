@@ -1,19 +1,15 @@
 const EventEmitter = require('events');
 
-const {Metadata} = require('grpc');
-
 const {protocolVersion} = require('./conf/swap_service');
 const swapStateAsState = require('./swap_state_as_state');
 
-const authHeader = 'Authorization';
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 
 /** Subscribe to the server status of a swap in
 
   {
     id: <Swap Funding Hash Hex String>
-    macaroon: <Base64 Encoded Macaroon String>
-    preimage: <Authentication Preimage Hex String>
+    metadata: <Authentication Metadata Object>
     service: <Swap Service Object>
   }
 
@@ -34,17 +30,13 @@ const hexAsBuffer = hex => Buffer.from(hex, 'hex');
     [is_refunded]: <Swap Is Refunded With Timeout On Chain Bool>
   }
 */
-module.exports = ({id, macaroon, preimage, service}) => {
+module.exports = ({id, metadata, service}) => {
   if (!id) {
     throw [400, 'ExpectedFundingPaymentHashToSubscribeToSwapInStatus'];
   }
 
-  if (!macaroon) {
-    throw [400, 'ExpectedMacaroonToSubscribeToSwapInStatus'];
-  }
-
-  if (!preimage) {
-    throw [400, 'ExpectedPreimageToSubscribeToSwapInStatus'];
+  if (!metadata) {
+    throw [400, 'ExpectedAuthenticationMetadataToSubscribeSwapInStatus'];
   }
 
   if (!service) {
@@ -52,9 +44,6 @@ module.exports = ({id, macaroon, preimage, service}) => {
   }
 
   const emitter = new EventEmitter();
-  const metadata = new Metadata();
-
-  metadata.add(authHeader, `LSAT ${macaroon}:${preimage}`);
 
   const sub = service.subscribeLoopInUpdates({
     protocol_version: protocolVersion,

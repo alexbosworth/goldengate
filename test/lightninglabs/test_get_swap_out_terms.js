@@ -19,52 +19,70 @@ const makeService = ({overrides}) => {
   }
 };
 
+const makeArgs = overrides => {
+  const args = {metadata: {}, service: makeService({})};
+
+  Object.keys(overrides).forEach(k => args[k] = overrides[k]);
+
+  return args;
+};
+
 const tests = [
   {
-    args: {},
+    args: makeArgs({metadata: undefined}),
+    description: 'Expected metadata to get swap in terms',
+    error: [400, 'ExpectedAuthenticationMetadataToGetSwapOutTerms'],
+  },
+  {
+    args: makeArgs({service: undefined}),
     description: 'Expected swap service to get swap in terms',
     error: [400, 'ExpectedServiceToGetSwapOutTerms'],
   },
   {
-    args: {service: {}},
+    args: makeArgs({service: {}}),
     description: 'Expected swap service with terms api to get swap in terms',
     error: [400, 'ExpectedServiceToGetSwapOutTerms'],
   },
   {
-    args: {service: {loopOutTerms: ({}, {}, cbk) => cbk('err')}},
+    args: makeArgs({service: {loopOutTerms: ({}, {}, cbk) => cbk('err')}}),
     description: 'Errors are passed back',
     error: [503, 'UnexpectedErrorGettingSwapTerms', {err: 'err'}],
   },
   {
-    args: {service: {loopOutTerms: ({}, {}, cbk) => cbk()}},
+    args: makeArgs({service: {loopOutTerms: ({}, {}, cbk) => cbk()}}),
     description: 'A response is expected',
     error: [503, 'ExpectedResponseWhenGettingSwapTerms'],
   },
   {
-    args: {service: makeService({overrides: {max_cltv_delta: undefined}})},
+    args: makeArgs({
+      service: makeService({overrides: {max_cltv_delta: undefined}}),
+    }),
     description: 'A max swap cltv delta value is expected',
     error: [503, 'ExpectedMaxCltvDeltaInSwapTermsResponse'],
   },
   {
-    args: {service: makeService({overrides: {max_swap_amount: undefined}})},
+    args: makeArgs({
+      service: makeService({overrides: {max_swap_amount: undefined}}),
+    }),
     description: 'A max swap amount is expected',
     error: [503, 'ExpectedMaxSwapAmountInSwapTermsResponse'],
   },
   {
-    args: {service: makeService({overrides: {min_cltv_delta: undefined}})},
+    args: makeArgs({
+      service: makeService({overrides: {min_cltv_delta: undefined}}),
+    }),
     description: 'A min cltv delta is expected',
     error: [503, 'ExpectedMinCltvDeltaInSwapTermsResponse'],
   },
   {
-    args: {service: makeService({overrides: {min_swap_amount: undefined}})},
+    args: makeArgs({
+      service: makeService({overrides: {min_swap_amount: undefined}}),
+    }),
     description: 'A min swap amount is expected',
     error: [503, 'ExpectedMinSwapAmountInSwapTermsResponse'],
   },
   {
-    args: {
-      macaroon: '00',
-      service: makeService({}),
-    },
+    args: makeArgs({}),
     description: 'Get swap out terms returns swap out terms',
     expected: {
       max_cltv_delta: 2,

@@ -5,13 +5,14 @@ const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
 const {getSwapOutQuote} = require('./../../');
 
+const metadata = {get: () => [String()]};
 const port = 2351;
-
 const socket = `http://localhost:${port}`;
 
 const tests = [
   {
     args: {
+      metadata,
       service: genericSwapService({fetch, socket}).service,
       timeout: 100,
       tokens: 250000,

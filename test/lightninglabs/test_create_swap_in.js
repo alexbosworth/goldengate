@@ -12,8 +12,7 @@ const makeArgs = overrides => {
     request,
     fee: 3,
     in_through: Buffer.alloc(33).toString('hex'),
-    macaroon: Buffer.alloc(32).toString('base64'),
-    preimage: Buffer.alloc(32).toString('hex'),
+    metadata: {},
     service: makeService({}),
   };
 
@@ -71,18 +70,19 @@ const tests = [
     args: {
       request,
       fee: 1,
+      metadata: {},
       service: makeService({err: {details: 'contract already exists'}}),
     },
     description: 'Error creating an already existing swap passed back',
     error: [400, 'SwapInAlreadyPreviouslyCreatedForThisHash'],
   },
   {
-    args: {request, fee: 1, service: makeService({res: null})},
+    args: {request, metadata: {}, fee: 1, service: makeService({res: null})},
     description: 'A response is expected',
     error: [503, 'ExpectedResponseWhenCreatingSwapIn'],
   },
   {
-    args: {request, fee: 1, service: makeService({res: {}})},
+    args: {request, metadata: {}, fee: 1, service: makeService({res: {}})},
     description: 'A response with expiry expected',
     error: [503, 'ExpectedExpiryHeightForCreatedSwapIn'],
   },
@@ -91,13 +91,19 @@ const tests = [
       request,
       fee: 1,
       max_timeout_height: 1,
+      metadata: {},
       service: makeService({res: {expiry: 2}}),
     },
     description: 'A response with low expiry expected',
     error: [503, 'ExpectedLowerExpiryHeightForCreatedSwapIn'],
   },
   {
-    args: {request, fee: 1, service: makeService({res: {expiry: 2}})},
+    args: {
+      request,
+      metadata: {},
+      fee: 1,
+      service: makeService({res: {expiry: 2}}),
+    },
     description: 'A receiver key is expected',
     error: [503, 'ExpectedReceiverKeyWhenCreatingSwapIn'],
   },
@@ -105,6 +111,7 @@ const tests = [
     args: {
       request,
       fee: 1,
+      metadata: {},
       service: makeService({res: {expiry: 2, receiver_key: Buffer.alloc(0)}}),
     },
     description: 'A receiver key of pubkey length is expected',
@@ -114,6 +121,7 @@ const tests = [
     args: {
       request,
       fee: 1,
+      metadata: {},
       service: makeService({
         res: {expiry: Infinity, receiver_key: Buffer.alloc(33)},
       }),
@@ -138,8 +146,7 @@ const tests = [
       request,
       fee: 3,
       in_through: Buffer.alloc(33).toString('hex'),
-      macaroon: Buffer.alloc(32).toString('base64'),
-      preimage: Buffer.alloc(32).toString('hex'),
+      metadata: {},
       public_key: Buffer.alloc(33).toString('hex'),
       service: makeService({}),
     },

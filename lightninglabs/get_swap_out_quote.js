@@ -1,10 +1,8 @@
 const asyncAuto = require('async/auto');
-const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
 
-const authHeader = 'Authorization';
 const msPerSec = 1e3;
 const {round} = Math;
 
@@ -14,8 +12,7 @@ const {round} = Math;
 
   {
     [delay]: <Delay Swap Funding Until ISO 8601 Date String>
-    [macaroon]: <Base64 Encoded Macaroon String>
-    [preimage]: <Authentication Preimage Hex String>
+    metadata: <Authentication Metadata Object>
     service: <Swap Service Object>
     timeout: <Timeout Height Number>
     tokens: <Tokens Number>
@@ -34,6 +31,10 @@ module.exports = (args, cbk) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
+        if (!args.metadata) {
+          return cbk([400, 'ExpectedAuthenticationMetadataToGetSwapOutQuote']);
+        }
+
         if (!args.service || !args.service.loopOutQuote) {
           return cbk([400, 'ExpectedServiceToGetSwapOutQuote']);
         }
@@ -62,19 +63,13 @@ module.exports = (args, cbk) => {
 
       // Get quote
       getQuote: ['deadline', ({deadline}, cbk) => {
-        const metadata = new Metadata();
-
-        if (!!args.macaroon) {
-          metadata.add(authHeader, `LSAT ${args.macaroon}:${args.preimage}`);
-        }
-
         return args.service.loopOutQuote({
           amt: args.tokens.toString(),
           expiry: args.timeout,
           protocol_version: protocolVersion,
           swap_publication_deadline: deadline,
         },
-        metadata,
+        args.metadata,
         (err, res) => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapQuote', {err}]);

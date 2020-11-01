@@ -3,7 +3,6 @@ const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
 const {ECPair} = require('bitcoinjs-lib');
-const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {addressForScript} = require('./../script');
@@ -12,7 +11,6 @@ const {protocolVersion} = require('./conf/swap_service');
 const {swapScriptV2} = require('./../script');
 
 const asKey = n => Buffer.from(n.toString('base64'), 'base64');
-const authHeader = 'Authorization';
 const currentSwapVersion = 2;
 const msPerSec = 1e3;
 const paymentRequiredError = 'payment required';
@@ -28,9 +26,8 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
   {
     [fund_at]: <Request Funding On-Chain Before ISO 8601 Date String>
     [hash]: <Swap Hash String>
-    [macaroon]: <Base64 Encoded Macaroon String>
+    metadata: <Authentication Metadata Object>
     network: <Network Name String>
-    [preimage]: <Authentication Preimage Hex String>
     [private_key]: <Private Key Hex String>
     [public_key]: <Public Key Hex String>
     [secret]: <Secret Hex String>
@@ -62,8 +59,8 @@ module.exports = (args, cbk) => {
           return cbk([400, 'ExpectedOnlySwapHashOrSwapSecretNotBoth']);
         }
 
-        if (!!args.macaroon && !args.preimage) {
-          return cbk([400, 'ExpectedPreimageWhenMacaroonIsProvided']);
+        if (!args.metadata) {
+          return cbk([400, 'ExpectedAuthenticationMetadataToCreateSwapOut']);
         }
 
         if (!args.network) {
@@ -123,12 +120,6 @@ module.exports = (args, cbk) => {
 
       // Create the swap
       create: ['deadline', 'keys', ({deadline, keys}, cbk) => {
-        const metadata = new Metadata();
-
-        if (!!args.macaroon) {
-          metadata.add(authHeader, `LSAT ${args.macaroon}:${args.preimage}`);
-        }
-
         return args.service.newLoopOutSwap({
           amt: `${args.tokens}`,
           expiry: args.timeout,
@@ -137,7 +128,7 @@ module.exports = (args, cbk) => {
           swap_hash: Buffer.from(keys.swap_hash, 'hex'),
           swap_publication_deadline: deadline,
         },
-        metadata,
+        args.metadata,
         (err, res) => {
           // Exit early when the service requires a macaroon
           if (!!err && err.details === paymentRequiredError) {

@@ -5,13 +5,17 @@ const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
 const {getSwapInQuote} = require('./../../');
 
+const metadata = {get: () => [String()]};
 const port = 2349;
-
 const socket = `http://localhost:${port}`;
 
 const tests = [
   {
-    args: {service: genericSwapService({fetch, socket}).service, tokens: 1e6},
+    args: {
+      metadata,
+      service: genericSwapService({fetch, socket}).service,
+      tokens: 1e6,
+    },
     description: 'Generic swap service can be used to get a swap in quote',
     expected: {cltv_delta: 1000, fee: 6500},
   },

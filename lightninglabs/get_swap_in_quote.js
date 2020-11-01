@@ -1,16 +1,12 @@
 const asyncAuto = require('async/auto');
-const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
 
-const authHeader = 'Authorization';
-
 /** Get swap in quote from swap service
 
   {
-    [macaroon]: <Base64 Encoded Macaroon String>
-    [preimage]: <Authentication Preimage Hex String>
+    metadata: <Authentication Metadata Object>
     service: <Swap Service Object>
     tokens: <Tokens to Swap Number>
   }
@@ -21,11 +17,15 @@ const authHeader = 'Authorization';
     fee: <Total Fee Tokens Number>
   }
 */
-module.exports = ({macaroon, preimage, service, tokens}, cbk) => {
+module.exports = ({metadata, service, tokens}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
+        if (!metadata) {
+          return cbk([400, 'ExpectedAuthenticationMetadataToGetSwapInQuote']);
+        }
+
         if (!service || !service.loopInQuote) {
           return cbk([400, 'ExpectedServiceToGetSwapInQuote']);
         }
@@ -39,12 +39,6 @@ module.exports = ({macaroon, preimage, service, tokens}, cbk) => {
 
       // Get quote
       getQuote: ['validate', ({}, cbk) => {
-        const metadata = new Metadata();
-
-        if (!!macaroon) {
-          metadata.add(authHeader, `LSAT ${macaroon}:${preimage}`);
-        }
-
         return service.loopInQuote({
           amt: tokens.toString(),
           protocol_version: protocolVersion,

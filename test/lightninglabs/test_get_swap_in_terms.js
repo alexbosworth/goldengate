@@ -2,48 +2,62 @@ const {test} = require('tap');
 
 const {getSwapInTerms} = require('./../../');
 
+const makeArgs = overrides => {
+  const args = {
+    metadata: {},
+    service: {
+      loopInTerms: ({}, {}, cbk) => cbk(null, {
+        max_swap_amount: '2',
+        min_swap_amount: '1',
+      }),
+    },
+  };
+
+  Object.keys(overrides).forEach(k => args[k] = overrides[k]);
+
+  return args;
+};
+
 const tests = [
   {
-    args: {},
+    args: makeArgs({metadata: undefined}),
+    description: 'Expected service metadata to get swap in terms',
+    error: [400, 'ExpectedAuthenticationMetadataToGetSwapInTerms'],
+  },
+  {
+    args: makeArgs({service: undefined}),
     description: 'Expected swap service to get swap in terms',
     error: [400, 'ExpectedServiceToGetSwapInTerms'],
   },
   {
-    args: {service: {}},
+    args: makeArgs({service: {}}),
     description: 'Expected swap service with loop in method to get terms',
     error: [400, 'ExpectedServiceToGetSwapInTerms'],
   },
   {
-    args: {service: {loopInTerms: ({}, {}, cbk) => cbk('err')}},
+    args: makeArgs({service: {loopInTerms: ({}, {}, cbk) => cbk('err')}}),
     description: 'Error returned from loop in',
     error: [503, 'UnexpectedErrorGettingSwapInTerms', {err: 'err'}],
   },
   {
-    args: {service: {loopInTerms: ({}, {}, cbk) => cbk()}},
+    args: makeArgs({service: {loopInTerms: ({}, {}, cbk) => cbk()}}),
     description: 'Result expected in swap in terms',
     error: [503, 'ExpectedResponseWhenGettingSwapInTerms'],
   },
   {
-    args: {service: {loopInTerms: ({}, {}, cbk) => cbk(null, {})}},
+    args: makeArgs({service: {loopInTerms: ({}, {}, cbk) => cbk(null, {})}}),
     description: 'Max swap amount expected in terms response',
     error: [503, 'ExpectedMaxSwapAmountInSwapInTermsResponse'],
   },
   {
-    args: {service: {loopInTerms: ({}, {}, cbk) => cbk(null, {
+    args: makeArgs({service: {loopInTerms: ({}, {}, cbk) => cbk(null, {
       max_swap_amount: '2',
-    })}},
+    })}}),
     description: 'Min swap amount expected in terms response',
     error: [503, 'ExpectedMinSwapAmountInSwapInTermsResponse'],
   },
   {
-    args: {
-      service: {
-        loopInTerms: ({}, {}, cbk) => cbk(null, {
-          max_swap_amount: '2',
-          min_swap_amount: '1',
-        }),
-      },
-    },
+    args: makeArgs({}),
     description: 'Get a swap in terms',
     expected: {max_tokens: 2, min_tokens: 1},
   },

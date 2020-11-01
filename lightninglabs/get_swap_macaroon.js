@@ -1,7 +1,6 @@
 const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
-const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const getSwapOutTerms = require('./get_swap_out_terms');
@@ -14,6 +13,7 @@ const bufferFromHex = hex => Buffer.from(hex, 'hex');
 const expiry = 1;
 const makePublicKeyHex = () => `02${randomBytes(32).toString('hex')}`;
 const makeSwapHash = () => randomBytes(32);
+const metadata = {get: () => [String()]};
 const paymentRequiredError = 'payment required';
 
 /** Get an unpaid swap macaroon that can be converted to a paid one by paying
@@ -42,12 +42,12 @@ module.exports = ({service}, cbk) => {
       },
 
       // Get a tokens value to try
-      getSwapValue: ['validate', ({}, cbk) => getSwapOutTerms({service}, cbk)],
+      getSwapValue: ['validate', ({}, cbk) => {
+        getSwapOutTerms({metadata, service}, cbk);
+      }],
 
       // Get an unpaid macaroon
       getUnpaidMacaroon: ['getSwapValue', ({getSwapValue}, cbk) => {
-        const metadata = new Metadata();
-
         return service.newLoopOutSwap({
           expiry,
           amt: getSwapValue.max_tokens.toString(),

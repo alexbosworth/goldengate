@@ -12,6 +12,7 @@ const {decodeSwapRecovery} = require('./lightninglabs');
 const {encodeSwapRecovery} = require('./lightninglabs');
 const {findDeposit} = require('./chain');
 const {findSecret} = require('./blockstream');
+const {genericSwapAuth} = require('./service');
 const {genericSwapService} = require('./service');
 const {getChainFeeRate} = require('./chain');
 const {getGrpcInterface} = require('./grpc');
@@ -22,6 +23,7 @@ const {getSwapMacaroon} = require('./lightninglabs');
 const {getSwapOutQuote} = require('./lightninglabs');
 const {getSwapOutTerms} = require('./lightninglabs');
 const {isSweep} = require('./transactions');
+const {lightningLabsSwapAuth} = require('./lightninglabs');
 const {lightningLabsSwapService} = require('./lightninglabs');
 const {p2wshOutputScript} = require('./script');
 const {refundTransaction} = require('./transactions');
@@ -50,6 +52,7 @@ module.exports = {
   encodeSwapRecovery,
   findDeposit,
   findSecret,
+  genericSwapAuth,
   genericSwapService,
   getChainFeeRate,
   getGrpcInterface,
@@ -60,6 +63,7 @@ module.exports = {
   getSwapOutQuote,
   getSwapOutTerms,
   isSweep,
+  lightningLabsSwapAuth,
   lightningLabsSwapService,
   p2wshOutputScript,
   refundTransaction,

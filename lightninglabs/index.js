@@ -7,6 +7,7 @@ const getSwapInTerms = require('./get_swap_in_terms');
 const getSwapMacaroon = require('./get_swap_macaroon');
 const getSwapOutQuote = require('./get_swap_out_quote');
 const getSwapOutTerms = require('./get_swap_out_terms');
+const lightningLabsSwapAuth = require('./lightning_labs_swap_auth');
 const lightningLabsSwapService = require('./lightning_labs_swap_service');
 const releaseSwapOutSecret = require('./release_swap_out_secret');
 const serviceSocket = require('./service_socket');
@@ -25,6 +26,7 @@ module.exports = {
   getSwapMacaroon,
   getSwapOutQuote,
   getSwapOutTerms,
+  lightningLabsSwapAuth,
   lightningLabsSwapService,
   releaseSwapOutSecret,
   serviceSocket,

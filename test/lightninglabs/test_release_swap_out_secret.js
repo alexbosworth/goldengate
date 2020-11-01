@@ -4,8 +4,7 @@ const {releaseSwapOutSecret} = require('./../../');
 
 const makeArgs = override => {
   const args = {
-    auth_macaroon: Buffer.alloc(32).toString('base64'),
-    auth_preimage: Buffer.alloc(32).toString('hex'),
+    metadata: {},
     secret: Buffer.alloc(32).toString('hex'),
     service: {
       loopOutPushPreimage: (args, metadata, cbk) => {
@@ -29,14 +28,9 @@ const tests = [
     description: 'Release the preimage to the server',
   },
   {
-    args: makeArgs({auth_macaroon: undefined}),
-    description: 'Releasing the preimage requires an auth macaroon',
-    error: [400, 'ExpectedAuthenticationMacaroonToRevealSecret'],
-  },
-  {
-    args: makeArgs({auth_preimage: undefined}),
-    description: 'Releasing the preimage requires an auth preimage',
-    error: [400, 'ExpectedAuthenticationPreimageToRevealSecret'],
+    args: makeArgs({metadata: undefined}),
+    description: 'Releasing the preimage requires auth metadata',
+    error: [400, 'ExpectedAuthenticationMetadataToReleaseSecret'],
   },
   {
     args: makeArgs({secret: undefined}),
@@ -55,11 +49,7 @@ const tests = [
   },
   {
     args: makeArgs({
-      service: {
-        loopOutPushPreimage: (args, metadata, cbk) => {
-          return cbk('err');
-        },
-      },
+      service: {loopOutPushPreimage: (args, metadata, cbk) => cbk('err')},
     }),
     description: 'An error releasing the preimage is passed back',
     error: [503, 'UnexpectedErrorPushingPreimageForSwap', {err: 'err'}],

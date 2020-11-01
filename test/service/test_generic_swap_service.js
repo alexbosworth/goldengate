@@ -4,6 +4,8 @@ const {createSwapOut} = require('./../../');
 const {genericSwapService} = require('./../../');
 const {getSwapOutTerms} = require('./../../');
 
+const metadata = {get: () => [String()]};
+
 const fetch = () => new Promise((resolve, reject) => {
   return resolve({
     json: () => new Promise((resolve, reject) => {
@@ -61,6 +63,7 @@ tests.forEach(({args, description, error, expected}) => {
       });
 
       await rejects(createSwapOut({
+        metadata,
         network: 'btctestnet',
         service: failResponse.service,
         timeout: 150,
@@ -68,6 +71,7 @@ tests.forEach(({args, description, error, expected}) => {
       }));
 
       await rejects(createSwapOut({
+        metadata,
         network: 'btctestnet',
         service: fail.service,
         timeout: 150,
@@ -75,12 +79,13 @@ tests.forEach(({args, description, error, expected}) => {
       }));
 
       await getSwapOutTerms({
+        metadata,
         service,
         macaroon: 'macaroon',
         preimage: 'preimage'
       });
 
-      const quote = await getSwapOutTerms({service})
+      const quote = await getSwapOutTerms({metadata, service})
 
       deepIs(quote, expected, 'got expected response');
     }

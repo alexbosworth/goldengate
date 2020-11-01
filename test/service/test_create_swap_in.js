@@ -7,11 +7,13 @@ const {createSwapIn} = require('./../../');
 
 const port = 2348;
 
+const metadata = {get: () => [String()]};
 const socket = `http://localhost:${port}`;
 
 const tests = [
   {
     args: {
+      metadata,
       fee: 1000,
       max_timeout_height: 1000,
       private_key: Buffer.alloc(32, 1).toString('hex'),

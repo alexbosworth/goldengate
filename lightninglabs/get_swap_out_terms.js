@@ -1,16 +1,14 @@
 const asyncAuto = require('async/auto');
-const {Metadata} = require('grpc');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
 
-const authHeader = 'Authorization';
+const connectionFailureMessage = '14 UNAVAILABLE: No connection established';
 
 /** Get swap terms from swap service
 
   {
-    [macaroon]: <Base64 Encoded Macaroon String>
-    [preimage]: <Authentication Preimage Hex String>
+    metadata: <Authentication Metadata Object>
     service: <Swap Service Object>
   }
 
@@ -22,11 +20,15 @@ const authHeader = 'Authorization';
     min_tokens: <Minimum Swap Tokens Number>
   }
 */
-module.exports = ({macaroon, preimage, service}, cbk) => {
+module.exports = ({metadata, service}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
+        if (!metadata) {
+          return cbk([400, 'ExpectedAuthenticationMetadataToGetSwapOutTerms']);
+        }
+
         if (!service || !service.loopOutTerms) {
           return cbk([400, 'ExpectedServiceToGetSwapOutTerms']);
         }
@@ -36,17 +38,15 @@ module.exports = ({macaroon, preimage, service}, cbk) => {
 
       // Get terms
       getTerms: ['validate', ({}, cbk) => {
-        const metadata = new Metadata();
-
-        if (!!macaroon) {
-          metadata.add(authHeader, `LSAT ${macaroon}:${preimage}`);
-        }
-
         return service.loopOutTerms({
           protocol_version: protocolVersion,
         },
         metadata,
         (err, res) => {
+          if (!!err && err.message === connectionFailureMessage) {
+            return cbk([503, 'FailedToConnectToService']);
+          }
+
           if (!!err) {
             return cbk([503, 'UnexpectedErrorGettingSwapTerms', {err}]);
           }

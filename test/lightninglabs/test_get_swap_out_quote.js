@@ -4,6 +4,7 @@ const {getSwapOutQuote} = require('./../../lightninglabs');
 
 const makeArgs = override => {
   const args = {
+    metadata: {},
     service: {
       loopOutQuote: (args, {}, cbk) => {
         if (args.protocol_version !== 'HTLC_V2') {
@@ -47,6 +48,11 @@ const tests = [
       destination: Buffer.alloc(33).toString('hex'),
       fee: 1,
     },
+  },
+  {
+    args: makeArgs({metadata: undefined}),
+    description: 'Swap out quote requires swap metadata',
+    error: [400, 'ExpectedAuthenticationMetadataToGetSwapOutQuote'],
   },
   {
     args: makeArgs({service: undefined}),

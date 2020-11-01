@@ -4,7 +4,7 @@ const callService = require('./call_service');
 const {methods} = require('./generic_methods')
 const {streams} = require('./streaming_methods');
 
-const authHeader = 'authorization';
+const authHeader = 'Authorization';
 const ver = 'v0';
 
 /** Generic swap service

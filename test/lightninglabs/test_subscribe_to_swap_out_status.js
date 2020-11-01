@@ -10,8 +10,7 @@ const nextTick = promisify(process.nextTick);
 const makeArgs = overrides => {
   const args = {
     id: Buffer.alloc(32).toString('hex'),
-    macaroon: Buffer.alloc(70).toString('base64'),
-    preimage: Buffer.alloc(32).toString('hex'),
+    metadata: {},
     service: {
       subscribeLoopOutUpdates: ({}) => {
         const emitter = new EventEmitter();
@@ -66,14 +65,9 @@ const tests = [
     error: [400, 'ExpectedFundingPaymentHashToSubscribeToSwapOutStatus'],
   },
   {
-    args: makeArgs({macaroon: undefined}),
-    description: 'Swap in status subscription requires a macaroon',
-    error: [400, 'ExpectedMacaroonToSubscribeToSwapOutStatus'],
-  },
-  {
-    args: makeArgs({preimage: undefined}),
-    description: 'Swap in status subscription requires a preimage',
-    error: [400, 'ExpectedPreimageToSubscribeToSwapOutStatus'],
+    args: makeArgs({metadata: undefined}),
+    description: 'Swap in status subscription requires auth metadata',
+    error: [400, 'ExpectedAuthenticationMetadataToSubscribeSwapOutState'],
   },
   {
     args: makeArgs({service: undefined}),

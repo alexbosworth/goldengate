@@ -5,13 +5,14 @@ const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
 const {createSwapOut} = require('./../../');
 
+const metadata = {get: () => [String()]};
 const port = 2347;
-
 const socket = `http://localhost:${port}`;
 
 const tests = [
   {
     args: {
+      metadata,
       network: 'btc',
       private_key: Buffer.alloc(32, 2).toString('hex'),
       secret: Buffer.alloc(32, 2).toString('hex'),

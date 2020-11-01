@@ -3,7 +3,6 @@ const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
 const {ECPair} = require('bitcoinjs-lib');
-const {Metadata} = require('grpc');
 const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
 
@@ -12,7 +11,6 @@ const {protocolVersion} = require('./conf/swap_service');
 const {swapScriptV2} = require('./../script');
 
 const alreadyCreatedError = 'contract already exists';
-const authHeader = 'Authorization';
 const bufferize = n => Buffer.from(n.toString('base64'), 'base64');
 const currentSwapScriptVersion = 2;
 const bufFromHex = hex => Buffer.from(hex, 'hex');
@@ -20,16 +18,14 @@ const feeDivisor = 1e6;
 const {isBuffer} = Buffer;
 const networks = {bitcoin: 'btc', testnet: 'btctestnet'};
 const pkLen = 33;
-const preimageLen = 32;
 
 /** Create a swap in
 
   {
     fee: <Fee Tokens Number>
     [in_through]: <Request Payment In Through Peer With Public Key Hex String>
-    [macaroon]: <Base64 Encoded Macaroon String>
     max_timeout_height: <Max Timeout Height Number>
-    [preimage]: <Authentication Preimage Hex String>
+    metadata: <Authentication Metadata Object>
     [private_key]: <Refund Private Key Hex String>
     [public_key]: <Refund Public Key Hex String>
     request: <BOLT 11 Payment Request String>
@@ -57,6 +53,10 @@ module.exports = (args, cbk) => {
       validate: cbk => {
         if (args.fee === undefined) {
           return cbk([400, 'ExpectedFeeToCreateSwapIn']);
+        }
+
+        if (!args.metadata) {
+          return cbk([400, 'ExpectedAuthenticationMetadataToCreateSwapIn']);
         }
 
         if (!args.request) {
@@ -104,12 +104,6 @@ module.exports = (args, cbk) => {
 
       // Create the swap
       create: ['keys', 'parsedRequest', ({keys, parsedRequest}, cbk) => {
-        const metadata = new Metadata();
-
-        if (!!args.macaroon) {
-          metadata.add(authHeader, `LSAT ${args.macaroon}:${args.preimage}`);
-        }
-
         return args.service.newLoopInSwap({
           amt: (parsedRequest.tokens + args.fee).toString(),
           last_hop: !args.in_through ? undefined : bufFromHex(args.in_through),
@@ -118,7 +112,7 @@ module.exports = (args, cbk) => {
           swap_hash: Buffer.from(parsedRequest.id, 'hex'),
           swap_invoice: args.request,
         },
-        metadata,
+        args.metadata,
         (err, res) => {
           if (!!err && err.details === alreadyCreatedError) {
             return cbk([400, 'SwapInAlreadyPreviouslyCreatedForThisHash']);
