@@ -1,5 +1,9 @@
 # Versions
 
+## 9.0.1
+
+- Fix missing dependency reference
+
 ## 9.0.0
 
 ### Breaking Changes
