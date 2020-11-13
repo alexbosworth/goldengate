@@ -1,5 +1,11 @@
 # Versions
 
+## 10.0.0
+
+- `createSwapIn`: `probe_request` is now required
+- `createSwapIn`: Add support for `user_agent`
+- `createSwapOut`: Add support for `user_agent`
+
 ## 9.0.1
 
 - Fix missing dependency reference
