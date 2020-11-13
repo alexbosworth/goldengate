@@ -10,6 +10,7 @@ const {protocolVersion} = require('./conf/swap_service');
 
 const authHeader = 'www-authenticate';
 const bufferFromHex = hex => Buffer.from(hex, 'hex');
+const defaultUserAgent = 'nodejs';
 const expiry = 1;
 const makePublicKeyHex = () => `02${randomBytes(32).toString('hex')}`;
 const makeSwapHash = () => randomBytes(32);
@@ -20,6 +21,7 @@ const paymentRequiredError = 'payment required';
 
   {
     service: <Unauthenticated Swap Service Object>
+    [user_agent]: <User Agent String>
   }
 
   @returns via cbk or Promise
@@ -29,12 +31,12 @@ const paymentRequiredError = 'payment required';
     request: <Payment Request To Activate Macaroon BOLT 11 String>
   }
 */
-module.exports = ({service}, cbk) => {
+module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
-        if (!service) {
+        if (!args.service) {
           return cbk([400, 'ExpectedServiceToGetSwapMacaroonPaymentDetails']);
         }
 
@@ -43,17 +45,18 @@ module.exports = ({service}, cbk) => {
 
       // Get a tokens value to try
       getSwapValue: ['validate', ({}, cbk) => {
-        getSwapOutTerms({metadata, service}, cbk);
+        return getSwapOutTerms({metadata, service: args.service}, cbk);
       }],
 
       // Get an unpaid macaroon
       getUnpaidMacaroon: ['getSwapValue', ({getSwapValue}, cbk) => {
-        return service.newLoopOutSwap({
+        return args.service.newLoopOutSwap({
           expiry,
           amt: getSwapValue.max_tokens.toString(),
           protocol_version: protocolVersion,
           receiver_key: bufferFromHex(makePublicKeyHex()),
           swap_hash: makeSwapHash(),
+          user_agent: args.user_agent || defaultUserAgent,
         },
         metadata,
         err => {

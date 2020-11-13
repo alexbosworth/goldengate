@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-// import "google/api/annotations.proto";
-
 package looprpc;
 
 service SwapServer {
@@ -21,10 +19,10 @@ service SwapServer {
     rpc LoopInQuote (ServerLoopInQuoteRequest)
         returns (ServerLoopInQuoteResponse);
 
-    rpc SubscribeLoopOutUpdates(SubscribeUpdatesRequest)
+    rpc SubscribeLoopOutUpdates (SubscribeUpdatesRequest)
         returns (stream SubscribeLoopOutUpdatesResponse);
 
-    rpc SubscribeLoopInUpdates(SubscribeUpdatesRequest)
+    rpc SubscribeLoopInUpdates (SubscribeUpdatesRequest)
         returns (stream SubscribeLoopInUpdatesResponse);
 }
 
@@ -60,6 +58,10 @@ enum ProtocolVersion {
 
     // The client will use the new v2 HTLC scripts.
     HTLC_V2 = 5;
+
+    // The client creates a probe invoice so that the server can perform a
+    // multi-path probe.
+    MULTI_LOOP_IN = 6;
 }
 
 message ServerLoopOutRequest {
@@ -79,6 +81,15 @@ message ServerLoopOutRequest {
     // subjected to min and max constraints as reported in the LoopOutTerms
     // response.
     int32 expiry = 6;
+
+    // The user agent string that identifies the software running on the user's
+    // side. This can be changed in the user's client software but it _SHOULD_
+    // conform to the following pattern:
+    //    Agent-Name/semver-version(/additional-info)
+    // Examples:
+    //    loopd/v0.10.0-beta/commit=3b635821
+    //    litd/v0.2.0-alpha/commit=326d754
+    string user_agent = 7;
 }
 
 message ServerLoopOutResponse {
@@ -157,6 +168,18 @@ message ServerLoopInRequest {
 
     /// The protocol version that the client adheres to.
     ProtocolVersion protocol_version = 6;
+
+    // An invoice that can be used for the purpose of probing.
+    string probe_invoice = 7;
+
+    // The user agent string that identifies the software running on the user's
+    // side. This can be changed in the user's client software but it _SHOULD_
+    // conform to the following pattern:
+    //    Agent-Name/semver-version(/additional-info)
+    // Examples:
+    //    loopd/v0.10.0-beta/commit=3b635821
+    //    litd/v0.2.0-alpha/commit=326d754
+    string user_agent = 8;
 }
 
 message ServerLoopInResponse {

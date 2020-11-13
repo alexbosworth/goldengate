@@ -1,5 +1,5 @@
 {
-  "protocolVersion": "HTLC_V2",
+  "protocolVersion": "MULTI_LOOP_IN",
   "serverSwapFailure": {
     "incorrect_htlc_amount": "FAILED_INVALID_HTLC_AMOUNT",
     "late_or_missing_htlc_onchain": "FAILED_NO_HTLC",

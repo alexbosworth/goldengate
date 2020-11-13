@@ -14,6 +14,7 @@ const alreadyCreatedError = 'contract already exists';
 const bufferize = n => Buffer.from(n.toString('base64'), 'base64');
 const currentSwapScriptVersion = 2;
 const bufFromHex = hex => Buffer.from(hex, 'hex');
+const defaultUserAgent = 'nodejs';
 const feeDivisor = 1e6;
 const {isBuffer} = Buffer;
 const networks = {bitcoin: 'btc', testnet: 'btctestnet'};
@@ -27,9 +28,11 @@ const pkLen = 33;
     max_timeout_height: <Max Timeout Height Number>
     metadata: <Authentication Metadata Object>
     [private_key]: <Refund Private Key Hex String>
+    probe_request: <Probe Request String>
     [public_key]: <Refund Public Key Hex String>
     request: <BOLT 11 Payment Request String>
     service: <Swap Service API Object>
+    [user_agent]: <User Agent String>
   }
 
   @returns via cbk or Promise
@@ -107,10 +110,12 @@ module.exports = (args, cbk) => {
         return args.service.newLoopInSwap({
           amt: (parsedRequest.tokens + args.fee).toString(),
           last_hop: !args.in_through ? undefined : bufFromHex(args.in_through),
+          probe_invoice: args.probe_request,
           protocol_version: protocolVersion,
           sender_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(parsedRequest.id, 'hex'),
           swap_invoice: args.request,
+          user_agent: args.user_agent || defaultUserAgent,
         },
         args.metadata,
         (err, res) => {

@@ -7,7 +7,7 @@ const makeArgs = override => {
     metadata: {},
     service: {
       loopOutQuote: (args, {}, cbk) => {
-        if (args.protocol_version !== 'HTLC_V2') {
+        if (args.protocol_version !== 'MULTI_LOOP_IN') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 

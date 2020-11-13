@@ -12,6 +12,7 @@ const {swapScriptV2} = require('./../script');
 
 const asKey = n => Buffer.from(n.toString('base64'), 'base64');
 const currentSwapVersion = 2;
+const defaultUserAgent = 'nodejs';
 const msPerSec = 1e3;
 const paymentRequiredError = 'payment required';
 const preimageLen = 32;
@@ -34,6 +35,7 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
     service: <gRPC Swap Service Object>
     timeout: <Requested Timeout Height Number>
     tokens: <Swap Tokens Number>
+    [user_agent]: <User Agent String>
   }
 
   @returns via cbk or Promise
@@ -127,6 +129,7 @@ module.exports = (args, cbk) => {
           receiver_key: Buffer.from(keys.public_key, 'hex'),
           swap_hash: Buffer.from(keys.swap_hash, 'hex'),
           swap_publication_deadline: deadline,
+          user_agent: args.user_agent || defaultUserAgent,
         },
         args.metadata,
         (err, res) => {
