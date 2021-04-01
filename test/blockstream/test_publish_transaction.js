@@ -79,10 +79,10 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({deepIs, equal, end}) => {
+  return test(description, ({equal, end, strictSame}) => {
     return publishTxToBlockstream(args, (err, res) => {
       if (!!err) {
-        deepIs(err, error);
+        strictSame(err, error);
       } else {
         equal(err, null, 'No error publishing chain transaction');
         equal(res.transaction_id, expected.transaction_id, 'Published tx id');

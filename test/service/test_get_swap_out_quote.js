@@ -39,7 +39,7 @@ const stopSwapServer = ({server}) => new Promise((resolve, reject) => {
 });
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({deepIs, end, equal, throws, rejects}) => {
+  return test(description, async ({end, rejects, strictSame}) => {
     const {app} = genericSwapServer({
       destination: Buffer.alloc(33).toString('hex'),
     });
@@ -51,7 +51,7 @@ tests.forEach(({args, description, error, expected}) => {
     } else {
       const result = await getSwapOutQuote(args);
 
-      deepIs(result, expected, 'Got expected result');
+      strictSame(result, expected, 'Got expected result');
     }
 
     await stopSwapServer({server});

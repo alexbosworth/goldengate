@@ -44,7 +44,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({deepIs, end, equal, throws, rejects}) => {
+  return test(description, async ({end, rejects, strictSame, throws}) => {
     if (!!error) {
       throws(() => genericSwapService(args), new Error(error), 'Got error');
     } else {
@@ -87,7 +87,7 @@ tests.forEach(({args, description, error, expected}) => {
 
       const quote = await getSwapOutTerms({metadata, service})
 
-      deepIs(quote, expected, 'got expected response');
+      strictSame(quote, expected, 'got expected response');
     }
 
     return end();

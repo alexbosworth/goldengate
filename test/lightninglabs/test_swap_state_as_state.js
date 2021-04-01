@@ -175,13 +175,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({deepIs, end, throws}) => {
+  return test(description, ({end, strictSame, throws}) => {
     if (!!error) {
       throws(() => swapStateAsState(args), new Error(error), 'Got error');
     } else {
       const state = swapStateAsState(args);
 
-      deepIs(state, expected, 'Swap state derived');
+      strictSame(state, expected, 'Swap state derived');
     }
 
     return end();

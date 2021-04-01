@@ -49,7 +49,7 @@ const stopSwapServer = ({server}) => new Promise((resolve, reject) => {
 });
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({deepIs, end, equal, throws, rejects}) => {
+  return test(description, async ({end, equal, rejects, strictSame}) => {
     const {app} = genericSwapServer({
       handle_swap_in: ({}) => new Promise((resolve, reject) => {
         return resolve({
@@ -67,7 +67,7 @@ tests.forEach(({args, description, error, expected}) => {
     } else {
       const result = await createSwapIn(args);
 
-      deepIs(result, expected, 'Got expected result');
+      strictSame(result, expected, 'Got expected result');
     }
 
     await stopSwapServer({server});

@@ -69,10 +69,10 @@ const tests = [
 ];
 
 tests.forEach(({args, description, expected}) => {
-  return test(description, ({deepIs, end}) => {
+  return test(description, ({end, strictSame}) => {
     const {payment} = parsePaymentMetadata(args);
 
-    deepIs(payment, expected.payment, 'Got expected payment details');
+    strictSame(payment, expected.payment, 'Got expected payment details');
 
     return end();
   });

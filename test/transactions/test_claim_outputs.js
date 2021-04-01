@@ -150,11 +150,11 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({deepIs, end, throws}) => {
+  return test(description, ({end, throws, strictSame}) => {
     if (!!error) {
       throws(() => claimOutputs(args), new Error(error), 'Got error');
     } else {
-      deepIs(claimOutputs(args), expected, 'Got expected outputs');
+      strictSame(claimOutputs(args), expected, 'Got expected outputs');
     }
 
     return end();

@@ -149,9 +149,9 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({deepIs, equal, end, rejects}) => {
+  return test(description, async ({equal, end, rejects}) => {
     if (!!error) {
-      rejects(attemptSweep(args), error, 'Expected error returned');
+      await rejects(attemptSweep(args), error, 'Expected error returned');
     } else {
       const res = await attemptSweep(args);
 

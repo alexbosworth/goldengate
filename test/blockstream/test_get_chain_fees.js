@@ -63,13 +63,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({deepIs, equal, end, rejects}) => {
+  return test(description, async ({equal, end, rejects, strictSame}) => {
     if (!!error) {
       await rejects(getChainFees(args), error, 'Got expected error');
     } else {
       const {fees} = await getChainFees(args);
 
-      deepIs(fees, expected.fees, 'Got expected fees');
+      strictSame(fees, expected.fees, 'Got expected fees');
     }
 
     return end();

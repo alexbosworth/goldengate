@@ -203,7 +203,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({deepIs, equal, end}) => {
+  return test(description, ({equal, end, strictSame}) => {
     setTimeout(() => confirmationsEmitter.emit('data', {
       conf: {
         block_hash: Buffer.alloc(32),
@@ -222,7 +222,7 @@ tests.forEach(({args, description, error, expected}) => {
 
     return findDeposit(args, (err, res) => {
       if (!!error) {
-        deepIs(err, error, 'Got expected error');
+        strictSame(err, error, 'Got expected error');
 
         return end();
       }

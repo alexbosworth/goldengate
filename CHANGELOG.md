@@ -1,6 +1,6 @@
 # Versions
 
-## 10.0.2
+## 10.0.3
 
 - `createSwapIn`: `probe_request` is now required
 - `createSwapIn`: Add support for `user_agent`

@@ -42,13 +42,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({deepIs, end, equal, rejects}) => {
+  return test(description, async ({end, equal, rejects, strictSame}) => {
     if (!!error) {
       await rejects(decodeSwapRecovery(args), error, 'Got expected error');
     } else {
       const recovery = await decodeSwapRecovery(args);
 
-      deepIs(recovery, expected.recovery, 'Got expected recovery');
+      strictSame(recovery, expected.recovery, 'Got expected recovery');
     }
 
     return end();
