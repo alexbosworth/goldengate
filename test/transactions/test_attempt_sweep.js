@@ -82,11 +82,6 @@ const tests = [
     error: [400, 'ExpectedDeadlineHeightWhenAttemptingHtlcSweep'],
   },
   {
-    args: makeArgs({deadline_height: current_height}),
-    description: 'Deadline cannot be equal to current height',
-    error: [500, 'FailedToGenerateSweepTransaction'],
-  },
-  {
     args: makeArgs({deadline_height: start_height}),
     description: 'Deadline cannot be equal to start height',
     error: [500, 'FailedToCalculateConfirmationFeeRate'],

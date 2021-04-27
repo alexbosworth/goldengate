@@ -5,10 +5,10 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "1.2.12",
-    "@grpc/proto-loader": "0.5.6",
+    "@grpc/proto-loader": "0.6.1",
     "@mitmaro/http-authorization-header": "1.0.0",
     "async": "3.2.0",
-    "asyncjs-util": "1.2.4",
+    "asyncjs-util": "1.2.5",
     "bip65": "1.0.3",
     "bip68": "1.0.4",
     "bitcoin-ops": "1.4.1",
@@ -16,7 +16,7 @@
     "bn.js": "5.2.0",
     "body-parser": "1.19.0",
     "cbor": "7.0.5",
-    "ln-service": "51.5.0",
+    "ln-service": "51.7.0",
     "macaroon": "3.0.4",
     "node-fetch": "2.6.1",
     "pushdata-bitcoin": "1.0.1",
@@ -25,7 +25,7 @@
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
     "express": "4.17.1",
-    "tap": "15.0.1"
+    "tap": "15.0.5"
   },
   "engines": {
     "node": ">=10.10.0"
@@ -40,5 +40,5 @@
   "scripts": {
     "test": "tap --branches=1 --functions=1 --lines=1 --statements=1 test/blockstream/*.js test/chain/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "10.0.3"
+  "version": "10.0.4"
 }

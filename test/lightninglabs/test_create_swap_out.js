@@ -40,6 +40,11 @@ const tests = [
     error: [400, 'ExpectedNetworkWhenCreatingSwap'],
   },
   {
+    args: makeArgs({metadata: undefined}),
+    description: 'Authentication metadata is expected',
+    error: [400, 'ExpectedAuthenticationMetadataToCreateSwapOut'],
+  },
+  {
     args: makeArgs({network: 'network'}),
     description: 'A known network name is expected',
     error: [503, 'FailedToDeriveAddressFromOutputScript'],

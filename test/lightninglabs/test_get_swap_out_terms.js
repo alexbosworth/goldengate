@@ -49,6 +49,17 @@ const tests = [
     error: [503, 'UnexpectedErrorGettingSwapTerms', {err: 'err'}],
   },
   {
+    args: makeArgs({
+      service: {
+        loopOutTerms: ({}, {}, cbk) => cbk({
+          message: '14 UNAVAILABLE: No connection established',
+        }),
+      },
+    }),
+    description: 'A connection failure returns a connection error',
+    error: [503, 'FailedToConnectToService'],
+  },
+  {
     args: makeArgs({service: {loopOutTerms: ({}, {}, cbk) => cbk()}}),
     description: 'A response is expected',
     error: [503, 'ExpectedResponseWhenGettingSwapTerms'],

@@ -1,5 +1,9 @@
 # Versions
 
+## 10.0.4
+
+- `attemptSweep`: Clamp output value above dust when fees consume all funds
+
 ## 10.0.3
 
 - `createSwapIn`: `probe_request` is now required

@@ -93,6 +93,16 @@ const tests = [
     error: 'ExpectedTokensToCalculateClaimOutputs',
   },
   {
+    args: makeArgs({rate: 99999}),
+    description: 'A large fee rate is clamped to a small value output',
+    expected: {
+      outputs: [{
+        address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
+        tokens: 1092,
+      }],
+    },
+  },
+  {
     args: makeArgs({sends: []}),
     description: 'No sends just returns a single output',
     expected: {

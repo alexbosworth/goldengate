@@ -38,6 +38,11 @@ const tests = [
     error: [400, 'ExpectedFeeToCreateSwapIn'],
   },
   {
+    args: makeArgs({metadata: undefined}),
+    description: 'Expected metadata to create swap in',
+    error: [400, 'ExpectedAuthenticationMetadataToCreateSwapIn'],
+  },
+  {
     args: makeArgs({request: undefined}),
     description: 'Expected payment request to create swap in',
     error: [400, 'ExpectedPaymentRequestToCreateSwapIn'],

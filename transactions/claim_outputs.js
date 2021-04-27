@@ -8,6 +8,7 @@ const {names} = require('./../conf/bitcoinjs-lib');
 const {ceil} = Math;
 const dust = 546;
 const {isArray} = Array;
+const {max} = Math;
 const notFoundIndex = -1;
 const secretByteLength = 32;
 const {toOutputScript} = address;
@@ -97,7 +98,10 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
 
   const singleOutputFee = rate * ceil(singleOutput.weight / vRatio);
 
-  const defaultOutputs = [{address, tokens: ceil(tokens - singleOutputFee)}];
+  const defaultOutputs = [{
+    address,
+    tokens: max(dust + dust, ceil(tokens - singleOutputFee)),
+  }];
 
   // Exit early when there are no additional outputs to attach
   if (!sends.length) {
