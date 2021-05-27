@@ -1,6 +1,6 @@
 # Versions
 
-## 10.0.4
+## 10.0.5
 
 - `attemptSweep`: Clamp output value above dust when fees consume all funds
 
