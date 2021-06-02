@@ -40,5 +40,5 @@
   "scripts": {
     "test": "tap --branches=1 --functions=1 --lines=1 --statements=1 test/blockstream/*.js test/chain/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "10.0.5"
+  "version": "10.0.6"
 }
