@@ -1,5 +1,9 @@
 # Versions
 
+## 10.1.0
+
+- `cancelSwapOut`: Cleanly cancel a swap out
+
 ## 10.0.6
 
 - `attemptSweep`: Clamp output value above dust when fees consume all funds

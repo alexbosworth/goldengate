@@ -1,3 +1,4 @@
+const cancelSwapOut = require('./cancel_swap_out');
 const createSwapIn = require('./create_swap_in');
 const createSwapOut = require('./create_swap_out');
 const decodeSwapRecovery = require('./decode_swap_recovery');
@@ -17,6 +18,7 @@ const swapInFee = require('./swap_in_fee');
 const swapUserId = require('./swap_user_id');
 
 module.exports = {
+  cancelSwapOut,
   createSwapIn,
   createSwapOut,
   decodeSwapRecovery,

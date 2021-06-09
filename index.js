@@ -2,6 +2,7 @@ const {addressForScript} = require('./script');
 const {attemptRefund} = require('./transactions');
 const {attemptSweep} = require('./transactions');
 const {broadcastTransaction} = require('./chain');
+const {cancelSwapOut} = require('./lightninglabs');
 const {checkQuote} = require('./lightninglabs');
 const {checkSwapTiming} = require('./chain');
 const {claimTransaction} = require('./transactions');
@@ -42,6 +43,7 @@ module.exports = {
   attemptRefund,
   attemptSweep,
   broadcastTransaction,
+  cancelSwapOut,
   checkQuote,
   checkSwapTiming,
   claimTransaction,

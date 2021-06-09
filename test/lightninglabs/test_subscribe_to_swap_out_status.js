@@ -19,7 +19,7 @@ const makeArgs = overrides => {
 
         process.nextTick(() => {
           emitter.emit('data', {
-            state: 'FAILED_INVALID_HTLC_AMOUNT',
+            state: 'SERVER_FAILED_INVALID_HTLC_AMOUNT',
             timestamp_ns: '1',
           });
 

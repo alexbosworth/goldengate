@@ -9,7 +9,7 @@ const tests = [
     expected: {at: '1970-01-01T00:00:00.000Z'},
   },
   {
-    args: {state: 'FAILED_INVALID_HTLC_AMOUNT', timestamp_ns: '0'},
+    args: {state: 'SERVER_FAILED_INVALID_HTLC_AMOUNT', timestamp_ns: '0'},
     description: 'Invalid HTLC amount returns state details',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -21,7 +21,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'FAILED_NO_HTLC', timestamp_ns: '0'},
+    args: {state: 'SERVER_FAILED_NO_HTLC', timestamp_ns: '0'},
     description: 'Late or missing HTLC returns state details',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -31,7 +31,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'FAILED_OFF_CHAIN_TIMEOUT', timestamp_ns: '0'},
+    args: {state: 'SERVER_FAILED_OFF_CHAIN_TIMEOUT', timestamp_ns: '0'},
     description: 'Off chain timeout returns state details',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -43,7 +43,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'FAILED_HTLC_PUBLICATION', timestamp_ns: '0'},
+    args: {state: 'SERVER_FAILED_HTLC_PUBLICATION', timestamp_ns: '0'},
     description: 'On chain HTLC failed to publish',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -56,7 +56,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'FAILED_SWAP_DEADLINE', timestamp_ns: '0'},
+    args: {state: 'SERVER_FAILED_SWAP_DEADLINE', timestamp_ns: '0'},
     description: 'On chain HTLC failed to publish in time',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -69,7 +69,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'FAILED_TIMEOUT', timestamp_ns: '0'},
+    args: {state: 'SERVER_FAILED_TIMEOUT', timestamp_ns: '0'},
     description: 'On chain HTLC was claimed with timeout path',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -82,7 +82,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'TIMEOUT_PUBLISHED', timestamp_ns: '0'},
+    args: {state: 'SERVER_TIMEOUT_PUBLISHED', timestamp_ns: '0'},
     description: 'On chain HTLC was claimed with timeout path',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -93,7 +93,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'UNEXPECTED_FAILURE', timestamp_ns: '0'},
+    args: {state: 'SERVER_UNEXPECTED_FAILURE', timestamp_ns: '0'},
     description: 'Swap had an unexpected failure',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -102,7 +102,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'FAILED_UNKNOWN', timestamp_ns: '0'},
+    args: {state: 'SERVER_FAILED_UNKNOWN', timestamp_ns: '0'},
     description: 'Swap had an unknown failure',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -111,7 +111,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'HTLC_PUBLISHED', timestamp_ns: '0'},
+    args: {state: 'SERVER_HTLC_PUBLISHED', timestamp_ns: '0'},
     description: 'On chain HTLC was sent to the mempool',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -124,7 +124,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'SUCCESS', timestamp_ns: '0'},
+    args: {state: 'SERVER_SUCCESS', timestamp_ns: '0'},
     description: 'On chain HTLC was swept with preimage',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -137,7 +137,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'HTLC_CONFIRMED', timestamp_ns: '0'},
+    args: {state: 'SERVER_HTLC_CONFIRMED', timestamp_ns: '0'},
     description: 'On chain HTLC confirmed on chain',
     expected: {
       at: '1970-01-01T00:00:00.000Z',
@@ -150,7 +150,7 @@ const tests = [
     },
   },
   {
-    args: {state: 'INITIATED', timestamp_ns: '0'},
+    args: {state: 'SERVER_INITIATED', timestamp_ns: '0'},
     description: 'Swap has been started',
     expected: {
       at: '1970-01-01T00:00:00.000Z',

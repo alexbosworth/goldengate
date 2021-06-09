@@ -7,7 +7,7 @@ const makeArgs = override => {
     metadata: {},
     service: {
       loopOutQuote: (args, {}, cbk) => {
-        if (args.protocol_version !== 'MULTI_LOOP_IN') {
+        if (args.protocol_version !== 'LOOP_OUT_CANCEL') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 

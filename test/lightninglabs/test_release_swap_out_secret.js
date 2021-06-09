@@ -8,7 +8,7 @@ const makeArgs = override => {
     secret: Buffer.alloc(32).toString('hex'),
     service: {
       loopOutPushPreimage: (args, metadata, cbk) => {
-        if (args.protocol_version !== 'MULTI_LOOP_IN') {
+        if (args.protocol_version !== 'LOOP_OUT_CANCEL') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 

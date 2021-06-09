@@ -121,6 +121,30 @@ Attempt a sweep
       transaction: <Raw Transaction Hex String>
     }
 
+### cancelSwapOut
+
+Cancel a swap out
+
+    {
+      id: <Funding Request Payment Hash Hex String>
+      metadata: <Authentication Metadata Object>
+      payment: <Funding Request Payment Identifier Hex String>
+      service: <Swap Service Object>
+    }
+
+    @returns via cbk or Promise
+
+```node
+const {cancelSwapOut} = require('goldengate');
+const {parsePaymentRequest} = require('ln-service');
+
+// use createSwapOut to get fund request
+const {id, payment} = parsePaymentRequest({request: swap.swap_fund_request});
+
+// Get metadata from lightningLabsSwapAuth
+await cancelSwapOut({id, metadata, payment, service});
+```
+
 ### createSwapIn
 
 Create a swap in

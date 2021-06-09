@@ -1,21 +1,21 @@
 {
-  "protocolVersion": "MULTI_LOOP_IN",
+  "protocolVersion": "LOOP_OUT_CANCEL",
   "serverSwapFailure": {
-    "incorrect_htlc_amount": "FAILED_INVALID_HTLC_AMOUNT",
-    "late_or_missing_htlc_onchain": "FAILED_NO_HTLC",
-    "payment_not_completed_offchain": "FAILED_OFF_CHAIN_TIMEOUT",
-    "publish_onchain_htlc_failed": "FAILED_HTLC_PUBLICATION",
-    "publish_onchain_htlc_too_slow": "FAILED_SWAP_DEADLINE",
-    "refunded": "FAILED_TIMEOUT",
-    "refunding": "TIMEOUT_PUBLISHED",
-    "unexpected": "UNEXPECTED_FAILURE",
-    "unknown": "FAILED_UNKNOWN"
+    "incorrect_htlc_amount": "SERVER_FAILED_INVALID_HTLC_AMOUNT",
+    "late_or_missing_htlc_onchain": "SERVER_FAILED_NO_HTLC",
+    "payment_not_completed_offchain": "SERVER_FAILED_OFF_CHAIN_TIMEOUT",
+    "publish_onchain_htlc_failed": "SERVER_FAILED_HTLC_PUBLICATION",
+    "publish_onchain_htlc_too_slow": "SERVER_FAILED_SWAP_DEADLINE",
+    "refunded": "SERVER_FAILED_TIMEOUT",
+    "refunding": "SERVER_TIMEOUT_PUBLISHED",
+    "unexpected": "SERVER_UNEXPECTED_FAILURE",
+    "unknown": "SERVER_FAILED_UNKNOWN"
   },
   "serverSwapProgress": {
-    "broadcast": "HTLC_PUBLISHED",
-    "claimed": "SUCCESS",
-    "confirmed": "HTLC_CONFIRMED",
-    "started": "INITIATED"
+    "broadcast": "SERVER_HTLC_PUBLISHED",
+    "claimed": "SERVER_SUCCESS",
+    "confirmed": "SERVER_HTLC_CONFIRMED",
+    "started": "SERVER_INITIATED"
   },
   "sockets": {
     "free": {
