@@ -352,6 +352,48 @@ For fetch, pass a function like 'node-fetch' that returns a URL
       service: <Swap Service API Object>
     }
 
+### getFundedTransaction
+
+Get a funded transaction
+
+    {
+      ask: <Inquirer Ask Function>
+      [is_external]: <Transaction Uses External Funds Bool>
+      lnd: Authenticated LND API Object>
+      logger: <Winston Logger Object>
+      outputs: [{
+        address: <Chain Address String>
+        tokens: <Tokens To Send To Output Number>
+      }]
+    }
+
+    @returns via cbk or Promise
+    {
+      id: <Transaction Id Hex String>
+      [inputs]: [{
+        [lock_id]: <UTXO Lock Id Hex String>
+        transaction_id: <Transaction Hex Id String>
+        transaction_vout: <Transaction Output Index Number>
+      }]
+      [psbt]: <Transaction As Finalized PSBT Hex String>
+      [transaction]: <Raw Transaction Hex String>
+    }
+
+### getPsbtFromTransaction
+
+Get a PSBT from a raw transaction
+
+    {
+      network: <Network Name String>
+      request: <Request Function>
+      transaction: <Raw Transaction Hex String>
+    }
+
+    @returns via cbk or Promise
+    {
+      psbt: <Finalized PSBT Hex String>
+    }
+
 ### getSwapInQuote
 
 Get swap in quote from swap service

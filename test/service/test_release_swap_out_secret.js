@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const {test} = require('tap');
+const {test} = require('@alexbosworth/tap');
 
 const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');

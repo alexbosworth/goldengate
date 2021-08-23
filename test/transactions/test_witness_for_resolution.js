@@ -1,6 +1,6 @@
 const {ECPair} = require('bitcoinjs-lib');
 const {OP_FALSE} = require('bitcoin-ops');
-const {test} = require('tap');
+const {test} = require('@alexbosworth/tap');
 const {Transaction} = require('bitcoinjs-lib');
 
 const method = require('./../../transactions/witness_for_resolution');

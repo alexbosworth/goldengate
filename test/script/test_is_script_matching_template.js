@@ -8,7 +8,7 @@ const {OP_EQUALVERIFY} = require('bitcoin-ops');
 const {OP_HASH160} = require('bitcoin-ops');
 const {OP_IF} = require('bitcoin-ops');
 const {OP_SIZE} = require('bitcoin-ops');
-const {test} = require('tap');
+const {test} = require('@alexbosworth/tap');
 
 const method = require('./../../script/is_script_matching_template');
 

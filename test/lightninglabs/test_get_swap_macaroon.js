@@ -1,4 +1,4 @@
-const {test} = require('tap');
+const {test} = require('@alexbosworth/tap');
 
 const {getSwapMacaroon} = require('./../../');
 const {loopOutTermsResponse} = require('./fixtures');

@@ -1,5 +1,10 @@
 # Versions
 
+## 10.2.0
+
+- `getFundedTransaction`: Add method to get a funded transaction
+- `getPsbtFromTransaction`: Add method to derive a PSBT from a raw transaction
+
 ## 10.1.0
 
 - `cancelSwapOut`: Cleanly cancel a swap out

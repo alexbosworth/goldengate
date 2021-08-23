@@ -16,8 +16,10 @@ const {findSecret} = require('./blockstream');
 const {genericSwapAuth} = require('./service');
 const {genericSwapService} = require('./service');
 const {getChainFeeRate} = require('./chain');
+const {getFundedTransaction} = require('./funding');
 const {getGrpcInterface} = require('./grpc');
 const {getHeight} = require('./chain');
+const {getPsbtFromTransaction} = require('./funding');
 const {getSwapInQuote} = require('./lightninglabs');
 const {getSwapInTerms} = require('./lightninglabs');
 const {getSwapMacaroon} = require('./lightninglabs');
@@ -57,8 +59,10 @@ module.exports = {
   genericSwapAuth,
   genericSwapService,
   getChainFeeRate,
+  getFundedTransaction,
   getGrpcInterface,
   getHeight,
+  getPsbtFromTransaction,
   getSwapInQuote,
   getSwapInTerms,
   getSwapMacaroon,

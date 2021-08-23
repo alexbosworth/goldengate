@@ -1,4 +1,4 @@
-const {test} = require('tap');
+const {test} = require('@alexbosworth/tap');
 
 const isSwapScriptV1 = require('./../../script/is_swap_script_v1');
 

@@ -1,4 +1,4 @@
-const {test} = require('tap');
+const {test} = require('@alexbosworth/tap');
 
 const getTxsFromBlockstream = require('./../../blockstream/get_txs_from_blockstream');
 
