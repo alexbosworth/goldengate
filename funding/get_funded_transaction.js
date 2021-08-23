@@ -11,6 +11,7 @@ const {isArray} = Array;
 
   {
     ask: <Inquirer Ask Function>
+    [chain_fee_tokens_per_vbyte]: <Internal Funding Uses Tokens/Vbyte Number>
     [is_external]: <Transaction Uses External Funds Bool>
     lnd: Authenticated LND API Object>
     logger: <Winston Logger Object>
@@ -95,6 +96,7 @@ module.exports = (args, cbk) => {
 
         return getInternalFundedTransaction({
           ask: args.ask,
+          chain_fee_tokens_per_vbyte: args.chain_fee_tokens_per_vbyte,
           lnd: args.lnd,
           outputs: args.outputs,
         },

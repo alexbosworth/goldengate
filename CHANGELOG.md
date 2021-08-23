@@ -1,5 +1,10 @@
 # Versions
 
+## 10.3.0
+
+- `askForFeeRate`: Add method to get a desired chain fee rate
+- `getFundedTransaction`: Add `chain_fee_tokens_per_vbyte` to specify chain fee rate
+
 ## 10.2.0
 
 - `getFundedTransaction`: Add method to get a funded transaction

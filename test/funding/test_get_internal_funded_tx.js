@@ -34,16 +34,6 @@ const tests = [
     error: [400, 'ExpectedArrayOfOutputsToGetInternalFundedTx'],
   },
   {
-    args: makeArgs({ask: ({}, cbk) => cbk({rate: 0})}),
-    description: 'A fee rate is required',
-    error: [400, 'ExpectedHigherMinFeePerVbyte', {minimum: 1}],
-  },
-  {
-    args: makeArgs({ask: ({}, cbk) => cbk({rate: 1e8})}),
-    description: 'A regular fee rate is required',
-    error: [400, 'MaxFeePerVbyteExceeded', {maximum: 100}],
-  },
-  {
     args: makeArgs({}),
     description: 'Internal funding is acquired',
     expected: {

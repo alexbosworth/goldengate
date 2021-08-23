@@ -61,6 +61,20 @@ Once a transaction is formed, it can be broadcast with `broadcastTransaction`.
 
 ## Methods
 
+### askForFeeRate
+
+Ask to get a chain fee rate
+
+    {
+      ask: <Inquirer Ask Function>
+      lnd: <Authenticated LND API Object>
+    }
+
+    @returns via cbk or Promise
+    {
+      tokens_per_vbyte: <Chain Fee Tokens Per VByte Number>
+    }
+
 ### attemptRefund
 
 Attempt a refund
@@ -358,6 +372,7 @@ Get a funded transaction
 
     {
       ask: <Inquirer Ask Function>
+      [chain_fee_tokens_per_vbyte]: <Internal Funding Uses Tokens/Vbyte Number>
       [is_external]: <Transaction Uses External Funds Bool>
       lnd: Authenticated LND API Object>
       logger: <Winston Logger Object>

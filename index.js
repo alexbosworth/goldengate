@@ -1,4 +1,5 @@
 const {addressForScript} = require('./script');
+const {askForFeeRate} = require('./funding');
 const {attemptRefund} = require('./transactions');
 const {attemptSweep} = require('./transactions');
 const {broadcastTransaction} = require('./chain');
@@ -42,6 +43,7 @@ const {swapUserId} = require('./lightninglabs');
 
 module.exports = {
   addressForScript,
+  askForFeeRate,
   attemptRefund,
   attemptSweep,
   broadcastTransaction,
