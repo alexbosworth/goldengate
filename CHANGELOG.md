@@ -1,5 +1,10 @@
 # Versions
 
+## 10.4.0
+
+- `getFundedTransaction`: Return `lock_expires_at` to indicate input expiration lock date
+- `maintainUtxoLocks`: Add method to keep internal tx funding input locks active
+
 ## 10.3.0
 
 - `askForFeeRate`: Add method to get a desired chain fee rate

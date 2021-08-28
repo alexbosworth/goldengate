@@ -25,6 +25,7 @@ const {isArray} = Array;
   {
     id: <Transaction Id Hex String>
     inputs: [{
+      [lock_expires_at]: <UTXO Lock Expires At ISO 8601 Date String>
       [lock_id]: <UTXO Lock Id Hex String>
       transaction_id: <Unspent Transaction Id Hex String>
       transaction_vout: <Unspent Transaction Output Index Number>

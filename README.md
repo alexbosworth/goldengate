@@ -386,6 +386,7 @@ Get a funded transaction
     {
       id: <Transaction Id Hex String>
       [inputs]: [{
+        [lock_expires_at]: <UTXO Lock Expires At ISO 8601 Date String>
         [lock_id]: <UTXO Lock Id Hex String>
         transaction_id: <Transaction Hex Id String>
         transaction_vout: <Transaction Output Index Number>
@@ -592,6 +593,23 @@ const {service} = lightningLabsSwapService({network: 'btctestnet'});
 
 const {fee} = await getSwapOutQuote({service, tokens: 1000000});
 ```
+
+### maintainUtxoLocks
+
+Keep input locks alive while related transaction is not yet confirmed
+
+    {
+      id: <Transaction Id Hex String>
+      inputs: [{
+        [lock_expires_at]: <UTXO Lock Expires At ISO 8601 Date String>
+        transaction_id: <Unspent Transaction Id Hex String>
+        transaction_vout: <Unspent Transaction Output Index Number>
+      }]
+      interval: <Relock Interval Milliseconds>
+      lnd: <Authenticated LND API Object>
+    }
+
+    @returns via cbk or Promise
 
 ### releaseSwapOutSecret
 

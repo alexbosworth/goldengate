@@ -16,11 +16,11 @@ const {toOutputScript} = address;
 
 /** Find a deposit to a chain address.
 
-  Either chain_lnd or an http request function is required.
+  Either lnd or an http request function is required.
 
-  An after height is required if chain_lnd is given
-  A network name is required if request is given
-
+  An `after` height is required if `lnd` is given
+  A `network` name is required if `request` is given
+s
   {
     address: <Chain Address String>
     [after]: <After Chain Height Number>

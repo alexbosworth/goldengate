@@ -17,7 +17,7 @@
     "bn.js": "5.2.0",
     "body-parser": "1.19.0",
     "cbor": "8.0.0",
-    "ln-service": "52.0.1",
+    "ln-service": "52.0.3",
     "macaroon": "3.0.4",
     "node-fetch": "2.6.1",
     "psbt": "1.1.10",
@@ -43,5 +43,5 @@
   "scripts": {
     "test": "tap --branches=1 --functions=1 --lines=1 --statements=1 test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "10.3.0"
+  "version": "10.4.0"
 }

@@ -29,6 +29,7 @@ const {getSwapOutTerms} = require('./lightninglabs');
 const {isSweep} = require('./transactions');
 const {lightningLabsSwapAuth} = require('./lightninglabs');
 const {lightningLabsSwapService} = require('./lightninglabs');
+const {maintainUtxoLocks} = require('./funding');
 const {p2wshOutputScript} = require('./script');
 const {refundTransaction} = require('./transactions');
 const {releaseSwapOutSecret} = require('./lightninglabs');
@@ -73,6 +74,7 @@ module.exports = {
   isSweep,
   lightningLabsSwapAuth,
   lightningLabsSwapService,
+  maintainUtxoLocks,
   p2wshOutputScript,
   refundTransaction,
   releaseSwapOutSecret,
