@@ -119,9 +119,13 @@ module.exports = (args, cbk) => {
           return cbk();
         }
 
+        if (!getUtxo.block_height) {
+          return cbk([503, 'ExpectedMoreWorkOnTopOfUtxo']);
+        }
+
         const confs = getHeight.height - getUtxo.block_height;
 
-        if (confs + [getUtxo].length < args.confirmations) {
+        if ((confs + [getUtxo].length) < args.confirmations) {
           return cbk([503, 'ExpectedMoreWorkOnTopOfUtxo']);
         }
 

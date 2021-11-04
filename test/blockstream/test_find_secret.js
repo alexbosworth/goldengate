@@ -18,6 +18,8 @@ const tests = [
               '8201208763a9146037b4b4fc1935511064a6312e59c2c45a40ed96882103027651638ccedadd3deae48f53aa54c9eea7d9715bff2aa2ddfe2a2963656403677503a3fd17b1752102d1ff0cd98439bd4738f56868637906d7ec872d851dc747a2e63fb85e9b49762d68ac',
             ],
           }],
+          vout: [],
+          status: {},
         }]);
       },
     },

@@ -1,6 +1,6 @@
 # Versions
 
-## 10.4.0
+## 10.4.1
 
 - `getFundedTransaction`: Return `lock_expires_at` to indicate input expiration lock date
 - `maintainUtxoLocks`: Add method to keep internal tx funding input locks active

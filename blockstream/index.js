@@ -1,4 +1,5 @@
 const findSecret = require('./find_secret');
+const findSpend = require('./find_spend');
 const findUtxo = require('./find_utxo');
 const getBlockstreamChainFeeRate = require('./get_blockstream_chain_fee_rate');
 const getChainFees = require('./get_chain_fees');
@@ -10,6 +11,7 @@ const publishTxToBlockstream = require('./publish_tx_to_blockstream');
 
 module.exports = {
   findSecret,
+  findSpend,
   findUtxo,
   getBlockstreamChainFeeRate,
   getChainFees,

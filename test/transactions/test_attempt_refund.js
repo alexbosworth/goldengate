@@ -21,8 +21,21 @@ const makeRequest = () => {
       return cbk(null, {statusCode: 200}, [{
         status: {block_height: 200},
         txid: Buffer.alloc(32).toString('hex'),
-        value: 1000,
-        vout: 0,
+        vin: [{
+          witness: [],
+          txid: Buffer.alloc(32).toString('hex'),
+          vout: 1,
+        }],
+        vout: [
+          {
+            scriptpubkey_address: '2MvgLxF4nqEjHVHHt6dwFExThmEVfRmhmjm',
+            value: 1000,
+          },
+          {
+            scriptpubkey_address: '2N45aT3R9DSp21VYyE3y84GABP2uPaWmZfJ',
+            value: 1000,
+          },
+        ],
       }]);
     }
 
@@ -117,8 +130,15 @@ const tests = [
           return cbk(null, {statusCode: 200}, [{
             status: {block_height: 200},
             txid: Buffer.alloc(32).toString('hex'),
-            value: 1000,
-            vout: 0,
+            vin: [{
+              witness: [],
+              txid: Buffer.alloc(32).toString('hex'),
+              vout: 1,
+            }],
+            vout: [{
+              scriptpubkey_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
+              value: 1000,
+            }],
           }]);
         }
 
@@ -177,22 +197,24 @@ const tests = [
       hash,
       network,
       service_public_key,
-      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      refund_private_key: '803375fb23692ebfe2ba6ad8023c07d8f4feb055f195534381f9b1b8a1cecac4',
       request: makeRequest({}),
       start_height: 1,
-      sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
+      sweep_address: '2MzzyB5svcN3bNptiMtR3iH2jwRJjnWkUR4',
       timeout_height: 100,
       tokens: 1000,
     },
     description: 'Refund with request returns refund details',
-    expected: {},
+    expected: {
+      transaction_vout: 0,
+    },
   },
   {
     args: {
       hash,
       network,
       service_public_key,
-      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      refund_private_key: '803375fb23692ebfe2ba6ad8023c07d8f4feb055f195534381f9b1b8a1cecac4',
       request: makeRequest({}),
       start_height: 1,
       sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
@@ -201,7 +223,9 @@ const tests = [
       version: 2,
     },
     description: 'Refund with request v2 returns refund details',
-    expected: {},
+    expected: {
+      transaction_vout: 1,
+    },
   },
   {
     args: {
@@ -234,7 +258,7 @@ tests.forEach(({args, description, error, expected}) => {
     Transaction.fromHex(refund.refund_transaction);
 
     equal(refund.transaction_id, Buffer.alloc(32).toString('hex'), 'Got tx');
-    equal(refund.transaction_vout, 0, 'Got refund vout');
+    equal(refund.transaction_vout, expected.transaction_vout, 'Got vout');
 
     return end();
   });

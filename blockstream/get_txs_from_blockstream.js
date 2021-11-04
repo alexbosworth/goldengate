@@ -16,9 +16,16 @@ const {isArray} = Array;
   @returns via cbk or Promise
   {
     transactions: [{
+      [confirm_height]: <Transaction Confirmed In Block At Height Number>
       id: <Transaction Id Hex String>
       inputs: [{
-        witness: <Witness Hex String>
+        transaction_id: <Outpoint Transaction Id Hex String>
+        transaction_vout: <Outpoint Transaction Output Index Number>
+        witness: [<Witness Hex String>]
+      }]
+      outputs: [{
+        address: <Sending To Address String>
+        tokens: <Sending Tokens Number>
       }]
     }]
   }
@@ -66,6 +73,10 @@ module.exports = ({address, network, request}, cbk) => {
             return cbk([503, 'ExpectedTxArrayGettingTxsFromBlockstream']);
           }
 
+          if (!!txs.filter(n => !n).length) {
+            return cbk([503, 'ExpectedTransactionFromBlockstreamInArray']);
+          }
+
           if (!!txs.find(({txid}) => !txid)) {
             return cbk([503, 'ExpectedTransactionIdInBlockstreamResponse']);
           }
@@ -74,7 +85,30 @@ module.exports = ({address, network, request}, cbk) => {
             return cbk([503, 'ExpectedArrayOfInputsInTxFromBlockstream']);
           }
 
-          const transactions = txs.map(tx => ({id: tx.txid, inputs: tx.vin}));
+          if (!!txs.find(n => !n.status)) {
+            return cbk([503, 'ExpectedTransactionStatusInBlockstreamTx']);
+          }
+
+          const transactions = txs.map(tx => {
+            return {
+              confirm_height: tx.status.block_height || undefined,
+              id: tx.txid,
+              inputs: tx.vin.map(input => {
+                return {
+                  transaction_id: input.txid,
+                  transaction_vout: input.vout,
+                  witness: input.witness,
+                };
+              }),
+              outputs: tx.vout.map((output, index) => {
+                return {
+                  index,
+                  address: output.scriptpubkey_address,
+                  tokens: output.value,
+                };
+              }),
+            };
+          });
 
           return cbk(null, {transactions});
         });

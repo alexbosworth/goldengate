@@ -9,7 +9,7 @@ const ver = 'v0';
 
 /** Generic swap service
 
-  For fetch, pass a function like 'node-fetch' that returns a URL
+  For fetch, pass a function like 'require('@alexbosworth/node-fetch' that returns a URL
 
   {
     fetch: <Fetch Function>

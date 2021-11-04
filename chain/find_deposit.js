@@ -5,7 +5,7 @@ const {subscribeToChainAddress} = require('ln-service');
 const {Transaction} = require('bitcoinjs-lib');
 
 const findOutput = require('./find_output');
-const {findUtxo} = require('./../blockstream');
+const {findSpend} = require('./../blockstream');
 const {names} = require('./../conf/bitcoinjs-lib');
 
 const {ceil} = Math;
@@ -78,7 +78,7 @@ module.exports = (args, cbk) => {
     const times = ceil(args.timeout / msPerMin);
 
     return asyncRetry({times, interval: msPerMin}, cbk => {
-      return findUtxo({
+      return findSpend({
         address: args.address,
         confirmations: args.confirmations,
         network: args.network,

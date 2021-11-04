@@ -67,7 +67,12 @@ const tests = [
       address,
       network,
       request: ({}, cbk) => {
-        return cbk(null, {statusCode}, [{txid, vin: [{witness}]}]);
+        return cbk(null, {statusCode}, [{
+          txid,
+          status: {},
+          vin: [{witness}],
+          vout: [],
+        }]);
       },
     },
     description: 'Expected array of inputs returned from request',

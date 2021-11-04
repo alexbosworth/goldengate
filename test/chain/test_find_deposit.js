@@ -78,12 +78,16 @@ const tests = [
       network: 'btctestnet',
       request: ({url}, cbk) => {
         switch (url) {
-        case 'https://blockstream.info/testnet/api/address/address/utxo':
+        case 'https://blockstream.info/testnet/api/address/address/txs':
           return cbk(null, {statusCode: 200}, [{
             status: {block_height: 100},
             txid: Buffer.alloc(32).toString('hex'),
-            value: 100,
-            vout: 0,
+            vin: [{
+              witness: [],
+              txid: Buffer.alloc(32).toString('hex'),
+              vout: 0,
+            }],
+            vout: [{scriptpubkey_address: 'address', value: 100}],
           }]);
 
         case 'https://blockstream.info/testnet/api/blocks/tip/height':
@@ -109,12 +113,16 @@ const tests = [
       network: 'btctestnet',
       request: ({url}, cbk) => {
         switch (url) {
-        case 'https://blockstream.info/testnet/api/address/address/utxo':
+        case 'https://blockstream.info/testnet/api/address/address/txs':
           return cbk(null, {statusCode: 200}, [{
             status: {block_height: 100},
             txid: 'f2598a12da364e22112c301f69c3ea8a7537a7b94210d3a07a792d2e585395a3',
-            value: 100,
-            vout: 1,
+            vin: [{
+              witness: [],
+              txid: 'f2598a12da364e22112c301f69c3ea8a7537a7b94210d3a07a792d2e585395a3',
+              vout: 1,
+            }],
+            vout: [{}, {scriptpubkey_address: 'address', value: 100}],
           }]);
 
         case 'https://blockstream.info/testnet/api/blocks/tip/height':
