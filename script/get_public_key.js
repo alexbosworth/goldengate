@@ -1,4 +1,4 @@
-const {ECPair} = require('bitcoinjs-lib');
+const {ECPair} = require('ecpair');
 
 /** Get the public key for a private key
 

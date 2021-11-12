@@ -1,4 +1,4 @@
-const {ECPair} = require('bitcoinjs-lib');
+const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
 
 const claimOutputs = require('./../../transactions/claim_outputs');

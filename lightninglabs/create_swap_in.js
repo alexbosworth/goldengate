@@ -2,7 +2,7 @@ const {createHash} = require('crypto');
 const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
-const {ECPair} = require('bitcoinjs-lib');
+const {ECPair} = require('ecpair');
 const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
 

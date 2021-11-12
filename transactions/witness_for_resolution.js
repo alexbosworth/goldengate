@@ -1,4 +1,4 @@
-const {ECPair} = require('bitcoinjs-lib');
+const {ECPair} = require('ecpair');
 const {script} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 

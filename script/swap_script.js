@@ -2,7 +2,7 @@ const {createHash} = require('crypto');
 
 const bip65Encode = require('bip65').encode;
 const {crypto} = require('bitcoinjs-lib');
-const {ECPair} = require('bitcoinjs-lib');
+const {ECPair} = require('ecpair');
 const {OP_CHECKLOCKTIMEVERIFY} = require('bitcoin-ops');
 const {OP_CHECKSIG} = require('bitcoin-ops');
 const {OP_DROP} = require('bitcoin-ops');

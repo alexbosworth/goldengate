@@ -1,5 +1,5 @@
 const {crypto} = require('bitcoinjs-lib');
-const {ECPair} = require('bitcoinjs-lib');
+const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
 const {Transaction} = require('bitcoinjs-lib');
 

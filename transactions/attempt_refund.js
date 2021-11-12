@@ -1,5 +1,5 @@
 const asyncAuto = require('async/auto');
-const {ECPair} = require('bitcoinjs-lib');
+const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
 
 const {broadcastTransaction} = require('./../chain');
