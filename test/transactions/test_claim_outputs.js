@@ -1,21 +1,14 @@
 const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
+const tinysecp = require('tiny-secp256k1');
 
 const claimOutputs = require('./../../transactions/claim_outputs');
 const {swapScript} = require('./../../script');
 
-const privateKey = ECPair.makeRandom().privateKey.toString('hex');
-
-const {script} = swapScript({
-  claim_private_key: privateKey,
-  refund_public_key: ECPair.makeRandom().publicKey.toString('hex'),
-  secret: Buffer.alloc(32).toString('hex'),
-  timeout: 1571879,
-});
+const privateKey = '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d';
 
 const makeArgs = overrides => {
   const args = {
-    script,
     address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
     network: 'btctestnet',
     rate: 1.253,
@@ -160,7 +153,17 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({end, throws, strictSame}) => {
+  return test(description, async ({end, throws, strictSame}) => {
+    const {script} = swapScript({
+      claim_private_key: privateKey,
+      ecp: (await import('ecpair')).ECPairFactory(tinysecp),
+      refund_public_key: Buffer.alloc(33, 3).toString('hex'),
+      secret: Buffer.alloc(32).toString('hex'),
+      timeout: 1571879,
+    });
+
+    args.script = script;
+
     if (!!error) {
       throws(() => claimOutputs(args), new Error(error), 'Got error');
     } else {

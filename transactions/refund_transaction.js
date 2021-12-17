@@ -21,6 +21,7 @@ const vRatio = 4;
 
   {
     block_height: <Timelock Block Height Number>
+    ecp: <ECPair Object>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
     [is_nested]: <Refund Spending From Nested Output Bool>
     network: <Network Name String>
@@ -43,6 +44,10 @@ const vRatio = 4;
 module.exports = args => {
   if (!args.block_height) {
     throw new Error('ExpectedLocktimeHeightForRefundTransaction');
+  }
+
+  if (!args.ecp) {
+    throw new Error('ExpectedEcpObjectForRefundTransaction');
   }
 
   if (!args.fee_tokens_per_vbyte) {
@@ -124,6 +129,7 @@ module.exports = args => {
 
   tx.ins.forEach((input, i) => {
     const {witness} = witnessForResolution({
+      ecp: args.ecp,
       private_key: args.private_key,
       tokens: args.tokens,
       transaction: tx.toHex(),

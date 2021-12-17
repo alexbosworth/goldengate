@@ -5,7 +5,7 @@ const {createSwapIn} = require('./../../');
 
 const expiry = 150;
 const request = 'lntb1500n1pwne5trpp5dgen963wrgm3y2ls8r0qv0guwgz6jjepn6w83803hlu2yp54r2fsdqvg9jxgg8zn2sscqzpgxqr23s02xlzwwanxyun29cgggcytlepmu352v2njq6cuvhl6uz6wlv7jzx8pxgvlf0983n43g243uxgv6ejt58ps035lerdulymarz9j98nqqp8340y4';
-const serviceKey = ECPair.makeRandom().publicKey.toString('hex');
+const serviceKey = Buffer.alloc(33, 3).toString('hex');
 
 const makeArgs = overrides => {
   const args = {

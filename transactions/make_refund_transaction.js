@@ -1,5 +1,7 @@
 const asyncAuto = require('async/auto');
+const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
+const tinysecp = require('tiny-secp256k1');
 
 const refundTransaction = require('./refund_transaction');
 
@@ -25,10 +27,14 @@ const refundTransaction = require('./refund_transaction');
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
+      // Import ECPair library
+      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
+
       // Refund transaction
-      refund: cbk => {
+      refund: ['ecp', ({ecp}, cbk) => {
         try {
           const {transaction} = refundTransaction({
+            ecp,
             block_height: args.block_height,
             fee_tokens_per_vbyte: args.fee_tokens_per_vbyte,
             network: args.network,
@@ -44,7 +50,7 @@ module.exports = (args, cbk) => {
         } catch (err) {
           return cbk([500, 'FailedToConstructRefundTransaction', {err}]);
         }
-      },
+      }],
     },
     returnResult({reject, resolve, of: 'refund'}, cbk));
   });

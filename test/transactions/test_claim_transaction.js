@@ -1,32 +1,26 @@
 const {crypto} = require('bitcoinjs-lib');
 const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
+const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
 const {claimTransaction} = require('./../../');
 const {swapScript} = require('./../../script');
 
-const privateKey = ECPair.makeRandom().privateKey.toString('hex');
-
-const {script} = swapScript({
-  claim_private_key: privateKey,
-  refund_public_key: ECPair.makeRandom().publicKey.toString('hex'),
-  secret: Buffer.alloc(32).toString('hex'),
-  timeout: 1571879,
-});
+const privateKey = '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d';
 
 const makeArgs = overrides => {
   const args = {
     block_height: 1571579,
     fee_tokens_per_vbyte: 1,
     network: 'btctestnet',
-    private_key: ECPair.makeRandom().privateKey.toString('hex'),
+    private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
     secret: Buffer.alloc(32).toString('hex'),
     sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
     tokens: 1e4,
     transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
     transaction_vout: 0,
-    witness_script: script,
+    witness_script: true,
   };
 
   Object.keys(overrides).forEach(k => args[k] = overrides[k]);
@@ -112,7 +106,6 @@ const tests = [
       out_script: '0014362a2872a1c9988ef71c31bb332dfff68d895f0d',
       out_value: 9864,
       version: 2,
-      witness_script: script,
       witness_unlock: Buffer.alloc(32).toString('hex'),
     },
   },
@@ -133,14 +126,31 @@ const tests = [
       out_script: '0014362a2872a1c9988ef71c31bb332dfff68d895f0d',
       out_value: 9864,
       version: 2,
-      witness_script: script,
       witness_unlock: Buffer.alloc(32).toString('hex'),
     },
   },
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, async ({equal, end, throws}) => {
+    if (args.witness_script === true) {
+      const {script} = swapScript({
+        claim_private_key: privateKey,
+        ecp: (await import('ecpair')).ECPairFactory(tinysecp),
+        refund_public_key: Buffer.alloc(33, 3).toString('hex'),
+        secret: Buffer.alloc(32).toString('hex'),
+        timeout: 1571879,
+      });
+
+      args.witness_script = script;
+
+      if (!error) {
+        expected.witness_script = script;
+      }
+    }
+
+    args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
+
     if (!!error) {
       throws(() => claimTransaction(args), new Error(error), 'Got error');
     } else {

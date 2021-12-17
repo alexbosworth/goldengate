@@ -1,4 +1,6 @@
+const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
+const tinysecp = require('tiny-secp256k1');
 
 const {swapScriptV2} = require('./../../');
 
@@ -89,7 +91,9 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, async ({equal, end, throws}) => {
+    args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
+
     if (!!error) {
       throws(() => swapScriptV2(args), new Error(error), 'Error returned');
 

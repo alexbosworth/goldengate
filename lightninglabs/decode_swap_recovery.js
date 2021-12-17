@@ -1,6 +1,8 @@
 const asyncAuto = require('async/auto');
 const {decodeFirst} = require('cbor');
+const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
+const tinysecp = require('tiny-secp256k1');
 
 const encodeSwapRecovery = require('./encode_swap_recovery');
 const {swapScript} = require('./../script');
@@ -35,6 +37,9 @@ const scriptVersion2 = 2;
 module.exports = ({recovery}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
+      // Import ECPair library
+      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
+
       // Check arguments
       validate: cbk => {
         if (!recovery) {
@@ -56,8 +61,9 @@ module.exports = ({recovery}, cbk) => {
       }],
 
       // Script details
-      scriptDetails: ['recovery', ({recovery}, cbk) => {
+      scriptDetails: ['ecp', 'recovery', ({ecp, recovery}, cbk) => {
         return cbk(null, {
+          ecp,
           claim_private_key: recovery.claim_private_key || undefined,
           claim_public_key: recovery.claim_public_key || undefined,
           hash: recovery.id || undefined,

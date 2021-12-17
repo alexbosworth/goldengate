@@ -1,6 +1,7 @@
 const asyncAuto = require('async/auto');
 const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
+const tinysecp = require('tiny-secp256k1');
 
 const {broadcastTransaction} = require('./../chain');
 const {findDeposit} = require('./../chain');
@@ -42,6 +43,9 @@ const scriptVersion2 = 2;
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
+      // Import ECPair library
+      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
+
       // Check arugments
       validate: cbk => {
         if (!args.hash) {
@@ -94,11 +98,12 @@ module.exports = (args, cbk) => {
       }],
 
       // Swap script
-      script: ['validate', ({}, cbk) => {
+      script: ['ecp', 'validate', ({ecp}, cbk) => {
         try {
           switch (args.version) {
           case scriptVersion1:
             return cbk(null, swapScript({
+              ecp,
               hash: args.hash,
               claim_public_key: args.service_public_key,
               refund_private_key: args.refund_private_key,
@@ -107,6 +112,7 @@ module.exports = (args, cbk) => {
 
           case scriptVersion2:
             return cbk(null, swapScriptV2({
+              ecp,
               hash: args.hash,
               claim_public_key: args.service_public_key,
               refund_private_key: args.refund_private_key,

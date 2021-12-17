@@ -5,6 +5,7 @@ const asyncAuto = require('async/auto');
 const {ECPair} = require('ecpair');
 const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
+const tinysecp = require('tiny-secp256k1');
 
 const {addressForScript} = require('./../script');
 const {protocolVersion} = require('./conf/swap_service');
@@ -52,6 +53,9 @@ const pkLen = 33;
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
+      // Import ECPair library
+      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
+
       // Check arguments
       validate: cbk => {
         if (args.fee === undefined) {
@@ -74,12 +78,12 @@ module.exports = (args, cbk) => {
       },
 
       // Keys
-      keys: ['validate', ({}, cbk) => {
-        const key = ECPair.makeRandom();
+      keys: ['ecp', 'validate', ({ecp}, cbk) => {
+        const key = ecp.makeRandom();
 
         const privateKey = args.private_key || key.privateKey.toString('hex');
 
-        const swapKey = ECPair.fromPrivateKey(Buffer.from(privateKey, 'hex'));
+        const swapKey = ecp.fromPrivateKey(Buffer.from(privateKey, 'hex'));
 
         const publicKey = args.public_key || swapKey.publicKey.toString('hex');
 
@@ -160,12 +164,14 @@ module.exports = (args, cbk) => {
       // Swap script. The server has the main pubkey, the client the refund key
       script: [
         'create',
+        'ecp',
         'keys',
         'parsedRequest',
-        ({create, keys, parsedRequest}, cbk) =>
+        ({create, ecp, keys, parsedRequest}, cbk) =>
       {
         try {
           const {script} = swapScriptV2({
+            ecp,
             hash: parsedRequest.id,
             claim_public_key: create.service_public_key,
             refund_private_key: keys.private_key,

@@ -5,8 +5,8 @@
   },
   "dependencies": {
     "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.4.4",
-    "@grpc/proto-loader": "0.6.6",
+    "@grpc/grpc-js": "1.4.5",
+    "@grpc/proto-loader": "0.6.7",
     "@mitmaro/http-authorization-header": "1.0.0",
     "async": "3.2.2",
     "asyncjs-util": "1.2.7",
@@ -14,25 +14,26 @@
     "bip65": "1.0.3",
     "bip68": "1.0.4",
     "bitcoin-ops": "1.4.1",
-    "bitcoinjs-lib": "6.0.0",
+    "bitcoinjs-lib": "6.0.1",
     "bn.js": "5.2.0",
-    "body-parser": "1.19.0",
+    "body-parser": "1.19.1",
     "cbor": "8.1.0",
-    "ecpair": "1.0.1",
-    "ln-service": "52.16.0",
+    "ecpair": "2.0.1",
+    "ln-service": "53.2.0",
     "macaroon": "3.0.4",
     "psbt": "1.1.10",
     "pushdata-bitcoin": "1.0.1",
+    "tiny-secp256k1": "2.1.2",
     "varuint-bitcoin": "1.1.2"
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
     "@alexbosworth/tap": "15.0.10",
-    "express": "4.17.1",
+    "express": "4.17.2",
     "mock-lnd": "1.4.1"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=12.20"
   },
   "license": "MIT",
   "main": "index.js",
@@ -44,5 +45,5 @@
   "scripts": {
     "test": "tap --branches=1 --functions=1 --lines=1 --statements=1 test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "10.4.2"
+  "version": "11.0.0"
 }

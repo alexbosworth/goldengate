@@ -22,7 +22,7 @@ const scriptElementsAsScript = require('./script_elements_as_script');
 const encodeNumber = script.number.encode;
 const {hash160} = crypto;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
-const pubKey = key => getPublicKey({private_key: key}).public_key;
+const pubKey = (ecp, key) => getPublicKey({ecp, private_key: key}).public_key;
 const {ripemd160} = crypto;
 const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
@@ -34,6 +34,7 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
   {
     [claim_private_key]: <Claim Private Key Hex String>
     [claim_public_key]: <Claim Public Key Hex String>
+    ecp: <ECPair Object>
     [hash]: <Preimage Hash Hex String>
     [refund_private_key]: <Refund Private Key Hex String>
     [refund_public_key]: <Refund Public Key Hex String>
@@ -54,6 +55,10 @@ module.exports = args => {
     throw new Error('ExpectedEitherPrivateKeyOrPublicKeyForSwapScript');
   }
 
+  if (!args.ecp) {
+    throw new Error('ExpectedEcpairObjectForSwapScriptV2');
+  }
+
   if (!args.hash && !args.secret) {
     throw new Error('ExpectedEitherHashOrSecretForSwapScript');
   }
@@ -66,15 +71,18 @@ module.exports = args => {
     throw new Error('ExpectedSwapTimeoutExpirationCltvForSwapScript');
   }
 
+  const claimPrivKey = args.claim_private_key;
   const hash = args.hash || sha256(hexAsBuffer(args.secret));
+  const refundPrivKey = args.refund_private_key;
 
   const swapHash = hexAsBuffer(hash);
 
   try {
     const cltv = encodeNumber(bip65Encode({blocks: args.timeout}));
 
-    const claim = args.claim_public_key || pubKey(args.claim_private_key);
-    const refund = args.refund_public_key || pubKey(args.refund_private_key);
+
+    const claim = args.claim_public_key || pubKey(args.ecp, claimPrivKey);
+    const refund = args.refund_public_key || pubKey(args.ecp, refundPrivKey);
 
     const elements = [
       hexAsBuffer(claim), OP_CHECKSIG,

@@ -1,5 +1,12 @@
 # Versions
 
+## 11.0.0
+
+### Breaking Changes
+
+- Remove `askForFeeRate`, `getFundedTransaction`, `maintainUtxoLocks` methods
+    and move to `ln-sync` library.
+
 ## 10.4.2
 
 - `getFundedTransaction`: Return `lock_expires_at` to indicate input expiration lock date

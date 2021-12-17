@@ -1,31 +1,24 @@
 const {ECPair} = require('ecpair');
 const {OP_FALSE} = require('bitcoin-ops');
 const {test} = require('@alexbosworth/tap');
+const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
 const method = require('./../../transactions/witness_for_resolution');
 const {swapScript} = require('./../../script');
 
-const key = ECPair.makeRandom();
 const tx = new Transaction();
-
-const {script} = swapScript({
-  claim_private_key: '79957dc2091c8b024e14ee7f338869174ae39674342f40cc804cb099145d1d97',
-  secret: 'bdb8e03b149a48e3c706663b8cee7c7590bee386d5d8b5620fd504c848437e6e',
-  refund_public_key: '027e919ee986cd0ad6e012932c709e82396321a82faee5355ca5def9d0934b526c',
-  timeout: 1515658,
-});
 
 tx.addInput(Buffer.alloc(32), 0);
 
 const makeArgs = overrides => {
   const args = {
-    private_key: key.privateKey.toString('hex'),
+    private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
     tokens: 1e4,
     transaction: tx.toHex(),
     unlock: Buffer.alloc(32).toString('hex'),
     vin: 0,
-    witness_script: script,
+    witness_script: true,
   };
 
   Object.keys(overrides).forEach(k => args[k] = overrides[k]);
@@ -38,7 +31,6 @@ const tests = [
     args: makeArgs({}),
     description: 'Derive witness for resolution',
     expected: {
-      witness_script: script,
       witness_unlock: Buffer.alloc(32).toString('hex'),
     },
   },
@@ -114,7 +106,25 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, async ({equal, end, throws}) => {
+    if (args.witness_script === true) {
+      const {script} = swapScript({
+        claim_private_key: '79957dc2091c8b024e14ee7f338869174ae39674342f40cc804cb099145d1d97',
+        ecp: (await import('ecpair')).ECPairFactory(tinysecp),
+        secret: 'bdb8e03b149a48e3c706663b8cee7c7590bee386d5d8b5620fd504c848437e6e',
+        refund_public_key: '027e919ee986cd0ad6e012932c709e82396321a82faee5355ca5def9d0934b526c',
+        timeout: 1515658,
+      });
+
+      args.witness_script = script;
+
+      if (!error) {
+        expected.witness_script = script;
+      }
+    }
+
+    args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
+
     if (!!error) {
       throws(() => method(args), new Error(error));
 

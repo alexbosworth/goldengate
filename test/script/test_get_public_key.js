@@ -1,4 +1,6 @@
+const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
+const tinysecp = require('tiny-secp256k1');
 
 const {getPublicKey} = require('./../../script');
 
@@ -20,7 +22,9 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({end, equal, throws}) => {
+  return test(description, async ({end, equal, throws}) => {
+    args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
+
     if (!!error) {
       throws(() => getPublicKey(args), new Error(error), 'Got error');
 

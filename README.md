@@ -61,20 +61,6 @@ Once a transaction is formed, it can be broadcast with `broadcastTransaction`.
 
 ## Methods
 
-### askForFeeRate
-
-Ask to get a chain fee rate
-
-    {
-      ask: <Inquirer Ask Function>
-      lnd: <Authenticated LND API Object>
-    }
-
-    @returns via cbk or Promise
-    {
-      tokens_per_vbyte: <Chain Fee Tokens Per VByte Number>
-    }
-
 ### attemptRefund
 
 Attempt a refund
@@ -366,35 +352,6 @@ For fetch, pass a function like `@alexbosworth/node-fetch` that returns a URL
       service: <Swap Service API Object>
     }
 
-### getFundedTransaction
-
-Get a funded transaction
-
-    {
-      ask: <Inquirer Ask Function>
-      [chain_fee_tokens_per_vbyte]: <Internal Funding Uses Tokens/Vbyte Number>
-      [is_external]: <Transaction Uses External Funds Bool>
-      lnd: Authenticated LND API Object>
-      logger: <Winston Logger Object>
-      outputs: [{
-        address: <Chain Address String>
-        tokens: <Tokens To Send To Output Number>
-      }]
-    }
-
-    @returns via cbk or Promise
-    {
-      id: <Transaction Id Hex String>
-      [inputs]: [{
-        [lock_expires_at]: <UTXO Lock Expires At ISO 8601 Date String>
-        [lock_id]: <UTXO Lock Id Hex String>
-        transaction_id: <Transaction Hex Id String>
-        transaction_vout: <Transaction Output Index Number>
-      }]
-      [psbt]: <Transaction As Finalized PSBT Hex String>
-      [transaction]: <Raw Transaction Hex String>
-    }
-
 ### getPsbtFromTransaction
 
 Get a PSBT from a raw transaction
@@ -593,23 +550,6 @@ const {service} = lightningLabsSwapService({network: 'btctestnet'});
 
 const {fee} = await getSwapOutQuote({service, tokens: 1000000});
 ```
-
-### maintainUtxoLocks
-
-Keep input locks alive while related transaction is not yet confirmed
-
-    {
-      id: <Transaction Id Hex String>
-      inputs: [{
-        [lock_expires_at]: <UTXO Lock Expires At ISO 8601 Date String>
-        transaction_id: <Unspent Transaction Id Hex String>
-        transaction_vout: <Unspent Transaction Output Index Number>
-      }]
-      interval: <Relock Interval Milliseconds>
-      lnd: <Authenticated LND API Object>
-    }
-
-    @returns via cbk or Promise
 
 ### releaseSwapOutSecret
 

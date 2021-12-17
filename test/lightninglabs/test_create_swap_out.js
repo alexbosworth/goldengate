@@ -4,7 +4,7 @@ const {test} = require('@alexbosworth/tap');
 const {createSwapOut} = require('./../../');
 
 const expiry = 150;
-const serviceKey = ECPair.makeRandom().publicKey.toString('hex');
+const serviceKey = Buffer.alloc(33, 3).toString('hex');
 
 const makeService = ({overrides}) => {
   const res = {

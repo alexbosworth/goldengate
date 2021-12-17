@@ -1,4 +1,3 @@
-const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
 const {Transaction} = require('bitcoinjs-lib');
 
@@ -149,10 +148,10 @@ const tests = [
         return cbk();
       },
       service_public_key,
-      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      refund_private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
       start_height: 1,
       sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
-      timeout_height: Infinity,
+      timeout_height: 'foo',
       tokens: 1000,
     },
     description: 'Swap script requires valid elements',
@@ -183,7 +182,7 @@ const tests = [
         return cbk();
       },
       service_public_key,
-      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      refund_private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
       start_height: 1,
       sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
       timeout_height: 100,
@@ -232,7 +231,7 @@ const tests = [
       hash,
       network,
       service_public_key,
-      refund_private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      refund_private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
       request: makeRequest({}),
       start_height: 1,
       sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',

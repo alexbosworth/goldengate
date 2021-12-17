@@ -1,5 +1,4 @@
 const {addressForScript} = require('./script');
-const {askForFeeRate} = require('./funding');
 const {attemptRefund} = require('./transactions');
 const {attemptSweep} = require('./transactions');
 const {broadcastTransaction} = require('./chain');
@@ -17,7 +16,6 @@ const {findSecret} = require('./blockstream');
 const {genericSwapAuth} = require('./service');
 const {genericSwapService} = require('./service');
 const {getChainFeeRate} = require('./chain');
-const {getFundedTransaction} = require('./funding');
 const {getGrpcInterface} = require('./grpc');
 const {getHeight} = require('./chain');
 const {getPsbtFromTransaction} = require('./funding');
@@ -29,7 +27,6 @@ const {getSwapOutTerms} = require('./lightninglabs');
 const {isSweep} = require('./transactions');
 const {lightningLabsSwapAuth} = require('./lightninglabs');
 const {lightningLabsSwapService} = require('./lightninglabs');
-const {maintainUtxoLocks} = require('./funding');
 const {p2wshOutputScript} = require('./script');
 const {refundTransaction} = require('./transactions');
 const {releaseSwapOutSecret} = require('./lightninglabs');
@@ -44,7 +41,6 @@ const {swapUserId} = require('./lightninglabs');
 
 module.exports = {
   addressForScript,
-  askForFeeRate,
   attemptRefund,
   attemptSweep,
   broadcastTransaction,
@@ -62,7 +58,6 @@ module.exports = {
   genericSwapAuth,
   genericSwapService,
   getChainFeeRate,
-  getFundedTransaction,
   getGrpcInterface,
   getHeight,
   getPsbtFromTransaction,
@@ -74,7 +69,6 @@ module.exports = {
   isSweep,
   lightningLabsSwapAuth,
   lightningLabsSwapService,
-  maintainUtxoLocks,
   p2wshOutputScript,
   refundTransaction,
   releaseSwapOutSecret,

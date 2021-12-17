@@ -46,6 +46,10 @@ module.exports = args => {
     throw new Error('ExpectedBlockHeightForClaimTransaction');
   }
 
+  if (!args.ecp) {
+    throw new Error('ExpectedEcpObjectForClaimTransaction');
+  }
+
   if (args.fee_tokens_per_vbyte === undefined) {
     throw new Error('ExpectedFeeTokensPerVbyte');
   }
@@ -119,6 +123,7 @@ module.exports = args => {
   // Set witness
   tx.ins.forEach((input, i) => {
     const {witness} = witnessForResolution({
+      ecp: args.ecp,
       private_key: args.private_key,
       tokens: args.tokens,
       transaction: tx.toHex(),

@@ -4,6 +4,7 @@ const {randomBytes} = require('crypto');
 const asyncAuto = require('async/auto');
 const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
+const tinysecp = require('tiny-secp256k1');
 
 const {addressForScript} = require('./../script');
 const parsePaymentMetadata = require('./parse_payment_metadata');
@@ -55,6 +56,9 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
+      // Import ECPair library
+      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
+
       // Check arguments
       validate: cbk => {
         if (!!args.hash && !!args.secret) {
@@ -100,14 +104,14 @@ module.exports = (args, cbk) => {
       }],
 
       // Keys
-      keys: ['validate', ({}, cbk) => {
-        const key = ECPair.makeRandom();
+      keys: ['ecp', 'validate', ({ecp}, cbk) => {
+        const key = ecp.makeRandom();
 
         const privateKey = args.private_key || key.privateKey.toString('hex');
         const swapSecret = args.secret || randomHex(preimageLen);
 
         const preimage = Buffer.from(swapSecret, 'hex');
-        const swapKey = ECPair.fromPrivateKey(Buffer.from(privateKey, 'hex'));
+        const swapKey = ecp.fromPrivateKey(Buffer.from(privateKey, 'hex'));
 
         const publicKey = args.public_key || swapKey.publicKey.toString('hex');
         const swapHash = args.hash || sha256(preimage);
@@ -163,9 +167,10 @@ module.exports = (args, cbk) => {
       }],
 
       // Swap script
-      script: ['create', 'keys', ({create, keys}, cbk) => {
+      script: ['create', 'ecp', 'keys', ({create, ecp, keys}, cbk) => {
         try {
           const {script} = swapScriptV2({
+            ecp,
             claim_private_key: keys.private_key,
             refund_public_key: create.sender_key.toString('hex'),
             secret: keys.swap_secret,

@@ -1,4 +1,3 @@
-const {ECPair} = require('ecpair');
 const {script} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
@@ -13,6 +12,7 @@ const preimageHexLength = 32 * 2;
 /** Generate signed witnesses for swap resolution transaction
 
   {
+    ecp: <ECPair Object>
     private_key: <Raw Private Key Hex String>
     tokens: <Tokens Number>
     transaction: <Unsigned Transaction Hex String>
@@ -29,6 +29,10 @@ const preimageHexLength = 32 * 2;
   }
 */
 module.exports = args => {
+  if (!args.ecp) {
+    throw new Error('ExpectedEcpairObjectForResolutionTransactionWitness');
+  }
+
   if (!args.private_key) {
     throw new Error('ExpectedPrivateKeyForResolutionTransactionWitness');
   }
@@ -64,7 +68,7 @@ module.exports = args => {
   }
 
   const script = hexAsBuffer(args.witness_script);
-  const signingKey = ECPair.fromPrivateKey(hexAsBuffer(args.private_key));
+  const signingKey = args.ecp.fromPrivateKey(hexAsBuffer(args.private_key));
   const tx = fromHex(args.transaction);
   const {version} = versionOfSwapScript({script: args.witness_script});
 

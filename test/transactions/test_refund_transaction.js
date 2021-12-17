@@ -1,5 +1,6 @@
 const {ECPair} = require('ecpair');
 const {test} = require('@alexbosworth/tap');
+const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
 const {refundTransaction} = require('./../../transactions');
@@ -82,7 +83,7 @@ const tests = [
       fee_tokens_per_vbyte: 1,
       is_nested: true,
       network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
       sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
       tokens: 1,
       transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
@@ -98,7 +99,7 @@ const tests = [
       fee_tokens_per_vbyte: 1,
       is_nested: true,
       network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
       sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
       tokens: 1e4,
       transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
@@ -125,7 +126,7 @@ const tests = [
       block_height: 1571579,
       fee_tokens_per_vbyte: 1,
       network: 'btctestnet',
-      private_key: ECPair.makeRandom().privateKey.toString('hex'),
+      private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
       sweep_address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
       tokens: 1e4,
       transaction_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
@@ -199,7 +200,9 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, async ({equal, end, throws}) => {
+    args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
+
     if (!!error) {
       throws(() => refundTransaction(args), new Error(error), 'Got error');
     } else {
