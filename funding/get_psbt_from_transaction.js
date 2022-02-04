@@ -2,6 +2,7 @@ const asyncAuto = require('async/auto');
 const asyncMapSeries = require('async/mapSeries');
 const {finalizePsbt} = require('psbt');
 const {returnResult} = require('asyncjs-util');
+const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 const {transactionAsPsbt} = require('psbt');
 
@@ -28,6 +29,9 @@ const uniq = arr => Array.from(new Set(arr));
 module.exports = ({network, request, transaction}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
+      // Import the ECPair library
+      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
+
       // Check arguments
       validate: cbk => {
         if (!network) {
@@ -63,13 +67,13 @@ module.exports = ({network, request, transaction}, cbk) => {
       }],
 
       // Finalize PSBT
-      finalize: ['getTransactions', ({getTransactions}, cbk) => {
+      finalize: ['ecp', 'getTransactions', ({ecp, getTransactions}, cbk) => {
         const spending = getTransactions.map(n => n.transaction);
 
         try {
-          const {psbt} = transactionAsPsbt({spending, transaction});
+          const {psbt} = transactionAsPsbt({ecp, spending, transaction});
 
-          const finalized = finalizePsbt({psbt});
+          const finalized = finalizePsbt({ecp, psbt});
 
           return cbk(null, {psbt: finalized.psbt});
         } catch (err) {
