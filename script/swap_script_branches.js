@@ -7,12 +7,9 @@ const {OP_CHECKLOCKTIMEVERIFY} = require('bitcoin-ops');
 const {OP_CHECKSEQUENCEVERIFY} = require('bitcoin-ops');
 const {OP_CHECKSIG} = require('bitcoin-ops');
 const {OP_CHECKSIGVERIFY} = require('bitcoin-ops');
-const {OP_DUP} = require('bitcoin-ops');
-const {OP_ELSE} = require('bitcoin-ops');
 const {OP_ENDIF} = require('bitcoin-ops');
 const {OP_EQUALVERIFY} = require('bitcoin-ops');
 const {OP_HASH160} = require('bitcoin-ops');
-const {OP_NOTIF} = require('bitcoin-ops');
 const {OP_SIZE} = require('bitcoin-ops');
 const {script} = require('bitcoinjs-lib');
 
@@ -21,12 +18,13 @@ const scriptElementsAsScript = require('./script_elements_as_script');
 
 const encodeNumber = script.number.encode;
 const {hash160} = crypto;
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const hexAsBuffer = hex => !!hex ? Buffer.from(hex, 'hex') : undefined;
 const pubKey = (ecp, key) => getPublicKey({ecp, private_key: key}).public_key;
 const {ripemd160} = crypto;
 const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
+const shortKey = hexPublicKey => hexPublicKey.slice(2);
 
-/** Get swap v2 redeem script / witness program
+/** Get swap script branches for a Taproot spend
 
   // A hash or secret is required
   // A private key or public key is required
@@ -47,33 +45,35 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
   @returns
   {
-    script: <Hex Serialized Witness Script String>
+    branches: {
+      script: <Hex Serialized Witness Script String>
+    }
   }
 */
 module.exports = args => {
   if (!args.claim_private_key && !args.claim_public_key) {
-    throw new Error('ExpectedEitherPrivateKeyOrPublicKeyForSwapScript');
+    throw new Error('ExpectedEitherPrivateKeyOrPublicKeyForSwapBranches');
   }
 
   if (!args.ecp) {
-    throw new Error('ExpectedEcpairObjectForSwapScriptV2');
+    throw new Error('ExpectedEcpairObjectForSwapScriptBranches');
   }
 
   if (!args.hash && !args.secret) {
-    throw new Error('ExpectedEitherHashOrSecretForSwapScript');
+    throw new Error('ExpectedEitherHashOrSecretForSwapScriptBranches');
   }
 
   if (!args.refund_private_key && !args.refund_public_key) {
-    throw new Error('ExpectedRefundPublicOrPrivateKeyForSwapScript');
+    throw new Error('ExpectedRefundPublicOrPrivateKeyForSwapScriptBranches');
   }
 
   if (!args.timeout) {
-    throw new Error('ExpectedSwapTimeoutExpirationCltvForSwapScript');
+    throw new Error('ExpectedSwapTimeoutExpirationCltvForSwapScriptBranches');
   }
 
-  const claimPrivKey = args.claim_private_key;
+  const claimPrivKey = hexAsBuffer(args.claim_private_key);
   const hash = args.hash || sha256(hexAsBuffer(args.secret));
-  const refundPrivKey = args.refund_private_key;
+  const refundPrivKey = hexAsBuffer(args.refund_private_key);
 
   const swapHash = hexAsBuffer(hash);
 
@@ -83,26 +83,29 @@ module.exports = args => {
     const claim = args.claim_public_key || pubKey(args.ecp, claimPrivKey);
     const refund = args.refund_public_key || pubKey(args.ecp, refundPrivKey);
 
-    const elements = [
-      hexAsBuffer(claim), OP_CHECKSIG,
-      OP_NOTIF,
-        OP_DUP, OP_HASH160, hash160(hexAsBuffer(refund)),
-        OP_EQUALVERIFY,
-        OP_CHECKSIGVERIFY,
-        cltv, OP_CHECKLOCKTIMEVERIFY,
-      OP_ELSE,
-        OP_SIZE, encodeNumber(swapHash.length),
-        OP_EQUALVERIFY,
-        OP_HASH160, ripemd160(swapHash), OP_EQUALVERIFY,
-        OP_1,
-        OP_CHECKSEQUENCEVERIFY,
-      OP_ENDIF,
+    const claimElements = [
+      hexAsBuffer(shortKey(claim)), OP_CHECKSIGVERIFY,
+      OP_SIZE, encodeNumber(swapHash.length),
+      OP_EQUALVERIFY,
+      OP_HASH160, ripemd160(swapHash), OP_EQUALVERIFY,
+      OP_1,
+      OP_CHECKSEQUENCEVERIFY,
     ];
 
-    const {script} = scriptElementsAsScript({elements});
+    const refundElements = [
+      hexAsBuffer(shortKey(refund)), OP_CHECKSIGVERIFY,
+      cltv, OP_CHECKLOCKTIMEVERIFY,
+    ];
 
-    return {script};
+    const claimLeaf = scriptElementsAsScript({elements: claimElements});
+    const refundLeaf = scriptElementsAsScript({elements: refundElements});
+
+    return {
+      claim: claimLeaf.script,
+      branches: [claimLeaf, refundLeaf],
+      refund: refundLeaf.script,
+    };
   } catch (err) {
-    throw Error('FailedToComposeSwapScriptElements');
+    throw Error('FailedToComposeSwapScriptBranchElements');
   }
 };
