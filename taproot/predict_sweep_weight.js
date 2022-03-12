@@ -31,7 +31,7 @@ module.exports = ({control, script, unlock, weight}) => {
     throw new Error('ExpectedControlBlockToPredictSignedTxWeight');
   }
 
-  if (!!unlock && !script) {
+  if (!!control && !!unlock && !script) {
     throw new Error('ExpectedLeafScriptToPredictSignedTxWeight');
   }
 

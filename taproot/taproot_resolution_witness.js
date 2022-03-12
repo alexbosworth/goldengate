@@ -1,5 +1,7 @@
 const {controlBlock} = require('p2tr');
+const {hashForTree} = require('p2tr');
 const {leafHash} = require('p2tr');
+const {signHash} = require('p2tr');
 const {signSchnorr} = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
@@ -99,7 +101,14 @@ module.exports = args => {
 
   // Exit early when there is no script path
   if (!witnessScript) {
-    return {witness: [bufferAsHex(signature)]};
+    const signedInput = signHash({
+      hash: hashForTree({branches: args.script_branches}).hash,
+      private_key: args.private_key,
+      public_key: bufferAsHex(signingKey.publicKey),
+      sign_hash: bufferAsHex(hashToSign),
+    });
+
+    return {witness: [signedInput.signature]};
   }
 
   // Create the control block proving the witness script is part of the output

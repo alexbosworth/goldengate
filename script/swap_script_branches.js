@@ -45,9 +45,12 @@ const shortKey = hexPublicKey => hexPublicKey.slice(2);
 
   @returns
   {
-    branches: {
+    claim: <Claim Script Hex String>
+    branches: [{
       script: <Hex Serialized Witness Script String>
-    }
+    }]
+    hash: <Swap Hash Hex String>
+    refund: <Refund Script Hex String>
   }
 */
 module.exports = args => {
@@ -101,6 +104,7 @@ module.exports = args => {
     const refundLeaf = scriptElementsAsScript({elements: refundElements});
 
     return {
+      hash,
       claim: claimLeaf.script,
       branches: [claimLeaf, refundLeaf],
       refund: refundLeaf.script,
