@@ -1,6 +1,6 @@
 # Versions
 
-## 11.1.0
+## 11.1.1
 
 - `attemptTaprootClaim`, `swapScriptBranches`, `taprootCoopTransaction`,
      `taprootRefundTransaction`: Add methods for Taproot swaps
