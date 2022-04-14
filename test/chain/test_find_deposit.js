@@ -144,7 +144,7 @@ const tests = [
   {
     args: {},
     description: 'An address is required to find deposit',
-    error: [400, 'ExpectedChainAddressToFindDepositTo'],
+    error: [400, 'ExpectedChainAddressOrScriptToFindDepositTo'],
   },
   {
     args: {address: 'address', lnd: {}},

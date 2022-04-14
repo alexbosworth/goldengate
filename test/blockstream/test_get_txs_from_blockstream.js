@@ -12,7 +12,7 @@ const tests = [
   {
     args: {},
     description: 'Requires address to get txos',
-    error: [400, 'ExpectedAddressToFindTransactionsFor'],
+    error: [400, 'ExpectedAddressOrScriptToFindTransactionsFor'],
   },
   {
     args: {address},

@@ -33,6 +33,7 @@ const {refundTransaction} = require('./transactions');
 const {releaseSwapOutSecret} = require('./lightninglabs');
 const {serviceSocket} = require('./lightninglabs');
 const {subscribeToBlocks} = require('./chain');
+const {subscribeToSpend} = require('./chain');
 const {subscribeToSwapInStatus} = require('./lightninglabs');
 const {subscribeToSwapOutStatus} = require('./lightninglabs');
 const {swapInFee} = require('./lightninglabs');
@@ -40,6 +41,7 @@ const {swapScript} = require('./script');
 const {swapScriptBranches} = require('./script');
 const {swapScriptV2} = require('./script');
 const {swapUserId} = require('./lightninglabs');
+const {taprootClaimTransaction} = require('./taproot');
 const {taprootCoopTransaction} = require('./taproot');
 const {taprootRefundTransaction} = require('./taproot');
 
@@ -79,6 +81,7 @@ module.exports = {
   releaseSwapOutSecret,
   serviceSocket,
   subscribeToBlocks,
+  subscribeToSpend,
   subscribeToSwapInStatus,
   subscribeToSwapOutStatus,
   swapInFee,
@@ -86,6 +89,7 @@ module.exports = {
   swapScriptBranches,
   swapScriptV2,
   swapUserId,
+  taprootClaimTransaction,
   taprootCoopTransaction,
   taprootRefundTransaction,
 };

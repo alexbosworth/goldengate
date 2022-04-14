@@ -1,5 +1,10 @@
 # Versions
 
+## 11.2.0
+
+- `findDeposit`: Add option to specify `output_script` instead of `address`
+- `taprootClaimTransaction`, `taprootRefundTransaction`: Add `internal_key`
+
 ## 11.1.1
 
 - `attemptTaprootClaim`, `swapScriptBranches`, `taprootCoopTransaction`,

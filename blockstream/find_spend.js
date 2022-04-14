@@ -9,20 +9,24 @@ const {isArray} = Array;
 
 /** Find a spend to an address that is spending a UTXO
 
+  Either `address` or `output_script` is required
+
   Either `tokens` or `transaction_id`/`transaction_vout` is required
 
   {
-    address: <Spends To Address String>
+    [address]: <Spends To Address String>
     [confirmations]: <Required Confirmations Count>
     network: <Network Name String>
+    [output_script]: <Output Script Hex String>
     request: <Request Function>
     [tokens]: <UTXO Value Tokens Number>
     [transaction_id]: <Spending Transaction Id Hex String>
     [transaction_vout]: <Spending Transaction Vout Number>
   }
 
-  @returns via cbk
+  @returns via cbk or Promise
   {
+    [confirm_height]: <Spend Confirm Height Number>
     output_tokens: <Transaction Output Tokens Number>
     transaction_id: <Transaction Id Hex String>
     transaction_vout: <Transaction Output Index Number>
@@ -33,8 +37,8 @@ module.exports = (args, cbk) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
-        if (!args.address) {
-          return cbk([400, 'ExpectedAddressToFindSpend']);
+        if (!args.address && !args.output_script) {
+          return cbk([400, 'ExpectedAddressOrOutputScriptToFindSpend']);
         }
 
         if (!args.network) {
@@ -71,6 +75,7 @@ module.exports = (args, cbk) => {
           address: args.address,
           network: args.network,
           request: args.request,
+          script: args.output_script,
         },
         cbk);
       }],
@@ -121,7 +126,11 @@ module.exports = (args, cbk) => {
 
           // Look for the outputs paying to the address
           const outputsToAddress = tx.outputs.filter(output => {
-            if (output.address !== args.address) {
+            if (!!args.address && output.address !== args.address) {
+              return false;
+            }
+
+            if (!!args.output_script && output.script !== args.output_script) {
               return false;
             }
 
@@ -141,9 +150,16 @@ module.exports = (args, cbk) => {
         }
 
         // Find the output on the transaction
-        const output = spend.outputs.find(n => n.address === args.address);
+        const output = spend.outputs.find(output => {
+          if (!!args.address) {
+            return output.address === args.address;
+          }
+
+          return output.script === args.output_script;
+        });
 
         return cbk(null, {
+          confirm_height: spend.confirm_height,
           output_tokens: output.tokens,
           transaction_id: spend.id,
           transaction_vout: output.index,

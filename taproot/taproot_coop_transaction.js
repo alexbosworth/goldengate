@@ -46,19 +46,19 @@ const txAsHash = id => Buffer.from(id, 'hex').reverse();
 */
 module.exports = args => {
   if (!args.ecp) {
-    throw new Error('ExpectedEcpairObjectToGenerateClaimTransaction');
+    throw new Error('ExpectedEcpairObjectToGenerateCoopTransaction');
   }
 
   if (!args.fee_tokens_per_vbyte) {
-    throw new Error('ExpectedChainFeeTokensPerVbyteToGenerateTaprootClaimTx');
+    throw new Error('ExpectedChainFeeTokensPerVbyteToGenerateTaprootCoopTx');
   }
 
   if (!args.network) {
-    throw new Error('ExpectedNetworkNameToGenerateTaprootClaimTx');
+    throw new Error('ExpectedNetworkNameToGenerateTaprootCoopTx');
   }
 
   if (!args.output_script) {
-    throw new Error('ExpectedOutputScriptToGenerateTaprootClaimTransaction');
+    throw new Error('ExpectedOutputScriptToGenerateTaprootCoopTransaction');
   }
 
   if (!isArray(args.private_keys)) {
@@ -66,23 +66,23 @@ module.exports = args => {
   }
 
   if (!isArray(args.script_branches)) {
-    throw new Error('ExpectedScriptBranchesToGenerateTaprootClaimTx');
+    throw new Error('ExpectedScriptBranchesToGenerateTaprootCoopTx');
   }
 
   if (!args.sweep_address) {
-    throw new Error('ExpectedSweepAddressToGenerateTaprootClaimTransaction');
+    throw new Error('ExpectedSweepAddressToGenerateTaprootCoopTransaction');
   }
 
   if (!args.tokens) {
-    throw new Error('ExpectedUtxoTokensValueToGenerateTaprootClaimTx');
+    throw new Error('ExpectedUtxoTokensValueToGenerateTaprootCoopTx');
   }
 
   if (!args.transaction_id) {
-    throw new Error('ExpectedTransactionIdToGenerateTaprootClaimTransaction');
+    throw new Error('ExpectedTransactionIdToGenerateTaprootCoopTransaction');
   }
 
   if (args.transaction_vout === undefined) {
-    throw new Error('ExpectedTxOutputIndexToGenerateTaprootClaimTransaction');
+    throw new Error('ExpectedTxOutputIndexToGenerateTaprootCoopTransaction');
   }
 
   const keys = args.private_keys

@@ -23,6 +23,7 @@ const vRatio = 4;
     ecp: <ECPair Object>
     external_key: <Taproot Output External Public Key Hex String>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
+    internal_key: <Taproot Output Internal Public Key Hex String>
     network: <Network Name String>
     output_script: <Output Script Hex String>
     [private_key]: <Refund Private Key Hex String>
@@ -110,6 +111,7 @@ module.exports = args => {
 
   const {block} = controlBlock({
     external_key: args.external_key,
+    internal_key: args.internal_key,
     leaf_script: args.refund_script,
     script_branches: args.script_branches,
   });
@@ -142,6 +144,7 @@ module.exports = args => {
     const {witness} = taprootResolutionWitness({
       ecp: args.ecp,
       external_key: args.external_key,
+      internal_key: args.internal_key,
       output_script: args.output_script,
       private_key: args.private_key,
       refund_script: args.refund_script,

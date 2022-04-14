@@ -1,6 +1,7 @@
 {
   "apis": {
     "btc": "https://blockstream.info/api",
+    "btcregtest": "https://blockstream.info/regtest/api",
     "btctestnet": "https://blockstream.info/testnet/api"
   }
 }

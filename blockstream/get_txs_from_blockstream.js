@@ -1,16 +1,23 @@
+const {createHash} = require('crypto');
+
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
 const {apis} = require('./conf/blockstream-info');
 
 const {isArray} = Array;
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
 /** Get transactions related to an address from Blockstream
 
+  An address or script is required
+
   {
-    address: <Address String>
+    [address]: <Address String>
     network: <Network String>
     request: <Request Function>
+    [script]: <Output Script Hex String>
   }
 
   @returns via cbk or Promise
@@ -30,13 +37,13 @@ const {isArray} = Array;
     }]
   }
 */
-module.exports = ({address, network, request}, cbk) => {
+module.exports = ({address, network, request, script}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
-        if (!address) {
-          return cbk([400, 'ExpectedAddressToFindTransactionsFor']);
+        if (!address && !script) {
+          return cbk([400, 'ExpectedAddressOrScriptToFindTransactionsFor']);
         }
 
         if (!network) {
@@ -50,13 +57,21 @@ module.exports = ({address, network, request}, cbk) => {
         return cbk();
       },
 
+      // Determine which URL to use for the lookup
+      url: ['validate', ({}, cbk) => {
+        // Exit early when querying for an address
+        if (!!address) {
+          return cbk(null, `${apis[network]}/address/${address}/txs`);
+        }
+
+        const hash = sha256(hexAsBuffer(script));
+
+        return cbk(null, `${apis[network]}/scripthash/${hash}/txs`);
+      }],
+
       // Get transactions
-      getTransactions: ['validate', ({}, cbk) => {
-        return request({
-          json: true,
-          url: `${apis[network]}/address/${address}/txs`,
-        },
-        (err, r, txs) => {
+      getTransactions: ['url', ({url}, cbk) => {
+        return request({url, json: true}, (err, r, txs) => {
           if (!!err) {
             return cbk([503, 'FailedGettingTxsFromBlockstream', {err}]);
           }
@@ -104,6 +119,7 @@ module.exports = ({address, network, request}, cbk) => {
                 return {
                   index,
                   address: output.scriptpubkey_address,
+                  script: output.scriptpubkey,
                   tokens: output.value,
                 };
               }),

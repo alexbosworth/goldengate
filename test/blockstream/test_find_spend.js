@@ -8,6 +8,7 @@ const req = ({statusCode, height, txs, value, vout}) => {
   return ({url}, cbk) => {
     switch (url) {
     case 'https://blockstream.info/testnet/api/address/address/txs':
+    case 'https://blockstream.info/testnet/api/scripthash/6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d/txs':
       return cbk(null, {statusCode: 200}, txs || [{
         status: {block_height: 100},
         txid: Buffer.alloc(32).toString('hex'),
@@ -16,7 +17,11 @@ const req = ({statusCode, height, txs, value, vout}) => {
           txid: Buffer.alloc(32).toString('hex'),
           vout: 0,
         }],
-        vout: [{scriptpubkey_address: 'address', value: 100}],
+        vout: [{
+          scriptpubkey: '00',
+          scriptpubkey_address: 'address',
+          value: 100,
+        }],
       }]);
 
     case 'https://blockstream.info/testnet/api/blocks/tip/height':
@@ -45,7 +50,7 @@ const tests = [
   {
     args: makeArgs({address: undefined}),
     description: 'Address required',
-    error: [400, 'ExpectedAddressToFindSpend'],
+    error: [400, 'ExpectedAddressOrOutputScriptToFindSpend'],
   },
   {
     args: makeArgs({network: undefined}),
@@ -159,7 +164,16 @@ const tests = [
     expected: {transaction_id: txid, transaction_vout: 0},
   },
   {
-    args: makeArgs({tokens: undefined, transaction_id: txid, transaction_vout: 0}),
+    args: makeArgs({address: undefined, output_script: '00'}),
+    description: 'Find a spend by output script',
+    expected: {transaction_id: txid, transaction_vout: 0},
+  },
+  {
+    args: makeArgs({
+      tokens: undefined,
+      transaction_id: txid,
+      transaction_vout: 0,
+    }),
     description: 'Find a spend by tx id',
     expected: {transaction_id: txid, transaction_vout: 0},
   },

@@ -12,6 +12,7 @@ const {ceil} = Math;
 const {fromHex} = Transaction;
 const msPerMin = 1000 * 60;
 const notFoundIndex = -1;
+const scriptAsHex = n => Buffer.isBuffer(n) ? n.toString('hex') : n;
 const {toOutputScript} = address;
 
 /** Find a deposit to a chain address.
@@ -20,13 +21,14 @@ const {toOutputScript} = address;
 
   An `after` height is required if `lnd` is given
   A `network` name is required if `request` is given
-s
+
   {
-    address: <Chain Address String>
+    [address]: <Chain Address String>
     [after]: <After Chain Height Number>
     confirmations: <Swap Deposit Confirmations Count Number>
     [lnd]: <Authenticated LND API gRPC Object>
     [network]: <Network Name String>
+    [output_script]: <Output Script Hex String>
     [request]: <HTTP Request Function>
     timeout: <Timeout Milliseconds Number>
     tokens: <Swap Tokens Number>
@@ -42,8 +44,8 @@ s
   }
 */
 module.exports = (args, cbk) => {
-  if (!args.address) {
-    return cbk([400, 'ExpectedChainAddressToFindDepositTo']);
+  if (!args.address && !args.output_script) {
+    return cbk([400, 'ExpectedChainAddressOrScriptToFindDepositTo']);
   }
 
   if (!args.after && !!args.lnd) {
@@ -82,6 +84,7 @@ module.exports = (args, cbk) => {
         address: args.address,
         confirmations: args.confirmations,
         network: args.network,
+        output_script: args.output_script,
         request: args.request,
         tokens: args.tokens,
         transaction_id: args.transaction_id,
@@ -94,13 +97,13 @@ module.exports = (args, cbk) => {
 
   const network = networks[names[args.network]];
 
-  const outputScript = toOutputScript(args.address, network);
+  const script = args.output_script || toOutputScript(args.address, network);
 
   const sub = subscribeToChainAddress({
     lnd: args.lnd,
     min_confirmations: args.confirmations,
     min_height: args.after,
-    output_script: outputScript.toString('hex'),
+    output_script: scriptAsHex(script),
   });
 
   let timeout;
@@ -128,7 +131,7 @@ module.exports = (args, cbk) => {
     const {output} = findOutput({
       transaction,
       id: args.transaction_id,
-      script: outputScript.toString('hex'),
+      script: scriptAsHex(script),
       tokens: args.tokens,
       vout: args.transaction_vout,
     });

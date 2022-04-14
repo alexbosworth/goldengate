@@ -19,6 +19,7 @@ const leaf = script => !!script ? leafHash({script}).hash : undefined;
     ecp: <ECPair Object>
     [external_key]: <External Public Key Hex String>
     [claim_script]: <Claim Leaf Script Hex String>
+    [internal_key]: <Internal Public Key Hex String>
     output_script: <Spending Output Script Hex String>
     private_key: <Raw Private Key Hex String>
     [refund_script]: <Refund Leaf Script Hex String>
@@ -114,6 +115,7 @@ module.exports = args => {
   // Create the control block proving the witness script is part of the output
   const {block} = controlBlock({
     external_key: args.external_key,
+    internal_key: args.internal_key,
     leaf_script: witnessScript,
     script_branches: args.script_branches,
   });

@@ -16,15 +16,18 @@ const txAsHash = id => Buffer.from(id, 'hex').reverse();
 
 /** Make a claim transaction for a taproot swap
 
+  An ECP object is required if private_key is specified
+
   {
     block_height: <Timelock Block Height Number>
     claim_script: <Claim Leaf Script Hex String>
-    ecp: <ECPair Object>
+    [ecp]: <ECPair Object>
     external_key: <Taproot Output External Public Key Hex String>
     fee_tokens_per_vbyte: <Chain Fee Tokens Per VByte Number>
+    [internal_key]: <Taproot Output Internal Public Key Hex String>
     network: <Network Name String>
     output_script: <Output Script Hex String>
-    private_key: <Raw Private Key Hex String>
+    [private_key]: <Raw Private Key Hex String>
     script_branches: [{
       script: <Leaf Script Hex String>
     }]
@@ -56,7 +59,7 @@ module.exports = args => {
     throw new Error('ExpectedClaimScriptToGenerateClaimTransaction');
   }
 
-  if (!args.ecp) {
+  if (!args.ecp && !!args.private_key) {
     throw new Error('ExpectedEcpairObjectToGenerateClaimTransaction');
   }
 
@@ -117,6 +120,7 @@ module.exports = args => {
   tx.ins.forEach(n => n.sequence = bip68Encode({blocks: claimBlocksCsv}));
 
   const {block} = controlBlock({
+    internal_key: args.internal_key,
     external_key: args.external_key,
     leaf_script: args.claim_script,
     script_branches: args.script_branches,
@@ -139,13 +143,19 @@ module.exports = args => {
   // Version 2 or higher is required for CSV which is part of the claim script
   tx.version = transactionVersionForCsv;
 
+  // Exit early when there is no private key to use for signing
+  if (!args.private_key) {
+    return {transaction: tx.toHex()};
+  }
+
   // Generate signatures and attach witnesses to the transaction
   tx.ins.forEach((input, vin) => {
     const {witness} = taprootResolutionWitness({
       vin,
+      claim_script: args.claim_script,
       ecp: args.ecp,
       external_key: args.external_key,
-      claim_script: args.claim_script,
+      internal_key: args.internal_key,
       output_script: args.output_script,
       private_key: args.private_key,
       script_branches: args.script_branches,
