@@ -1,8 +1,9 @@
 # Versions
 
-## 11.2.0
+## 11.2.1
 
 - `findDeposit`: Add option to specify `output_script` instead of `address`
+- `findDeposit`: Add `poll_interval_ms` for request polling timer control
 - `taprootClaimTransaction`, `taprootRefundTransaction`: Add `internal_key`
 
 ## 11.1.1

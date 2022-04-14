@@ -128,7 +128,7 @@ module.exports = (args, cbk) => {
             return cbk([503, 'ExpectedRawTransactionInSpendResponse']);
           }
 
-          return {transaction: res};
+          return cbk(null, {transaction: res});
         });
       }],
     },

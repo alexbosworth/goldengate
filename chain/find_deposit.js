@@ -29,6 +29,7 @@ const {toOutputScript} = address;
     [lnd]: <Authenticated LND API gRPC Object>
     [network]: <Network Name String>
     [output_script]: <Output Script Hex String>
+    [poll_interval_ms]: <Request Poll Interval Milliseconds Number>
     [request]: <HTTP Request Function>
     timeout: <Timeout Milliseconds Number>
     tokens: <Swap Tokens Number>
@@ -77,9 +78,11 @@ module.exports = (args, cbk) => {
   }
 
   if (!args.lnd) {
-    const times = ceil(args.timeout / msPerMin);
+    const interval = args.poll_interval_ms || msPerMin;
 
-    return asyncRetry({times, interval: msPerMin}, cbk => {
+    const times = ceil(args.timeout / interval);
+
+    return asyncRetry({interval, times}, cbk => {
       return findSpend({
         address: args.address,
         confirmations: args.confirmations,
