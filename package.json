@@ -5,8 +5,8 @@
   },
   "dependencies": {
     "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.6.4",
-    "@grpc/proto-loader": "0.6.9",
+    "@grpc/grpc-js": "1.6.7",
+    "@grpc/proto-loader": "0.6.12",
     "@mitmaro/http-authorization-header": "1.0.0",
     "async": "3.2.3",
     "asyncjs-util": "1.2.9",
@@ -15,16 +15,16 @@
     "bip68": "1.0.4",
     "bitcoin-ops": "1.4.1",
     "bitcoinjs-lib": "6.0.1",
-    "bn.js": "5.2.0",
+    "bn.js": "5.2.1",
     "body-parser": "1.20.0",
     "bolt01": "1.2.4",
     "cbor": "8.1.0",
     "ecpair": "2.0.1",
-    "ln-service": "53.11.0",
-    "ln-sync": "3.12.0",
+    "ln-service": "53.17.1",
+    "ln-sync": "3.12.1",
     "macaroon": "3.0.4",
     "p2tr": "1.3.1",
-    "psbt": "2.0.1",
+    "psbt": "2.4.0",
     "pushdata-bitcoin": "1.0.1",
     "tiny-secp256k1": "2.2.1",
     "varuint-bitcoin": "1.1.2"
@@ -32,8 +32,8 @@
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
     "@alexbosworth/tap": "15.0.11",
-    "express": "4.17.3",
-    "ln-docker-daemons": "2.2.7",
+    "express": "4.18.1",
+    "ln-docker-daemons": "2.2.11",
     "mock-lnd": "1.4.1"
   },
   "engines": {

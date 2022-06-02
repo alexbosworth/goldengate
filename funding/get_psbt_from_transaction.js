@@ -4,7 +4,7 @@ const {finalizePsbt} = require('psbt');
 const {returnResult} = require('asyncjs-util');
 const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
-const {transactionAsPsbt} = require('psbt');
+const {unextractTransaction} = require('psbt');
 
 const {getTxFromBlockstream} = require('./../blockstream');
 
@@ -71,11 +71,9 @@ module.exports = ({network, request, transaction}, cbk) => {
         const spending = getTransactions.map(n => n.transaction);
 
         try {
-          const {psbt} = transactionAsPsbt({ecp, spending, transaction});
+          const {psbt} = unextractTransaction({ecp, spending, transaction});
 
-          const finalized = finalizePsbt({ecp, psbt});
-
-          return cbk(null, {psbt: finalized.psbt});
+          return cbk(null, {psbt});
         } catch (err) {
           return cbk([400, 'FailedToConvertTxToPsbt', {err}]);
         }

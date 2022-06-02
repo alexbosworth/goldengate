@@ -68,7 +68,9 @@ module.exports = ({id, interval, network, request, retries}, cbk) => {
             }
 
             try {
-              Transaction.fromHex(transaction);
+              if (Transaction.fromHex(transaction).getId() !== id) {
+                return cbk([503, 'ExpectedRawTransactionInResponse']);
+              }
             } catch (err) {
               return cbk([503, 'ExpectedValidTransactionInResponse']);
             }
