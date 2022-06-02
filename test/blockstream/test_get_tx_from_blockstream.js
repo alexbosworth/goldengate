@@ -9,7 +9,7 @@ const makeRequest = ({err, tx}) => {
 
 const makeArgs = overrides => {
   const args = {
-    id: Buffer.alloc(32).toString('hex'),
+    id: 'd21633ba23f70118185227be58a63527675641ad37967e2aa461559f577aec43',
     interval: 1,
     network: 'btc',
     request: makeRequest({}),
