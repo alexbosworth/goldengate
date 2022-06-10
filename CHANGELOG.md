@@ -1,6 +1,6 @@
 # Versions
 
-## 11.2.2
+## 11.2.3
 
 - `findDeposit`: Add option to specify `output_script` instead of `address`
 - `findDeposit`: Add `poll_interval_ms` for request polling timer control
