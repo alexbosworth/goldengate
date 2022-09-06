@@ -10,6 +10,7 @@ const {claimTransaction} = require('./transactions');
 const {confirmationFee} = require('./transactions');
 const {createSwapIn} = require('./lightninglabs');
 const {createSwapOut} = require('./lightninglabs');
+const {createTaprootSwapOut} = require('./lightninglabs');
 const {decodeSwapRecovery} = require('./lightninglabs');
 const {encodeSwapRecovery} = require('./lightninglabs');
 const {findDeposit} = require('./chain');
@@ -17,6 +18,7 @@ const {findSecret} = require('./blockstream');
 const {genericSwapAuth} = require('./service');
 const {genericSwapService} = require('./service');
 const {getChainFeeRate} = require('./chain');
+const {getCoopSignedTx} = require('./lightninglabs');
 const {getGrpcInterface} = require('./grpc');
 const {getHeight} = require('./chain');
 const {getPsbtFromTransaction} = require('./funding');
@@ -58,6 +60,7 @@ module.exports = {
   confirmationFee,
   createSwapIn,
   createSwapOut,
+  createTaprootSwapOut,
   decodeSwapRecovery,
   encodeSwapRecovery,
   findDeposit,
@@ -65,6 +68,7 @@ module.exports = {
   genericSwapAuth,
   genericSwapService,
   getChainFeeRate,
+  getCoopSignedTx,
   getGrpcInterface,
   getHeight,
   getPsbtFromTransaction,

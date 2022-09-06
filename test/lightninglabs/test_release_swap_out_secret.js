@@ -28,6 +28,21 @@ const tests = [
     description: 'Release the preimage to the server',
   },
   {
+    args: makeArgs({
+      is_taproot: true,
+      service: {
+        loopOutPushPreimage: (args, metadata, cbk) => {
+          if (args.protocol_version !== 'HTLC_V3') {
+            return cbk([400, 'InvalidProtocolVersionSpecified']);
+          }
+
+          return cbk();
+        },
+      },
+    }),
+    description: 'Release the preimage to the server for a taproot swap',
+  },
+  {
     args: makeArgs({metadata: undefined}),
     description: 'Releasing the preimage requires auth metadata',
     error: [400, 'ExpectedAuthenticationMetadataToReleaseSecret'],

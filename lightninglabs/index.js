@@ -1,8 +1,10 @@
 const cancelSwapOut = require('./cancel_swap_out');
 const createSwapIn = require('./create_swap_in');
 const createSwapOut = require('./create_swap_out');
+const createTaprootSwapOut = require('./create_taproot_swap_out');
 const decodeSwapRecovery = require('./decode_swap_recovery');
 const encodeSwapRecovery = require('./encode_swap_recovery');
+const getCoopSignedTx = require('./get_coop_signed_tx');
 const getSwapInQuote = require('./get_swap_in_quote');
 const getSwapInTerms = require('./get_swap_in_terms');
 const getSwapMacaroon = require('./get_swap_macaroon');
@@ -21,8 +23,10 @@ module.exports = {
   cancelSwapOut,
   createSwapIn,
   createSwapOut,
+  createTaprootSwapOut,
   decodeSwapRecovery,
   encodeSwapRecovery,
+  getCoopSignedTx,
   getSwapInQuote,
   getSwapInTerms,
   getSwapMacaroon,

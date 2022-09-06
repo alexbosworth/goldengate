@@ -21,7 +21,6 @@ const txAsHash = id => Buffer.from(id, 'hex').reverse();
     ecp: <ECPair Object>
     fee_tokens_per_vbyte: <Chain Fee Tokens Per VByte Number>
     network: <Network Name String>
-    output_script: <Output Script Hex String>
     private_keys: [<Raw Private Key Hex String>]
     script_branches: [{
       script: <Leaf Script Hex String>
@@ -55,10 +54,6 @@ module.exports = args => {
 
   if (!args.network) {
     throw new Error('ExpectedNetworkNameToGenerateTaprootCoopTx');
-  }
-
-  if (!args.output_script) {
-    throw new Error('ExpectedOutputScriptToGenerateTaprootCoopTransaction');
   }
 
   if (!isArray(args.private_keys)) {

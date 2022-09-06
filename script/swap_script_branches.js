@@ -45,10 +45,10 @@ const shortKey = hexPublicKey => hexPublicKey.slice(2);
 
   @returns
   {
-    claim: <Claim Script Hex String>
     branches: [{
       script: <Hex Serialized Witness Script String>
     }]
+    claim: <Claim Script Hex String>
     hash: <Swap Hash Hex String>
     refund: <Refund Script Hex String>
   }

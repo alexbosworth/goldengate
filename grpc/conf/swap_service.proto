@@ -1,6 +1,14 @@
 syntax = "proto3";
 
+import "common.proto";
+
+// We can't change this to swapserverrpc, it would be a breaking change because
+// the package name is also contained in the HTTP URIs and old clients would
+// call the wrong endpoints. Luckily with the go_package option we can have
+// different golang and RPC package names to fix protobuf namespace conflicts.
 package looprpc;
+
+option go_package = "github.com/lightninglabs/loop/swapserverrpc";
 
 service SwapServer {
     rpc LoopOutTerms (ServerLoopOutTermsRequest) returns (ServerLoopOutTerms);
@@ -25,8 +33,18 @@ service SwapServer {
     rpc SubscribeLoopInUpdates (SubscribeUpdatesRequest)
         returns (stream SubscribeLoopInUpdatesResponse);
 
-    rpc CancelLoopOutSwap(CancelLoopOutSwapRequest) 
+    rpc CancelLoopOutSwap (CancelLoopOutSwapRequest)
         returns (CancelLoopOutSwapResponse);
+
+    rpc Probe (ServerProbeRequest) returns (ServerProbeResponse);
+
+    rpc RecommendRoutingPlugin (RecommendRoutingPluginReq)
+        returns (RecommendRoutingPluginRes);
+
+    rpc ReportRoutingResult (ReportRoutingResultReq)
+        returns (ReportRoutingResultRes);
+
+    rpc MuSig2SignSweep (MuSig2SignSweepReq) returns (MuSig2SignSweepRes);
 }
 
 /**
@@ -68,6 +86,17 @@ enum ProtocolVersion {
 
     // The client supports loop out swap cancelation.
     LOOP_OUT_CANCEL = 7;
+
+    // The client is able to ask the server to probe to test inbound
+    // liquidity.
+    PROBE = 8;
+
+    // The client may ask the server to use a custom routing helper plugin in
+    // order to enhance off-chain payments corresponding to a swap.
+    ROUTING_PLUGIN = 9;
+
+    // The client will use the new v3 (taproot) HTLC scripts.
+    HTLC_V3 = 10;
 }
 
 message ServerLoopOutRequest {
@@ -199,6 +228,16 @@ message ServerLoopInQuoteRequest {
     /// The swap amount. If zero, a quote for a maximum amt swap will be given.
     uint64 amt = 1;
 
+    // The destination pubkey. Will be used to retrieve cached probed routing
+    // fee.
+    bytes pubkey = 3;
+
+    // The last hop to use. Will be used to retrieve cached probed routing fee.
+    bytes last_hop = 4;
+
+    // Optional route hints to reach the destination through private channels.
+    repeated RouteHint route_hints = 5;
+
     /// The protocol version that the client adheres to.
     ProtocolVersion protocol_version = 2;
 }
@@ -303,9 +342,20 @@ enum ServerSwapState {
     // The client canceled the swap because they could not route the swap
     // payment.
     SERVER_CLIENT_INVOICE_CANCEL = 14;
+
+    /*
+    A loop in swap was rejected because it contained multiple outputs for a
+    single swap.
+    */
+    SERVER_FAILED_MULTIPLE_SWAP_SCRIPTS = 15;
+
+    /*
+    The swap failed during creation.
+    */
+    SERVER_FAILED_INITIALIZATION = 16;
 }
 
-message SubscribeLoopOutUpdatesResponse{
+message SubscribeLoopOutUpdatesResponse {
     // The unix timestamp in nanoseconds when the swap was updated.
     int64 timestamp_ns = 1;
 
@@ -313,7 +363,7 @@ message SubscribeLoopOutUpdatesResponse{
     ServerSwapState state = 2;
 }
 
-message SubscribeLoopInUpdatesResponse{
+message SubscribeLoopInUpdatesResponse {
     // The unix timestamp in nanoseconds when the swap was updated.
     int64 timestamp_ns = 1;
 
@@ -325,7 +375,7 @@ enum RoutePaymentType {
     // No reason, used to distinguish from the default value.
     ROUTE_UNKNOWN = 0;
 
-    // Prepay route indicates that the swap was canceled because the client 
+    // Prepay route indicates that the swap was canceled because the client
     // could not find a route to the server for the prepay.
     PREPAY_ROUTE = 1;
 
@@ -378,12 +428,12 @@ message RouteCancel {
     repeated HtlcAttempt attempts = 2;
 
     // The reason that the payment failed.
-    PaymentFailureReason failure = 3;    
+    PaymentFailureReason failure = 3;
 }
 
 message HtlcAttempt {
     // The number of hops from the htlc's failure hop that it needed to take
-    // to reach the server's node. 
+    // to reach the server's node.
     uint32 remaining_hops = 1;
 }
 
@@ -392,7 +442,7 @@ message CancelLoopOutSwapRequest {
     ProtocolVersion protocol_version = 1;
 
     // The swap hash.
-    bytes swap_hash = 2; 
+    bytes swap_hash = 2;
 
     // The payment address for the swap invoice, used to ensure that only the
     // swap owner can cancel the payment.
@@ -404,4 +454,104 @@ message CancelLoopOutSwapRequest {
     }
 }
 
-message CancelLoopOutSwapResponse{}
+message CancelLoopOutSwapResponse {
+}
+
+message ServerProbeRequest {
+    /// The protocol version that the client adheres to.
+    ProtocolVersion protocol_version = 1;
+
+    // The probe amount.
+    uint64 amt = 2;
+
+    // The target node for the probe.
+    bytes target = 3;
+
+    // Optional last hop to use when probing the client.
+    bytes last_hop = 4;
+
+    /*
+    Optional route hints to reach the destination through private channels.
+    */
+    repeated RouteHint route_hints = 5;
+}
+
+message ServerProbeResponse {
+}
+
+message RecommendRoutingPluginReq {
+    ProtocolVersion protocol_version = 1;
+
+    // The hash of the swap requesting a routing plugin.
+    bytes swap_hash = 2;
+
+    // The payment address for the swap invoice, used to ensure that only the
+    // swap owner can request routing plugin recommendation.
+    bytes payment_address = 3;
+}
+
+enum RoutingPlugin {
+    // Client won't use any plugins to help with payment routing.
+    NONE = 0;
+
+    // Client will try more expensive routes for off-chain payments.
+    LOW_HIGH = 1;
+}
+
+message RecommendRoutingPluginRes {
+    // The routing plugin to use for off-chain payments.
+    RoutingPlugin plugin = 1;
+}
+
+message ReportRoutingResultReq {
+    ProtocolVersion protocol_version = 1;
+
+    // The swap hash.
+    bytes swap_hash = 2;
+
+    // The payment address for the swap invoice, used to ensure that only the
+    // swap owner can report routing result.
+    bytes payment_address = 3;
+
+    // The routing plugin that was used.
+    RoutingPlugin plugin = 4;
+
+    // Whether this payment succeeded.
+    bool success = 5;
+
+    // The number of payment attempts using the plugin.
+    int32 attempts = 6;
+
+    // Total time used in milliseconds.
+    int64 total_time = 7;
+}
+
+message ReportRoutingResultRes {
+}
+
+message MuSig2SignSweepReq {
+    reserved 5;
+
+    ProtocolVersion protocol_version = 1;
+
+    // The swap hash.
+    bytes swap_hash = 2;
+
+    // The payment address for the swap invoice, used to ensure that only the
+    // swap owner can obtain the partial signature.
+    bytes payment_address = 3;
+
+    // The local public nonce.
+    bytes nonce = 4;
+
+    // The psbt of the sweep txn.
+    bytes sweep_tx_psbt = 6;
+}
+
+message MuSig2SignSweepRes {
+    // The server side public nonce.
+    bytes nonce = 1;
+
+    // The partial signature of the server for the requested sighash.
+    bytes partial_signature = 2;
+}

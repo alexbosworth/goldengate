@@ -26,5 +26,6 @@
       "btc": "swap.lightning.today:11010",
       "btctestnet": "test.swap.lightning.today:11010"
     }
-  }
+  },
+  "taprootVersion": "HTLC_V3"
 }

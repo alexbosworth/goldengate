@@ -1,5 +1,11 @@
 # Versions
 
+## 11.3.0
+
+- `createTaprootSwapOut`: Add method to request a Taproot Loop Out
+- `getCoopSignedTx`: Add method to support getting a cooperative sweep tx
+- `releaseSwapOutSecret`: Add `is_taproot` to support releasing Taproot secret
+
 ## 11.2.3
 
 - `findDeposit`: Add option to specify `output_script` instead of `address`

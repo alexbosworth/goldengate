@@ -2,6 +2,7 @@ const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
+const {taprootVersion} = require('./conf/swap_service');
 
 const bufferFromHex = hex => Buffer.from(hex, 'hex');
 const isPreimage = n => !!n && /^[0-9A-F]{64}$/i.test(n);
@@ -9,6 +10,7 @@ const isPreimage = n => !!n && /^[0-9A-F]{64}$/i.test(n);
 /** Release the swap secret to the swap server to obtain inbound more quickly
 
   {
+    [is_taproot]: <Use Taproot Swap Service Protocol Bool>
     metadata: <Authentication Metadata Object>
     secret: <Secret Preimage Hex String>
     service: <Swap Service Object>
@@ -16,20 +18,20 @@ const isPreimage = n => !!n && /^[0-9A-F]{64}$/i.test(n);
 
   @returns via cbk or Promise
 */
-module.exports = ({metadata, secret, service}, cbk) => {
+module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
-        if (!metadata) {
+        if (!args.metadata) {
           return cbk([400, 'ExpectedAuthenticationMetadataToReleaseSecret']);
         }
 
-        if (!isPreimage(secret)) {
+        if (!isPreimage(args.secret)) {
           return cbk([400, 'ExpectedHexEncodedSecretToRevealForSwapOut']);
         }
 
-        if (!service || !service.loopOutPushPreimage) {
+        if (!args.service || !args.service.loopOutPushPreimage) {
           return cbk([400, 'ExpectedSwapServiceToRevealSwapOutSecret']);
         }
 
@@ -38,11 +40,11 @@ module.exports = ({metadata, secret, service}, cbk) => {
 
       // Reveal the secret to the server
       reveal: ['validate', ({}, cbk) => {
-        return service.loopOutPushPreimage({
-          preimage: bufferFromHex(secret),
-          protocol_version: protocolVersion,
+        return args.service.loopOutPushPreimage({
+          preimage: bufferFromHex(args.secret),
+          protocol_version: args.is_taproot ? taprootVersion : protocolVersion,
         },
-        metadata,
+        args.metadata,
         err => {
           if (!!err) {
             return cbk([503, 'UnexpectedErrorPushingPreimageForSwap', {err}]);
