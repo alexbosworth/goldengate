@@ -20,7 +20,6 @@ const {round} = Math;
 
   @returns via cbk or Promise
   {
-    cltv_delta: <CLTV Delta Number>
     deposit: <Deposit Tokens Number>
     destination: <Destination Public Key Hex String>
     fee: <Total Fee Tokens Number>

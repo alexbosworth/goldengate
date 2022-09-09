@@ -125,6 +125,7 @@ Cancel a swap out
 
     {
       id: <Funding Request Payment Hash Hex String>
+      [is_taproot]: <Use Taproot Swap Service Protocol Bool>
       metadata: <Authentication Metadata Object>
       payment: <Funding Request Payment Identifier Hex String>
       service: <Swap Service Object>
@@ -454,7 +455,6 @@ Obtain CLTV delta for `timeout` by getting swap terms
 
     @returns via cbk or Promise
     {
-      cltv_delta: <CLTV Delta Number>
       deposit: <Deposit Tokens Number>
       destination: <Destination Public Key Hex String>
       fee: <Total Fee Tokens Number>

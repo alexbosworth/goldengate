@@ -49,6 +49,10 @@ const tests = [
     args: makeArgs({}),
     description: 'Swap out is canceled',
   },
+  {
+    args: makeArgs({is_taproot: true}),
+    description: 'Swap out is canceled with taproot version',
+  },
 ];
 
 tests.forEach(({args, description, error, expected}) => {

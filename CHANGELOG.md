@@ -1,5 +1,9 @@
 # Versions
 
+## 11.4.0
+
+- `cancelSwapOut`: Add method to early cancel a pending swap out
+
 ## 11.3.0
 
 - `createTaprootSwapOut`: Add method to request a Taproot Loop Out

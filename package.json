@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.6.12",
+    "@grpc/grpc-js": "1.7.0",
     "@grpc/proto-loader": "0.7.2",
     "@mitmaro/http-authorization-header": "1.0.0",
     "async": "3.2.4",
@@ -50,5 +50,5 @@
     "integration-tests": "tap -j 2 --branches=1 --functions=1 --lines=1 --statements=1 -t 200 test/integration/*.js",
     "test": "tap --branches=1 --functions=1 --lines=1 --statements=1 test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "11.3.0"
+  "version": "11.4.0"
 }
