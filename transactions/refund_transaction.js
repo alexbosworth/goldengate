@@ -1,12 +1,12 @@
 const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
-const {networks} = require('bitcoinjs-lib');
 const {OP_FALSE} = require('bitcoin-ops');
 const {Transaction} = require('bitcoinjs-lib');
 
 const estimateTxWeight = require('./estimate_tx_weight');
 const {names} = require('./../conf/bitcoinjs-lib');
 const {nestedWitnessScript} = require('./../script');
+const {outputScriptForAddress} = require('./../address');
 const witnessForResolution = require('./witness_for_resolution');
 
 const {ceil} = Math;
@@ -14,7 +14,6 @@ const dummy = Buffer.from(OP_FALSE.toString(16), 'hex');
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
 const minSequence = 0;
 const minTokens = 0;
-const {toOutputScript} = address;
 const vRatio = 4;
 
 /** Build a refund transaction to claim funds back from a swap
@@ -78,11 +77,15 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForRefundTransaction');
   }
 
-  const network = networks[names[args.network]];
   const tx = new Transaction();
 
+  const {script} = outputScriptForAddress({
+    network: args.network,
+    address: args.sweep_address,
+  });
+
   // Add sweep output
-  tx.addOutput(toOutputScript(args.sweep_address, network), args.tokens);
+  tx.addOutput(hexAsBuf(script), args.tokens);
 
   // Add the UTXO to sweep
   tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);

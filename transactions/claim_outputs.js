@@ -1,17 +1,17 @@
 const {address} = require('bitcoinjs-lib');
-const {networks} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
 const estimateTxWeight = require('./estimate_tx_weight');
 const {names} = require('./../conf/bitcoinjs-lib');
+const {outputScriptForAddress} = require('./../address');
 
 const {ceil} = Math;
 const dust = 546;
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const {isArray} = Array;
 const {max} = Math;
 const notFoundIndex = -1;
 const secretByteLength = 32;
-const {toOutputScript} = address;
 const txIdByteLength = 32;
 const vRatio = 4;
 
@@ -76,7 +76,6 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
     throw new Error('ExpectedTokensToCalculateClaimOutputs');
   }
 
-  const net = networks[names[network]];
   const tx = new Transaction();
 
   // Add UTXO to tx
@@ -84,7 +83,9 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
 
   // Add sweep outputs
   try {
-    tx.addOutput(toOutputScript(address, networks[names[network]]), tokens);
+    const {script} = outputScriptForAddress({address, network});
+
+    tx.addOutput(hexAsBuffer(script), tokens);
   } catch (err) {
     throw new Error('FailedToAddSweepAddressOutputScriptCalculatingOutputs');
   }
@@ -115,7 +116,7 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
     }
 
     try {
-      toOutputScript(out.address, networks[names[network]]);
+      outputScriptForAddress({network, address: out.address});
     } catch (err) {
       return false;
     }
@@ -125,9 +126,9 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
 
   // Attach the extra desired outputs
   outs.forEach(out => {
-    const scriptPub = toOutputScript(out.address, networks[names[network]]);
+    const {script} = outputScriptForAddress({network, address: out.address});
 
-    return tx.addOutput(scriptPub, out.tokens);
+    return tx.addOutput(hexAsBuffer(script), out.tokens);
   });
 
   // Estimate the final weight with the additional output attachments

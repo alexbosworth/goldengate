@@ -1,19 +1,19 @@
 const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
 const {controlBlock} = require('p2tr');
-const {networks} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
 const {names} = require('./../conf/bitcoinjs-lib');
+const {outputScriptForAddress} = require('./../address');
 const predictSweepWeight = require('./predict_sweep_weight');
 const taprootResolutionWitness = require('./taproot_resolution_witness');
 
+const asOut = (address, network) => outputScriptForAddress({address, network});
 const {ceil} = Math;
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
 const {isArray} = Array;
 const minSequence = 0;
 const minTokens = 0;
-const {toOutputScript} = address;
 const vRatio = 4;
 
 /** Build a refund transaction to claim funds back from a swap
@@ -94,11 +94,11 @@ module.exports = args => {
     throw new Error('ExpectedTransactionVoutToCreateRefundTaprootTransaction');
   }
 
-  const network = networks[names[args.network]];
+  const sweepScript = hexAsBuf(asOut(args.sweep_address, args.network).script);
   const tx = new Transaction();
 
   // Add sweep output
-  tx.addOutput(toOutputScript(args.sweep_address, network), args.tokens);
+  tx.addOutput(sweepScript, args.tokens);
 
   // Add the UTXO to sweep
   tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);

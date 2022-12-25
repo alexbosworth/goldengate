@@ -1,17 +1,16 @@
 const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
 const bip68Encode = require('bip68').encode;
-const {networks} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
 const claimOutputs = require('./claim_outputs');
 const {names} = require('./../conf/bitcoinjs-lib');
+const {outputScriptForAddress} = require('./../address');
 const {versionOfSwapScript} = require('./../script');
 const witnessForResolution = require('./witness_for_resolution');
 
 const blocks = 1;
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
-const {toOutputScript} = address;
 const txVersion = 2;
 
 /** Make a claim transaction for a swap
@@ -90,7 +89,6 @@ module.exports = args => {
     throw new Error('ExpectedKnownSwapScriptTypeForClaimTransaction');
   }
 
-  const network = networks[names[args.network]];
   const tx = new Transaction();
   const {version} = versionOfSwapScript({script: args.witness_script});
 
@@ -108,7 +106,9 @@ module.exports = args => {
 
   // Setup appropriate outputs
   outputs.forEach(({address, tokens}) => {
-    return tx.addOutput(toOutputScript(address, network), tokens);
+    const {script} = outputScriptForAddress({address, network: args.network});
+
+    return tx.addOutput(hexAsBuf(script), tokens);
   });
 
   // Set input sequence number

@@ -1,19 +1,18 @@
 const {address} = require('bitcoinjs-lib');
 const asyncRetry = require('async/retry');
-const {networks} = require('bitcoinjs-lib');
 const {subscribeToChainAddress} = require('ln-service');
 const {Transaction} = require('bitcoinjs-lib');
 
 const findOutput = require('./find_output');
 const {findSpend} = require('./../blockstream');
 const {names} = require('./../conf/bitcoinjs-lib');
+const {outputScriptForAddress} = require('./../address');
 
 const {ceil} = Math;
 const {fromHex} = Transaction;
 const msPerMin = 1000 * 60;
 const notFoundIndex = -1;
-const scriptAsHex = n => Buffer.isBuffer(n) ? n.toString('hex') : n;
-const {toOutputScript} = address;
+const sPub = (address, network) => outputScriptForAddress({address, network});
 
 /** Find a deposit to a chain address.
 
@@ -98,15 +97,13 @@ module.exports = (args, cbk) => {
     cbk);
   }
 
-  const network = networks[names[args.network]];
-
-  const script = args.output_script || toOutputScript(args.address, network);
+  const script = args.output_script || sPub(args.address, args.network).script;
 
   const sub = subscribeToChainAddress({
     lnd: args.lnd,
     min_confirmations: args.confirmations,
     min_height: args.after,
-    output_script: scriptAsHex(script),
+    output_script: script,
   });
 
   let timeout;
@@ -132,9 +129,9 @@ module.exports = (args, cbk) => {
 
   sub.on('confirmation', ({transaction}) => {
     const {output} = findOutput({
+      script,
       transaction,
       id: args.transaction_id,
-      script: scriptAsHex(script),
       tokens: args.tokens,
       vout: args.transaction_vout,
     });

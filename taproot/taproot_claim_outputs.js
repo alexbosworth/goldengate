@@ -1,18 +1,19 @@
 const {address} = require('bitcoinjs-lib');
-const {networks} = require('bitcoinjs-lib');
 const {Transaction} = require('bitcoinjs-lib');
 
 const {names} = require('./../conf/bitcoinjs-lib');
+const {outputScriptForAddress} = require('./../address');
 const predictSweepWeight = require('./predict_sweep_weight');
 
+const asOut = (address, network) => outputScriptForAddress({address, network});
 const bufferAsHex = buffer => buffer.toString('hex');
 const {ceil} = Math;
 const dust = 546;
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const {isArray} = Array;
 const {max} = Math;
 const notFoundIndex = -1;
 const secretByteLength = 32;
-const {toOutputScript} = address;
 const txIdByteLength = 32;
 const vRatio = 4;
 
@@ -78,7 +79,6 @@ module.exports = args => {
     throw new Error('ExpectedTokensToCalculateTaprootClaimOutputs');
   }
 
-  const network = networks[names[args.network]];
   const tx = new Transaction();
 
   // Add a dummy UTXO to the tx
@@ -86,7 +86,9 @@ module.exports = args => {
 
   // Add the sweep output
   try {
-    tx.addOutput(toOutputScript(args.address, network), args.tokens);
+    const outputScript = hexAsBuffer(asOut(args.address, args.network).script);
+
+    tx.addOutput(outputScript, args.tokens);
   } catch (err) {
     throw new Error('FailedToAddSweepAddressOutputCalculatingTaprootOutputs');
   }
@@ -102,7 +104,7 @@ module.exports = args => {
   const singleOutputFee = args.rate * ceil(singleOutput.weight / vRatio);
 
   const defaultOutputs = [{
-    script: bufferAsHex(toOutputScript(args.address, network)),
+    script: asOut(args.address, args.network).script,
     tokens: max(dust + dust, ceil(args.tokens - singleOutputFee)),
   }];
 
@@ -118,7 +120,7 @@ module.exports = args => {
     }
 
     try {
-      toOutputScript(out.address, network);
+      asOut(out.address, args.network);
     } catch (err) {
       return false;
     }
@@ -128,7 +130,7 @@ module.exports = args => {
 
   // Attach the extra desired outputs
   outs.forEach(out => {
-    const scriptPub = toOutputScript(out.address, network);
+    const scriptPub = hexAsBuffer(asOut(out.address, args.network).script);
 
     return tx.addOutput(scriptPub, out.tokens);
   });
@@ -159,7 +161,7 @@ module.exports = args => {
   const outputs = [].concat([sweep]).concat(outs);
 
   return outputs.map(output => ({
-    script: bufferAsHex(toOutputScript(output.address, network)),
+    script: asOut(output.address, args.network).script,
     tokens: output.tokens,
   }));
 

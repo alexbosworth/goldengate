@@ -1,5 +1,13 @@
 # Versions
 
+## 12.0.0
+
+- Add support for P2TR addresses
+
+### Breaking Changes
+
+- Node.js 14 or greater is now required
+
 ## 11.4.0
 
 - `cancelSwapOut`: Add method to early cancel a pending swap out
