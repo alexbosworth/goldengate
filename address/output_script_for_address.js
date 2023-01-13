@@ -1,11 +1,10 @@
 const {address} = require('bitcoinjs-lib');
 const {networks} = require('bitcoinjs-lib');
 
-const {names} = require('./../conf/bitcoinjs-lib');
-
 const bufferAsHex = buffer => buffer.toString('hex');
 const byteLengthForP2tr = 32;
 const {fromBech32} = address;
+const names = {btc: 'bitcoin', btcregtest: 'regtest', btctestnet: 'testnet'};
 const prefixForP2tr = '5120';
 const toOutputScript = (a, n) => address.toOutputScript(a, n).toString('hex');
 const versionTaproot = 1;
