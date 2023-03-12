@@ -1,6 +1,6 @@
 # Versions
 
-## 12.0.1
+## 12.0.4
 
 - Add support for P2TR addresses
 
