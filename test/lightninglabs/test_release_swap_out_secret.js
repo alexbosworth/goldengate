@@ -32,7 +32,7 @@ const tests = [
       is_taproot: true,
       service: {
         loopOutPushPreimage: (args, metadata, cbk) => {
-          if (args.protocol_version !== 'HTLC_V3') {
+          if (args.protocol_version !== 'MUSIG2') {
             return cbk([400, 'InvalidProtocolVersionSpecified']);
           }
 
