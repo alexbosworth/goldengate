@@ -1,5 +1,11 @@
 # Versions
 
+## 13.0.0
+
+### Breaking Changes
+
+- Node.js 16 or greater is now required
+
 ## 12.0.5
 
 - Add support for P2TR addresses
