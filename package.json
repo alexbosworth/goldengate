@@ -34,7 +34,6 @@
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "@alexbosworth/tap": "15.0.12",
     "express": "4.18.2",
     "ln-docker-daemons": "5.1.0",
     "mock-lnd": "1.4.4"
@@ -53,5 +52,5 @@
     "integration-tests": "node test/integration",
     "test": "npx nyc@15.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "13.0.1"
+  "version": "13.0.2"
 }
