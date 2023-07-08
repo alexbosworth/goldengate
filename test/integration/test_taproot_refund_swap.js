@@ -1,5 +1,7 @@
-const {createHash} = require('crypto');
-const {randomBytes} = require('crypto');
+const {createHash} = require('node:crypto');
+const {equal} = require('node:assert').strict;
+const {randomBytes} = require('node:crypto');
+const test = require('node:test');
 
 const asyncRetry = require('async/retry');
 const {broadcastChainTransaction} = require('ln-service');
@@ -13,7 +15,6 @@ const {hashForTree} = require('p2tr');
 const {networks} = require('bitcoinjs-lib');
 const {signPsbt} = require('ln-service');
 const {spawnLightningCluster} = require('ln-docker-daemons');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 const {v1OutputScript} = require('p2tr');
@@ -35,7 +36,7 @@ const timeoutHeight = 300;
 const tokens = 1e6;
 
 // Swapping in taproot with a timeout should result in a successful refund
-test(`Taproot Refund Swap`, async ({end, equal}) => {
+test(`Taproot Refund Swap`, async () => {
   const ecp = (await import('ecpair')).ECPairFactory(tinysecp);
   const {kill, nodes} = await spawnLightningCluster({size});
 
@@ -120,5 +121,5 @@ test(`Taproot Refund Swap`, async ({end, equal}) => {
 
   await kill({});
 
-  return end();
+  return;
 });

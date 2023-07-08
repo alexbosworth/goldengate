@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getChainFeeRate} = require('./../../chain');
 
@@ -40,17 +42,15 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(getChainFeeRate(args), error, 'Got expected error');
+      await rejects(getChainFeeRate(args), error, 'Got expected error');
+    } else {
+      const rate = await getChainFeeRate(args);
 
-      return end();
+      equal(rate.tokens_per_vbyte, expected, 'Got chain fee rate');
     }
 
-    const rate = await getChainFeeRate(args);
-
-    equal(rate.tokens_per_vbyte, expected, 'Got chain fee rate');
-
-    return end();
+    return;
   });
 });

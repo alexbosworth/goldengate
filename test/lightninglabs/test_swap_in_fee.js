@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {swapInFee} = require('./../../');
 
@@ -31,16 +33,14 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, (t, end) => {
     if (!!error) {
       throws(() => swapInFee(args), new Error(error));
+    } else {
+      const {fee} = swapInFee(args);
 
-      return end();
+      equal(fee, expected.fee, 'Swap fee derived');
     }
-
-    const {fee} = swapInFee(args);
-
-    equal(fee, expected.fee, 'Swap fee derived');
 
     return end();
   });

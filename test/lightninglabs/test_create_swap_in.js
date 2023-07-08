@@ -1,5 +1,8 @@
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
+
 const {ECPair} = require('ecpair');
-const {test} = require('@alexbosworth/tap');
 
 const {createSwapIn} = require('./../../');
 
@@ -168,7 +171,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(createSwapIn(args), error, 'Got expected error');
     } else {
@@ -184,6 +187,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(res.version, expected.version, 'Swap version returned');
     }
 
-    return end();
+    return;
   });
 });

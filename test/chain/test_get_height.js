@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getHeight} = require('./../../');
 
@@ -58,7 +60,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(getHeight(args), error, 'Got expected error');
     } else {
@@ -67,6 +69,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(height, expected.height, 'Got chain height');
     }
 
-    return end();
+    return;
   });
 });

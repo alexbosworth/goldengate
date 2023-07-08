@@ -1,5 +1,8 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {ECPair} = require('ecpair');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
@@ -200,7 +203,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, throws}) => {
+  return test(description, async () => {
     args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
 
     if (!!error) {
@@ -215,11 +218,11 @@ tests.forEach(({args, description, error, expected}) => {
 
       equal(input.hash.toString('hex'), expected.input_hash, 'Input hash');
       equal(input.index, expected.input_index, 'Input index as expected');
-      equal(input.script.toString('hex'), expected.input_script, 'Input script');
-      equal(input.sequence, expected.input_sequence, 'Input sequence expected');
+      equal(input.script.toString('hex'), expected.input_script, 'Input');
+      equal(input.sequence, expected.input_sequence, 'Input sequence');
       equal(out.script.toString('hex'), expected.out_script, 'Got out script');
       equal(out.value, expected.out_value, 'Output value as expected');
-      equal(tx.locktime, expected.locktime, 'Transaction locktime as expected');
+      equal(tx.locktime, expected.locktime, 'Transaction locktime');
       equal(tx.version, expected.version, 'Transaction version as expected');
       equal(!!sig, expected.has_sig, 'Witness signature returned');
 
@@ -232,6 +235,6 @@ tests.forEach(({args, description, error, expected}) => {
       }
     }
 
-    return end();
+    return;
   });
 });

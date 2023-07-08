@@ -1,5 +1,8 @@
+const {deepEqual} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
+
 const fetch = require('@alexbosworth/node-fetch');
-const {test} = require('@alexbosworth/tap');
 
 const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
@@ -49,7 +52,7 @@ const stopSwapServer = ({server}) => new Promise((resolve, reject) => {
 });
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({end, equal, rejects, strictSame}) => {
+  return test(description, async () => {
     const {app} = genericSwapServer({
       handle_swap_in: ({}) => new Promise((resolve, reject) => {
         return resolve({
@@ -67,11 +70,11 @@ tests.forEach(({args, description, error, expected}) => {
     } else {
       const result = await createSwapIn(args);
 
-      strictSame(result, expected, 'Got expected result');
+      deepEqual(result, expected, 'Got expected result');
     }
 
     await stopSwapServer({server});
 
-    return end();
+    return;
   });
 });

@@ -1,4 +1,7 @@
-const {test} = require('@alexbosworth/tap');
+const {deepEqual} = require('node:assert').strict;
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {publishTxToBlockstream} = require('./../../blockstream');
 
@@ -79,10 +82,10 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, strictSame}) => {
+  return test(description, (t, end) => {
     return publishTxToBlockstream(args, (err, res) => {
       if (!!err) {
-        strictSame(err, error);
+        deepEqual(err, error);
       } else {
         equal(err, null, 'No error publishing chain transaction');
         equal(res.transaction_id, expected.transaction_id, 'Published tx id');

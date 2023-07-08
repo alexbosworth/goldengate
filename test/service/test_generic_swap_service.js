@@ -1,4 +1,7 @@
-const {test} = require('@alexbosworth/tap');
+const {deepEqual} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {createSwapOut} = require('./../../');
 const {genericSwapService} = require('./../../');
@@ -44,7 +47,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({end, rejects, strictSame, throws}) => {
+  return test(description, async () => {
     if (!!error) {
       throws(() => genericSwapService(args), new Error(error), 'Got error');
     } else {
@@ -87,9 +90,9 @@ tests.forEach(({args, description, error, expected}) => {
 
       const quote = await getSwapOutTerms({metadata, service})
 
-      strictSame(quote, expected, 'got expected response');
+      deepEqual(quote, expected, 'got expected response');
     }
 
-    return end();
+    return;
   });
 });

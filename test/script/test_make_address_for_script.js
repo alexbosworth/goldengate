@@ -1,4 +1,5 @@
-const {test} = require('@alexbosworth/tap');
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const dir = './../../script';
 
@@ -17,9 +18,9 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, rejects}) => {
-    rejects(() => makeAddressForScript(args), error, 'Error returned');
+  return test(description, async () => {
+    await rejects(() => makeAddressForScript(args), error, 'Error returned');
 
-    return end();
+    return;
   });
 });

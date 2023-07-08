@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {deepEqual} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {decodeSwapRecovery} = require('./../../');
 
@@ -42,15 +44,15 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({end, equal, rejects, strictSame}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(decodeSwapRecovery(args), error, 'Got expected error');
     } else {
       const recovery = await decodeSwapRecovery(args);
 
-      strictSame(recovery, expected.recovery, 'Got expected recovery');
+      deepEqual(recovery, expected.recovery, 'Got expected recovery');
     }
 
-    return end();
+    return;
   });
 });

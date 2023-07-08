@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getHeightFromBlockstream} = require('./../../blockstream');
 
@@ -62,7 +64,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(getHeightFromBlockstream(args), error, 'Got error');
     } else {
@@ -71,6 +73,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(height, expected.height, 'Got blockstream height');
     }
 
-    return end();
+    return;
   });
 });

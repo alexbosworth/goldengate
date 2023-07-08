@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getUtxosFromBlockstream} = require('./../../blockstream');
 
@@ -130,22 +132,20 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(getUtxosFromBlockstream(args), error, 'Got error');
+      await rejects(getUtxosFromBlockstream(args), error, 'Got error');
+    } else {
+      const {utxos} = await getUtxosFromBlockstream(args);
 
-      return end();
+      const [utxo] = utxos;
+
+      equal(utxo.confirm_height, expected.confirm_height, 'Confirm height');
+      equal(utxo.tokens, expected.tokens, 'Tokens returned');
+      equal(utxo.transaction_id, expected.transaction_id, 'Tx id returned');
+      equal(utxo.transaction_vout, expected.transaction_vout, 'Got Tx vout');
     }
 
-    const {utxos} = await getUtxosFromBlockstream(args);
-
-    const [utxo] = utxos;
-
-    equal(utxo.confirm_height, expected.confirm_height, 'Confirm height');
-    equal(utxo.tokens, expected.tokens, 'Tokens returned');
-    equal(utxo.transaction_id, expected.transaction_id, 'Tx id returned');
-    equal(utxo.transaction_vout, expected.transaction_vout, 'Got Tx vout');
-
-    return end();
+    return;
   });
 });

@@ -1,7 +1,8 @@
-const EventEmitter = require('events');
-const {promisify} = require('util');
-
-const {test} = require('@alexbosworth/tap');
+const {deepEqual} = require('node:assert').strict;
+const EventEmitter = require('node:events');
+const {promisify} = require('node:util');
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {subscribeToSwapInStatus} = require('./../../lightninglabs');
 
@@ -77,7 +78,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, strictSame, throws}) => {
+  return test(description, async () => {
     if (!!error) {
       throws(() => subscribeToSwapInStatus(args), error, 'Got expected err');
     } else {
@@ -89,11 +90,11 @@ tests.forEach(({args, description, error, expected}) => {
 
       await nextTick();
 
-      strictSame(events, expected.events, 'Got expected events');
+      deepEqual(events, expected.events, 'Got expected events');
 
       const sub2 = subscribeToSwapInStatus(args);
     }
 
-    return end();
+    return;
   });
 });

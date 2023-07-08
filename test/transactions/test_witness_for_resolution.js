@@ -1,6 +1,9 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {ECPair} = require('ecpair');
 const {OP_FALSE} = require('bitcoin-ops');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
@@ -106,7 +109,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, throws}) => {
+  return test(description, async () => {
     if (args.witness_script === true) {
       const {script} = swapScript({
         claim_private_key: '79957dc2091c8b024e14ee7f338869174ae39674342f40cc804cb099145d1d97',
@@ -128,7 +131,7 @@ tests.forEach(({args, description, error, expected}) => {
     if (!!error) {
       throws(() => method(args), new Error(error));
 
-      return end();
+      return;
     }
 
     const {witness} = method(args);
@@ -154,6 +157,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(script, expected.witness_script, 'V2 swap unlock script returned');
     }
 
-    return end();
+    return;
   });
 });

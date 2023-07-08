@@ -1,6 +1,8 @@
-const EventEmitter = require('events');
+const {deepEqual} = require('node:assert').strict;
+const {equal} = require('node:assert').strict;
+const EventEmitter = require('node:events');
+const test = require('node:test');
 
-const {test} = require('@alexbosworth/tap');
 const {Transaction} = require('bitcoinjs-lib');
 
 const {findDeposit} = require('./../../chain');
@@ -211,7 +213,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, strictSame}) => {
+  return test(description, (t, end) => {
     setTimeout(() => confirmationsEmitter.emit('data', {
       conf: {
         block_hash: Buffer.alloc(32),
@@ -230,7 +232,7 @@ tests.forEach(({args, description, error, expected}) => {
 
     return findDeposit(args, (err, res) => {
       if (!!error) {
-        strictSame(err, error, 'Got expected error');
+        deepEqual(err, error, 'Got expected error');
 
         return end();
       }

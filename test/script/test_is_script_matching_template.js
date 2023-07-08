@@ -1,3 +1,7 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {OP_CHECKLOCKTIMEVERIFY} = require('bitcoin-ops');
 const {OP_CHECKSIG} = require('bitcoin-ops');
 const {OP_DROP} = require('bitcoin-ops');
@@ -8,7 +12,6 @@ const {OP_EQUALVERIFY} = require('bitcoin-ops');
 const {OP_HASH160} = require('bitcoin-ops');
 const {OP_IF} = require('bitcoin-ops');
 const {OP_SIZE} = require('bitcoin-ops');
-const {test} = require('@alexbosworth/tap');
 
 const method = require('./../../script/is_script_matching_template');
 
@@ -70,7 +73,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, (t, end) => {
     if (!!error) {
       throws(() => method(args), new Error(error), 'Error returned');
     } else {

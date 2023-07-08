@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {findSecret} = require('./../../blockstream');
 
@@ -49,17 +51,15 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(findSecret(args), error, 'Returns expected error');
+    } else {
+      const {secret} = await findSecret(args);
 
-      return end();
+      equal(secret, expected.secret, 'Found htlc secret preimage');
     }
 
-    const {secret} = await findSecret(args);
-
-    equal(secret, expected.secret, 'Found htlc secret preimage');
-
-    return end();
+    return;
   });
 });

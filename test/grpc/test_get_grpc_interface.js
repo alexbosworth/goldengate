@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {getGrpcInterface} = require('./../../');
 
@@ -16,19 +18,17 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws, type}) => {
+  return test(description, (t, end) => {
     if (!!error) {
       throws(() => getGrpcInterface(args), new Error(error), 'Fails with err');
+    } else {
+      const {grpc} = getGrpcInterface(args);
 
-      return end();
+      equal(typeof grpc.newLoopOutSwap, 'function', 'Has new loop out method');
+      equal(typeof grpc.loopOutQuote, 'function', 'Has loop out quote method');
+      equal(typeof grpc.newLoopInSwap, 'function', 'Has loop in method');
+      equal(typeof grpc.loopInQuote, 'function', 'Has loop in quote method');
     }
-
-    const {grpc} = getGrpcInterface(args);
-
-    type(grpc.newLoopOutSwap, Function, 'Has new loop out swap method');
-    type(grpc.loopOutQuote, Function, 'Has loop out quote method');
-    type(grpc.newLoopInSwap, Function, 'Has loop in method');
-    type(grpc.loopInQuote, Function, 'Has loop in quote method');
 
     return end();
   });

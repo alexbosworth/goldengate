@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {decodeSwapRecovery} = require('./../../');
 const {encodeSwapRecovery} = require('./../../');
@@ -99,7 +101,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({end, equal, throws}) => {
+  return test(description, async () => {
     if (!!error) {
       throws(() => encodeSwapRecovery(args), new Error(error), 'Got error');
     } else {
@@ -121,6 +123,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(got.tokens, args.tokens, 'Got tokens');
     }
 
-    return end();
+    return;
   });
 });

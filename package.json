@@ -26,7 +26,7 @@
     "ln-service": "56.8.0",
     "ln-sync": "5.2.3",
     "macaroon": "3.0.4",
-    "p2tr": "1.3.3",
+    "p2tr": "2.0.0",
     "psbt": "3.0.0",
     "pushdata-bitcoin": "1.0.1",
     "tiny-secp256k1": "2.2.3",
@@ -50,8 +50,8 @@
     "url": "https://github.com/alexbosworth/goldengate.git"
   },
   "scripts": {
-    "integration-tests": "tap -j 2 --branches=1 --functions=1 --lines=1 --statements=1 -t 200 test/integration/*.js",
-    "test": "tap --branches=1 --functions=1 --lines=1 --statements=1 test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
+    "integration-tests": "node test/integration",
+    "test": "npx nyc@15.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "13.0.0"
+  "version": "13.0.1"
 }

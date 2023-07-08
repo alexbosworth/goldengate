@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getSwapMacaroon} = require('./../../');
 const {loopOutTermsResponse} = require('./fixtures');
@@ -59,9 +61,9 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(getSwapMacaroon(args), error, 'Got expected error');
+      await rejects(getSwapMacaroon(args), error, 'Got expected error');
     } else {
       const {macaroon, request} = await getSwapMacaroon(args);
 
@@ -69,6 +71,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(request, expected.request, 'Got expected payment request');
     }
 
-    return end();
+    return;
   });
 });

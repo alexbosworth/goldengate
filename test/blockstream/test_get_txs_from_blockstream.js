@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const getTxsFromBlockstream = require('./../../blockstream/get_txs_from_blockstream');
 
@@ -81,22 +83,20 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(getTxsFromBlockstream(args), error, 'Got expected error');
+      await rejects(getTxsFromBlockstream(args), error, 'Got expected error');
+    } else {
+      const {transactions} = await getTxsFromBlockstream(args);
 
-      return end();
+      const [tx] = transactions;
+
+      const [input] = tx.inputs;
+
+      equal(tx.id, expected.id, 'Got expected transaction id');
+      equal(input.witness, expected.input.witness, 'Got expected witness');
     }
 
-    const {transactions} = await getTxsFromBlockstream(args);
-
-    const [tx] = transactions;
-
-    const [input] = tx.inputs;
-
-    equal(tx.id, expected.id, 'Got expected transaction id');
-    equal(input.witness, expected.input.witness, 'Got expected witness');
-
-    return end();
+    return;
   });
 });

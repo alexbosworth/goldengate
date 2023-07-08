@@ -1,6 +1,9 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {script} = require('bitcoinjs-lib');
 const {ECPair} = require('ecpair');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
@@ -146,7 +149,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({end, equal, throws}) => {
+  return test(description, async () => {
     args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
 
     const params = {transaction: makeTx(args)};
@@ -164,6 +167,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(transaction.is_timeout_sweep, expected.is_timeout_sweep, 'Failed');
     }
 
-    return end();
+    return;
   });
 });

@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getChainTip} = require('./../../blockstream');
 
@@ -57,7 +59,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(getChainTip(args), error, 'Got expected error');
     } else {
@@ -67,6 +69,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(id, expected.id, 'Got chain tip block id');
     }
 
-    return end();
+    return;
   });
 });

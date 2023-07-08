@@ -1,4 +1,5 @@
-const {test} = require('@alexbosworth/tap');
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {releaseSwapOutSecret} = require('./../../');
 
@@ -72,15 +73,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(releaseSwapOutSecret(args), error, 'Got expected error');
-
-      return end();
+    } else {
+      await releaseSwapOutSecret(args);
     }
 
-    await releaseSwapOutSecret(args);
-
-    return end();
+    return;
   });
 });

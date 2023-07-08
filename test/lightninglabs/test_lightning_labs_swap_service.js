@@ -1,4 +1,5 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
 
 const {lightningLabsSwapService} = require('./../../lightninglabs');
 
@@ -18,11 +19,11 @@ const tests = [
 ];
 
 tests.forEach(({args, description, expected}) => {
-  return test(description, ({end, type}) => {
+  return test(description, (t, end) => {
     const {service} = lightningLabsSwapService(args);
 
     expected.methods.forEach(method => {
-      return type(service[method], Function, 'Has method');
+      return equal(typeof service[method], 'function', 'Has method');
     });
 
     return end();

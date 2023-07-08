@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getSwapOutQuote} = require('./../../lightninglabs');
 
@@ -108,19 +110,17 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(getSwapOutQuote(args), error, 'Got expected error');
+      await rejects(getSwapOutQuote(args), error, 'Got expected error');
+    } else {
+      const quote = await getSwapOutQuote(args);
 
-      return end();
+      equal(quote.deposit, expected.deposit, 'Swap quote deposit');
+      equal(quote.destination, expected.destination, 'Swap quote destination');
+      equal(quote.fee, expected.fee, 'Swap quote fee');
     }
 
-    const quote = await getSwapOutQuote(args);
-
-    equal(quote.deposit, expected.deposit, 'Swap quote deposit');
-    equal(quote.destination, expected.destination, 'Swap quote destination');
-    equal(quote.fee, expected.fee, 'Swap quote fee');
-
-    return end();
+    return;
   });
 });

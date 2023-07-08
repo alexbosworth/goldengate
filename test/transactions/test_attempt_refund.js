@@ -1,4 +1,7 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
+
 const {Transaction} = require('bitcoinjs-lib');
 
 const {attemptRefund} = require('./../../');
@@ -245,21 +248,19 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(attemptRefund(args), error, 'Got expected error');
+    } else {
+      const refund = await attemptRefund(args);
 
-      return end();
+      Transaction.fromHex(refund.refund_transaction);
+
+      equal(refund.transaction_id, Buffer.alloc(32).toString('hex'), 'Got tx');
+      equal(refund.transaction_vout, expected.transaction_vout, 'Got vout');
     }
 
-    const refund = await attemptRefund(args);
-
-    Transaction.fromHex(refund.refund_transaction);
-
-    equal(refund.transaction_id, Buffer.alloc(32).toString('hex'), 'Got tx');
-    equal(refund.transaction_vout, expected.transaction_vout, 'Got vout');
-
-    return end();
+    return;
   });
 });
 

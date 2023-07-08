@@ -1,5 +1,8 @@
+const {deepEqual} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {ECPair} = require('ecpair');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 
 const claimOutputs = require('./../../transactions/claim_outputs');
@@ -153,7 +156,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({end, throws, strictSame}) => {
+  return test(description, async () => {
     const {script} = swapScript({
       claim_private_key: privateKey,
       ecp: (await import('ecpair')).ECPairFactory(tinysecp),
@@ -167,9 +170,9 @@ tests.forEach(({args, description, error, expected}) => {
     if (!!error) {
       throws(() => claimOutputs(args), new Error(error), 'Got error');
     } else {
-      strictSame(claimOutputs(args), expected, 'Got expected outputs');
+      deepEqual(claimOutputs(args), expected, 'Got expected outputs');
     }
 
-    return end();
+    return;
   });
 });

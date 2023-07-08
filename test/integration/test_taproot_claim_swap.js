@@ -1,4 +1,6 @@
-const {randomBytes} = require('crypto');
+const {equal} = require('node:assert').strict;
+const {randomBytes} = require('node:crypto');
+const test = require('node:test');
 
 const asyncRetry = require('async/retry');
 const {broadcastChainTransaction} = require('ln-service');
@@ -11,7 +13,6 @@ const {hashForTree} = require('p2tr');
 const {networks} = require('bitcoinjs-lib');
 const {signPsbt} = require('ln-service');
 const {spawnLightningCluster} = require('ln-docker-daemons');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 const {v1OutputScript} = require('p2tr');
@@ -32,7 +33,7 @@ const timeout = 300;
 const tokens = 1e6;
 
 // Swapping in taproot with a claim should result in a successful claim
-test(`Taproot claim swap`, async ({end, equal}) => {
+test(`Taproot claim swap`, async () => {
   const ecp = (await import('ecpair')).ECPairFactory(tinysecp);
   const {kill, nodes} = await spawnLightningCluster({size});
 
@@ -129,5 +130,5 @@ test(`Taproot claim swap`, async ({end, equal}) => {
 
   await kill({});
 
-  return end();
+  return;
 });

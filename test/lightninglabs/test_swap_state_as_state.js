@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {deepEqual} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const swapStateAsState = require('./../../lightninglabs/swap_state_as_state');
 
@@ -175,13 +177,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({end, strictSame, throws}) => {
+  return test(description, (t, end) => {
     if (!!error) {
       throws(() => swapStateAsState(args), new Error(error), 'Got error');
     } else {
       const state = swapStateAsState(args);
 
-      strictSame(state, expected, 'Swap state derived');
+      deepEqual(state, expected, 'Swap state derived');
     }
 
     return end();

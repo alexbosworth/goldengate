@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {findUtxo} = require('./../../blockstream');
 
@@ -190,18 +192,16 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({deepEqual, equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(findUtxo(args), error, 'Returns expected error');
+      await rejects(findUtxo(args), error, 'Returns expected error');
+    } else {
+      const utxo = await findUtxo(args);
 
-      return end();
+      equal(utxo.transaction_id, expected.transaction_id, 'Got tx id');
+      equal(utxo.transaction_vout, expected.transaction_vout, 'Got tx vout');
     }
 
-    const utxo = await findUtxo(args);
-
-    equal(utxo.transaction_id, expected.transaction_id, 'Got tx id');
-    equal(utxo.transaction_vout, expected.transaction_vout, 'Got tx vout');
-
-    return end();
+    return;
   });
 });

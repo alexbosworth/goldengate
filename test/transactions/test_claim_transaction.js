@@ -1,6 +1,9 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {crypto} = require('bitcoinjs-lib');
 const {ECPair} = require('ecpair');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 const {Transaction} = require('bitcoinjs-lib');
 
@@ -72,7 +75,7 @@ const tests = [
   {
     args: makeArgs({tokens: -1}),
     description: 'A valid tokens value is required',
-    error: 'FailedToAddSweepAddressOutputScript',
+    error: 'FailedToAddSweepAddressOutputScriptCalculatingOutputs',
   },
   {
     args: makeArgs({transaction_id: undefined}),
@@ -132,7 +135,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, throws}) => {
+  return test(description, async () => {
     if (args.witness_script === true) {
       const {script} = swapScript({
         claim_private_key: privateKey,
@@ -174,6 +177,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(witnessScript.toString('hex'), expected.witness_script, 'Script');
     }
 
-    return end();
+    return;
   });
 });

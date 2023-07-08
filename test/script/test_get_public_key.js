@@ -1,5 +1,8 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {ECPair} = require('ecpair');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 
 const {getPublicKey} = require('./../../script');
@@ -17,24 +20,22 @@ const tests = [
   {
     args: {},
     description: 'Deriving public key requires public key',
-    error: 'ExpectedPrivateKey',
+    error: 'ExpectedPrivateKeyToDerivePublicKey',
   },
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({end, equal, throws}) => {
+  return test(description, async () => {
     args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
 
     if (!!error) {
       throws(() => getPublicKey(args), new Error(error), 'Got error');
+    } else {
+      const pair = getPublicKey(args);
 
-      return end();
+      equal(pair.public_key, expected.public_key, 'Public key as expected');
     }
 
-    const pair = getPublicKey(args);
-
-    equal(pair.public_key, expected.public_key, 'Public key as expected');
-
-    return end();
+    return;
   });
 });

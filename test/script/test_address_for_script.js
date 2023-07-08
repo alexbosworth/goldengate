@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {addressForScript} = require('./../../');
 
@@ -29,16 +31,14 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, (t, end) => {
     if (!!error) {
       throws(() => addressForScript(args), new Error(error), 'Error returned');
+    } else {
+      const {address} = addressForScript(args);
 
-      return end();
+      equal(address, expected, 'Address derived');
     }
-
-    const {address} = addressForScript(args);
-
-    equal(address, expected, 'Address derived');
 
     return end();
   });

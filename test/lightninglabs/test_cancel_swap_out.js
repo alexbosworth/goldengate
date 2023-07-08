@@ -1,4 +1,5 @@
-const {test} = require('@alexbosworth/tap');
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {cancelSwapOut} = require('./../../');
 
@@ -56,13 +57,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(cancelSwapOut(args), error, 'Got expected error');
     } else {
-      const res = await cancelSwapOut(args);
+      await cancelSwapOut(args);
     }
 
-    return end();
+    return;
   });
 });

@@ -1,3 +1,6 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+
 const {addPeer} = require('ln-service');
 const asyncRetry = require('async/retry');
 const {broadcastChainTransaction} = require('ln-service');
@@ -11,7 +14,6 @@ const {openChannels} = require('ln-service');
 const {sendToChainAddress} = require('ln-service');
 const {signPsbt} = require('ln-service');
 const {spawnLightningCluster} = require('ln-docker-daemons');
-const {test} = require('@alexbosworth/tap');
 const tinysecp = require('tiny-secp256k1');
 
 const {getPsbtFromTransaction} = require('./../../');
@@ -24,7 +26,7 @@ const times = 2000;
 const tokens = 1e6;
 
 // Getting a PSBT from a transaction should fill out a PSBT from a transaction
-test(`Get PSBT from transaction`, async ({end, equal}) => {
+test(`Get PSBT from transaction`, async () => {
   const ecp = (await import('ecpair')).ECPairFactory(tinysecp);
   const {kill, nodes} = await spawnLightningCluster({size});
 
@@ -86,5 +88,5 @@ test(`Get PSBT from transaction`, async ({end, equal}) => {
 
   await kill({});
 
-  return end();
+  return;
 });

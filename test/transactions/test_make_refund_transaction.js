@@ -1,4 +1,5 @@
-const {test} = require('@alexbosworth/tap');
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const dir = './../../transactions';
 
@@ -17,13 +18,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(makeRefundTransaction(args), error, 'Got expected error');
+      await rejects(makeRefundTransaction(args), error, 'Got expected error');
     } else {
       await makeRefundTransaction(args);
     }
 
-    return end();
+    return;
   });
 });

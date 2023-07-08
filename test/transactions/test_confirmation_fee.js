@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {confirmationFee} = require('./../../');
 
@@ -60,16 +62,14 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({equal, end, throws}) => {
+  return test(description, (t, end) => {
     if (!!error) {
       throws(() => confirmationFee(args), new Error(error), 'Got error');
+    } else {
+      const {rate} = confirmationFee(args);
 
-      return end();
+      equal(rate, expected, 'Rate derived for cursor');
     }
-
-    const {rate} = confirmationFee(args);
-
-    equal(rate, expected, 'Rate derived for cursor');
 
     return end();
   });

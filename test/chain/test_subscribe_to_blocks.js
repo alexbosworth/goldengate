@@ -1,7 +1,7 @@
-const EventEmitter = require('events');
-const {readFileSync} = require('fs');
-
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const EventEmitter = require('node:events');
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
 
 const {subscribeToBlocks} = require('./../../');
 
@@ -11,7 +11,7 @@ const network = 'btctestnet';
 const okStatus = {statusCode: 200};
 
 // Subscribers to blocks should receive block notifications
-test(`Subscribe to blocks`, ({end, equal, fail, throws}) => {
+test(`Subscribe to blocks`, (t, end) => {
   throws(
     () => subscribeToBlocks({}),
     new Error('ExpectedLndOrRequestToSubscribeToBlocks'),

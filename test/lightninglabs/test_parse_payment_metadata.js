@@ -1,4 +1,5 @@
-const {test} = require('@alexbosworth/tap');
+const {deepEqual} = require('node:assert').strict;
+const test = require('node:test');
 
 const lightninglabs = './../../lightninglabs/';
 
@@ -69,10 +70,10 @@ const tests = [
 ];
 
 tests.forEach(({args, description, expected}) => {
-  return test(description, ({end, strictSame}) => {
+  return test(description, (t, end) => {
     const {payment} = parsePaymentMetadata(args);
 
-    strictSame(payment, expected.payment, 'Got expected payment details');
+    deepEqual(payment, expected.payment, 'Got expected payment details');
 
     return end();
   });

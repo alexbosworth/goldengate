@@ -1,6 +1,9 @@
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
+const {throws} = require('node:assert').strict;
+
 const {address} = require('bitcoinjs-lib');
 const {networks} = require('bitcoinjs-lib');
-const {test} = require('@alexbosworth/tap');
 const {Transaction} = require('bitcoinjs-lib');
 
 const findOutput = require('./../../chain/find_output');
@@ -88,18 +91,16 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, ({end, equal, throws}) => {
+  return test(description, (t, end) => {
     if (!!error) {
       throws(() => findOutput(args), new Error(error));
+    } else {
+      const output = findOutput(args).output || {};
 
-      return end();
+      equal(output.id, expected.id, 'Outpoint id is returned');
+      equal(output.tokens, expected.tokens, 'Output tokens is returned');
+      equal(output.vout, expected.vout, 'Outpoint vout is returned');
     }
-
-    const output = findOutput(args).output || {};
-
-    equal(output.id, expected.id, 'Outpoint id is returned');
-    equal(output.tokens, expected.tokens, 'Output tokens is returned');
-    equal(output.vout, expected.vout, 'Outpoint vout is returned');
 
     return end();
   });

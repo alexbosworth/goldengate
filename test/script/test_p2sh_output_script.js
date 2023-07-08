@@ -1,4 +1,5 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const test = require('node:test');
 
 const {p2shOutputScript} = require('./../../script');
 
@@ -15,7 +16,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, expected}) => {
-  return test(description, ({end, equal}) => {
+  return test(description, (t, end) => {
     const {output} = p2shOutputScript(args);
 
     equal(output, expected.output, 'Output script as expected');

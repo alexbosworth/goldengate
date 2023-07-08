@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getSwapInTerms} = require('./../../');
 
@@ -64,9 +66,9 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(getSwapInTerms(args), error, 'Got expected error');
+      await rejects(getSwapInTerms(args), error, 'Got expected error');
     } else {
       const res = await getSwapInTerms(args);
 
@@ -74,6 +76,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(res.min_tokens, expected.min_tokens, 'Swap in min tokens');
     }
 
-    return end();
+    return;
   });
 });

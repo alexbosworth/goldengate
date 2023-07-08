@@ -1,5 +1,8 @@
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
+
 const {Transaction} = require('bitcoinjs-lib');
-const {test} = require('@alexbosworth/tap');
 
 const {broadcastTransaction} = require('./../../');
 
@@ -49,17 +52,15 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
-      rejects(broadcastTransaction(args), error, 'Got expected error');
+      await rejects(broadcastTransaction(args), error, 'Got expected error');
+    } else {
+      const sent = await broadcastTransaction(args);
 
-      return end();
+      equal(sent.transaction_id, expected.transaction_id, 'Broadcast tx id');
     }
 
-    const sent = await broadcastTransaction(args);
-
-    equal(sent.transaction_id, expected.transaction_id, 'Broadcast tx id');
-
-    return end();
+    return;
   });
 });

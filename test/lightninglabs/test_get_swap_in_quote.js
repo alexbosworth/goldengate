@@ -1,4 +1,6 @@
-const {test} = require('@alexbosworth/tap');
+const {equal} = require('node:assert').strict;
+const {rejects} = require('node:assert').strict;
+const test = require('node:test');
 
 const {getSwapInQuote} = require('./../../lightninglabs');
 
@@ -72,7 +74,7 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, async ({equal, end, rejects}) => {
+  return test(description, async () => {
     if (!!error) {
       await rejects(getSwapInQuote(args), error, 'Got expected error');
     } else {
@@ -82,6 +84,6 @@ tests.forEach(({args, description, error, expected}) => {
       equal(res.cltv_delta, expected.cltv_delta, 'Swap in quote cltv delta');
     }
 
-    return end();
+    return;
   });
 });
