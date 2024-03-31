@@ -24,7 +24,7 @@
     "cbor": "9.0.2",
     "ecpair": "2.1.0",
     "ln-service": "57.8.1",
-    "ln-sync": "6.0.1",
+    "ln-sync": "6.0.2",
     "macaroon": "3.0.4",
     "p2tr": "2.0.0",
     "psbt": "3.0.0",
@@ -52,5 +52,5 @@
     "integration-tests": "node test/integration",
     "test": "npx nyc@15.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "14.0.0"
+  "version": "14.0.1"
 }
