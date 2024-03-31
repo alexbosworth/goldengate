@@ -1,5 +1,11 @@
 # Versions
 
+## 14.0.0
+
+### Breaking Changes
+
+- Node.js 18 or greater is now required
+
 ## 13.0.2
 
 ### Breaking Changes
