@@ -71,8 +71,6 @@ module.exports = (args, cbk) => {
 
           const metadata = err.metadata.get(authHeader);
 
-console.log("METADATA", metadata)
-
           const {payment} = parsePaymentMetadata({metadata});
 
           if (!payment) {

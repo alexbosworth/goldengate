@@ -52,5 +52,5 @@
     "integration-tests": "node test/integration",
     "test": "npx nyc@15.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "14.0.3"
+  "version": "14.0.4"
 }
