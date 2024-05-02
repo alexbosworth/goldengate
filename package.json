@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.10.4",
-    "@grpc/proto-loader": "0.7.12",
-    "@mitmaro/http-authorization-header": "1.0.0",
+    "@grpc/grpc-js": "1.10.7",
+    "@grpc/proto-loader": "0.7.13",
+    "auth-header": "1.0.0",
     "async": "3.2.5",
     "asyncjs-util": "1.2.12",
     "bech32": "2.0.0",
@@ -24,7 +24,7 @@
     "cbor": "9.0.2",
     "ecpair": "2.1.0",
     "express": "4.19.2",
-    "ln-service": "57.8.1",
+    "ln-service": "57.9.1",
     "ln-sync": "6.0.2",
     "macaroon": "3.0.4",
     "p2tr": "2.0.0",
@@ -35,7 +35,7 @@
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "ln-docker-daemons": "6.0.12",
+    "ln-docker-daemons": "6.0.14",
     "mock-lnd": "1.4.4"
   },
   "engines": {
@@ -52,5 +52,5 @@
     "integration-tests": "node test/integration",
     "test": "npx nyc@15.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "14.0.2"
+  "version": "14.0.3"
 }

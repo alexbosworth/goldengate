@@ -1,10 +1,11 @@
-const {parse} = require('@mitmaro/http-authorization-header');
+const {parse} = require('auth-header');
 
 const swapUserId = require('./swap_user_id');
 
 const expectedScheme = 'LSAT';
 const {isArray} = Array;
 const macaroonKey = 'macaroon';
+const makeArray = val => Array.isArray(val) ? val : [val];
 const requestKey = 'invoice';
 
 /** Parse payment metadata
@@ -36,33 +37,31 @@ module.exports = ({metadata}) => {
     return {};
   }
 
-  const {scheme, values} = parse(auth);
+  const {params, scheme} = parse(auth);
 
   // Exit early when the scheme is not correct
-  if (scheme !== expectedScheme || !isArray(values)) {
+  if (scheme !== expectedScheme) {
     return {};
   }
 
-  const macaroonTuple = values.find(n => {
-    const [key] = n;
+  // Exit early when there is no macaroon
+  if (!params[macaroonKey]) {
+    return {};
+  }
 
-    return key === macaroonKey;
-  });
-
-  const [, macaroon] = macaroonTuple || [];
+  const [macaroon] = makeArray(params[macaroonKey]);
 
   // Exit early when the macaroon is missing
   if (!macaroon) {
     return {};
   }
 
-  const requestTuple = values.find(n => {
-    const [key] = n;
+  // Exit early when there is no request
+  if (!params[requestKey]) {
+    return {};
+  }
 
-    return key === requestKey;
-  });
-
-  const [, request] = requestTuple || [];
+  const [request] = makeArray(params[requestKey]);
 
   // Exit early when the request is missing
   if (!request) {

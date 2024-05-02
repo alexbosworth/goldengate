@@ -1,5 +1,9 @@
 # Versions
 
+## 14.0.3
+
+- `createSwapOut`, `getSwapMacaroon`: Adjust getting auth for new response
+
 ## 14.0.2
 
 ### Breaking Changes
