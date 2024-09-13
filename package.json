@@ -8,10 +8,10 @@
   },
   "dependencies": {
     "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.10.9",
+    "@grpc/grpc-js": "1.11.2",
     "@grpc/proto-loader": "0.7.13",
     "auth-header": "1.0.0",
-    "async": "3.2.5",
+    "async": "3.2.6",
     "asyncjs-util": "1.2.12",
     "bech32": "2.0.0",
     "bip65": "1.0.3",
@@ -19,13 +19,13 @@
     "bitcoin-ops": "1.4.1",
     "bitcoinjs-lib": "6.1.6",
     "bn.js": "5.2.1",
-    "body-parser": "1.20.2",
+    "body-parser": "1.20.3",
     "bolt01": "2.0.0",
     "cbor": "9.0.2",
     "ecpair": "2.1.0",
-    "express": "4.19.2",
-    "ln-service": "57.14.2",
-    "ln-sync": "6.0.4",
+    "express": "4.21.0",
+    "ln-service": "57.20.2",
+    "ln-sync": "6.4.0",
     "macaroon": "3.0.4",
     "p2tr": "2.0.0",
     "psbt": "3.0.0",
@@ -35,8 +35,7 @@
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "ln-docker-daemons": "6.0.19",
-    "mock-lnd": "1.4.4"
+    "ln-docker-daemons": "6.0.23"
   },
   "engines": {
     "node": ">=18"
@@ -50,7 +49,7 @@
   },
   "scripts": {
     "integration-tests": "node test/integration",
-    "test": "npx nyc@15.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
+    "test": "npx nyc@17.0.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "14.0.7"
+  "version": "14.0.8"
 }
