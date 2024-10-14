@@ -5,7 +5,7 @@ const {script} = require('bitcoinjs-lib');
 
 const compileScript = elements => script.compile(elements).toString('hex');
 const sha256 = hex => crypto.sha256(Buffer.from(hex, 'hex'));
-const witnessVersion = encode(OP_0).toString('hex');
+const witnessVersion = encode(OP_0).buffer.toString('hex');
 
 /** Get a scriptSig-nested witness script
 

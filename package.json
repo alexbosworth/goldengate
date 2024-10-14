@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.11.2",
+    "@grpc/grpc-js": "1.12.2",
     "@grpc/proto-loader": "0.7.13",
     "auth-header": "1.0.0",
     "async": "3.2.6",
@@ -23,15 +23,15 @@
     "bolt01": "2.0.0",
     "cbor": "9.0.2",
     "ecpair": "2.1.0",
-    "express": "4.21.0",
-    "ln-service": "57.20.2",
+    "express": "4.21.1",
+    "ln-service": "57.22.0",
     "ln-sync": "6.4.0",
     "macaroon": "3.0.4",
     "p2tr": "2.0.0",
     "psbt": "3.0.0",
     "pushdata-bitcoin": "1.0.1",
     "tiny-secp256k1": "2.2.3",
-    "varuint-bitcoin": "1.1.2"
+    "varuint-bitcoin": "2.0.0"
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {

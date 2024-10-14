@@ -22,7 +22,7 @@ module.exports = ({elements}) => {
   const fullScript = elements
     .map(element => {
       if (Buffer.isBuffer(element)) {
-        return Buffer.concat([encode(element.length), element]);
+        return Buffer.concat([encode(element.length).buffer, element]);
       } else {
         return new BN(element, decBase).toArrayLike(Buffer);
       }
