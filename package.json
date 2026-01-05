@@ -19,12 +19,12 @@
     "bitcoin-ops": "1.4.1",
     "bitcoinjs-lib": "6.1.7",
     "bn.js": "5.2.1",
-    "body-parser": "1.20.3",
+    "body-parser": "1.20.4",
     "bolt01": "2.0.0",
     "cbor": "10.0.3",
     "ecpair": "2.1.0",
-    "express": "4.21.2",
-    "ln-service": "57.22.3",
+    "express": "4.22.0",
+    "ln-service": "57.27.3",
     "ln-sync": "6.4.0",
     "macaroon": "3.0.4",
     "p2tr": "2.0.0",
@@ -35,7 +35,7 @@
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "ln-docker-daemons": "6.0.23"
+    "ln-docker-daemons": "6.0.28"
   },
   "engines": {
     "node": ">=18"
@@ -51,5 +51,5 @@
     "integration-tests": "node test/integration",
     "test": "npx nyc@17.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "14.0.10"
+  "version": "14.0.11"
 }
