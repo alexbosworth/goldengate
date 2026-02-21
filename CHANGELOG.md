@@ -1,5 +1,11 @@
 # Versions
 
+## 15.0.0
+
+### Breaking Changes
+
+- Node.js 20 or greater is now required
+
 ## 14.0.11
 
 - `createSwapOut`, `getSwapMacaroon`: Adjust getting auth for new response
