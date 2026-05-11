@@ -1,5 +1,11 @@
 # Versions
 
+## 16.0.0
+
+### Breaking Changes
+
+- Node.js 22 or greater is now required
+
 ## 15.0.1
 
 ### Breaking Changes
