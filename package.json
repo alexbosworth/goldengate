@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.14.3",
+    "@grpc/grpc-js": "1.14.4",
     "@grpc/proto-loader": "0.8.1",
     "auth-header": "1.0.0",
     "async": "3.2.6",
@@ -19,13 +19,13 @@
     "bitcoin-ops": "1.4.1",
     "bitcoinjs-lib": "6.1.7",
     "bn.js": "5.2.3",
-    "body-parser": "1.20.4",
+    "body-parser": "1.20.5",
     "bolt01": "3.0.0",
     "cbor": "10.0.12",
     "ecpair": "2.1.0",
-    "express": "4.22.0",
-    "ln-service": "59.0.1",
-    "ln-sync": "8.0.1",
+    "express": "4.22.2",
+    "ln-service": "59.0.3",
+    "ln-sync": "8.0.2",
     "macaroon": "3.0.4",
     "p2tr": "2.0.0",
     "psbt": "5.0.0",
@@ -51,5 +51,5 @@
     "integration-tests": "node test/integration",
     "test": "npx nyc@17.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "16.0.1"
+  "version": "16.0.2"
 }
