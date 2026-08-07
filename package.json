@@ -24,8 +24,8 @@
     "cbor": "10.0.12",
     "ecpair": "2.1.0",
     "express": "4.22.2",
-    "ln-service": "59.2.1",
-    "ln-sync": "8.0.3",
+    "ln-service": "59.2.4",
+    "ln-sync": "8.0.4",
     "macaroon": "3.0.4",
     "p2tr": "2.0.0",
     "psbt": "5.0.0",
@@ -49,7 +49,7 @@
   },
   "scripts": {
     "integration-tests": "node test/integration",
-    "test": "npx nyc@17.1.0 node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
+    "test": "node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "16.0.4"
+  "version": "16.0.5"
 }
