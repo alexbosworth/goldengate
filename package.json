@@ -1,4 +1,9 @@
 {
+  "allowScripts": {
+    "cpu-features@0.0.10": true,
+    "protobufjs@7.6.5": true,
+    "ssh2@1.17.0": true
+  },
   "author": {
     "name": "Alex Bosworth",
     "url": "https://twitter.com/alexbosworth"
@@ -10,32 +15,31 @@
     "@alexbosworth/node-fetch": "2.6.2",
     "@grpc/grpc-js": "1.14.4",
     "@grpc/proto-loader": "0.8.1",
-    "auth-header": "1.0.0",
     "async": "3.2.6",
     "asyncjs-util": "1.2.12",
+    "auth-header": "1.0.0",
     "bech32": "2.0.0",
     "bip65": "1.0.3",
     "bip68": "1.0.4",
     "bitcoin-ops": "1.4.1",
     "bitcoinjs-lib": "6.1.7",
-    "bn.js": "5.2.5",
-    "body-parser": "1.20.6",
-    "bolt01": "3.0.0",
+    "body-parser": "2.3.0",
+    "bolt01": "4.0.0",
     "cbor": "10.0.12",
     "ecpair": "2.1.0",
-    "express": "4.22.2",
-    "ln-service": "59.2.4",
+    "express": "5.2.1",
+    "ln-service": "59.3.4",
     "ln-sync": "8.0.4",
     "macaroon": "3.0.4",
-    "p2tr": "2.0.0",
-    "psbt": "5.0.0",
+    "p2tr": "3.0.0",
+    "psbt": "6.0.0",
     "pushdata-bitcoin": "1.0.1",
     "tiny-secp256k1": "2.2.4",
     "varuint-bitcoin": "2.0.0"
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "ln-docker-daemons": "8.0.2"
+    "ln-docker-daemons": "8.0.4"
   },
   "engines": {
     "node": ">=22"
@@ -45,11 +49,11 @@
   "name": "goldengate",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alexbosworth/goldengate.git"
+    "url": "git+https://github.com/alexbosworth/goldengate.git"
   },
   "scripts": {
     "integration-tests": "node test/integration",
     "test": "node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "16.0.5"
+  "version": "16.0.6"
 }

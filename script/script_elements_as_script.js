@@ -1,7 +1,8 @@
-const BN = require('bn.js');
 const {encode} = require('varuint-bitcoin');
 
-const decBase = 10;
+const hexBase = 16;
+const isEvenLength = hex => !(hex.length % 2);
+const paddedHex = hex => `0${hex}`;
 
 /** Array of script buffer elements to a fully formed script
 
@@ -24,7 +25,9 @@ module.exports = ({elements}) => {
       if (Buffer.isBuffer(element)) {
         return Buffer.concat([encode(element.length).buffer, element]);
       } else {
-        return new BN(element, decBase).toArrayLike(Buffer);
+        const hex = element.toString(hexBase);
+
+        return Buffer.from(isEvenLength(hex) ? hex : paddedHex(hex), 'hex');
       }
     })
     .reduce((element, script) => Buffer.concat([element, script]));

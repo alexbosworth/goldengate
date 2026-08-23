@@ -1,6 +1,6 @@
 # Versions
 
-## 16.0.5
+## 16.0.6
 
 ### Breaking Changes
 
