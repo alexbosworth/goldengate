@@ -1,12 +1,17 @@
-const {address} = require('bitcoinjs-lib');
-const {networks} = require('bitcoinjs-lib');
+const {encodeBase58Address} = require('@alexbosworth/blockchain');
+const {encodeBech32Address} = require('@alexbosworth/blockchain');
 
 const {names} = require('./../conf/bitcoinjs-lib');
 const p2shP2wshOutputScript = require('./p2sh_p2wsh_output_script');
 const p2wshOutputScript = require('./p2wsh_output_script');
 
-const {fromOutputScript} = address;
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
+const p2shVersions = {mainnet: 0x05, regtest: 0xc4, testnet: 0xc4};
+const prefixes = {mainnet: 'bc', regtest: 'bcrt', testnet: 'tb'};
+const scriptHashEnd = 2 + 20;
+const scriptHashStart = 2;
+const witnessProgramStart = 2;
+const witnessVersion = 0;
 
 /** Derive address from witness script
 
@@ -37,11 +42,22 @@ module.exports = ({network, script}) => {
     throw new Error('ExpectedWitnessScriptToDeriveAddress');
   }
 
-  const nested = p2shP2wshOutputScript({script}).output;
+  const nested = hexAsBuf(p2shP2wshOutputScript({script}).output);
   const {output} = p2wshOutputScript({script});
 
-  return {
-    address: fromOutputScript(hexAsBuf(output), networks[names[network]]),
-    nested: fromOutputScript(hexAsBuf(nested), networks[names[network]]),
-  };
+  const hash = nested.subarray(scriptHashStart, scriptHashEnd);
+  const program = hexAsBuf(output).subarray(witnessProgramStart);
+
+  const encodedBase58 = encodeBase58Address({
+    hash,
+    version: p2shVersions[names[network]],
+  });
+
+  const encodedBech32 = encodeBech32Address({
+    program,
+    prefix: prefixes[names[network]],
+    version: witnessVersion,
+  });
+
+  return {address: encodedBech32.address, nested: encodedBase58.address};
 };
