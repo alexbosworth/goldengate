@@ -1,10 +1,10 @@
-const {crypto} = require('bitcoinjs-lib');
-const {OP_0} = require('bitcoin-ops');
-const {script} = require('bitcoinjs-lib');
+const {createHash} = require('crypto');
 
-const compileScript = elements => script.compile(elements).toString('hex');
+const {p2wshOutputScript} = require('@alexbosworth/blockchain');
+
+const bufferAsHex = buffer => buffer.toString('hex');
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
-const {sha256} = crypto;
+const sha256 = preimage => createHash('sha256').update(preimage).digest();
 
 /** Encode p2wsh output script
 
@@ -18,5 +18,7 @@ const {sha256} = crypto;
   }
 */
 module.exports = ({script}) => {
-  return {output: compileScript([OP_0, sha256(hexAsBuffer(script))])};
+  const hash = sha256(hexAsBuffer(script));
+
+  return {output: bufferAsHex(p2wshOutputScript({hash}).script)};
 };
