@@ -2,23 +2,28 @@ const {equal} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {script} = require('bitcoinjs-lib');
 const {ECPair} = require('ecpair');
+const {scriptAsScriptElements} = require('@alexbosworth/blockchain');
+const {scriptElementsAsScript} = require('@alexbosworth/blockchain');
 const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
+const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const {isSweep} = require('./../../');
 const {swapScript} = require('./../../script');
 const {swapScriptV2} = require('./../../script');
 
-const {compile} = script;
-const {decompile} = script;
+const maxSequence = 0xffffffff;
 
 const makeTx = ({ecp, input, program, witness, scriptVersion}) => {
-  const tx = new Transaction();
+  const inputs = [];
 
   if (!!input) {
-    tx.addInput(Buffer.alloc(32), 0);
+    inputs.push({
+      id: Buffer.alloc(32).toString('hex'),
+      script: String(),
+      sequence: maxSequence,
+      vout: 0,
+    });
   }
 
   if (!!witness) {
@@ -30,20 +35,25 @@ const makeTx = ({ecp, input, program, witness, scriptVersion}) => {
       timeout: 999,
     });
 
-    const decompiled = decompile(Buffer.from(script || '', 'hex'));
+    const {elements} = scriptAsScriptElements({script: script || String()});
 
     (program || []).forEach(({index, override}) => {
-      decompiled[index] = override;
+      elements[index] = override;
     });
 
-    const compiled = !program ? null : compile(decompiled).toString('hex');
+    const compiled = !program ? {} : scriptElementsAsScript({elements});
 
-    const stack = [].concat(witness).concat(compiled || []);
+    const stack = [].concat(witness).concat(compiled.script || []);
 
-    tx.setWitness(Number(), stack.map(n => Buffer.from(n, 'hex')));
+    inputs[Number()].witness = stack;
   }
 
-  return tx.toHex();
+  return transactionFromComponents({
+    inputs,
+    locktime: 0,
+    outputs: [],
+    version: 1,
+  }).transaction;
 };
 
 const tests = [

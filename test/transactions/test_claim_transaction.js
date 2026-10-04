@@ -2,10 +2,9 @@ const {equal} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {crypto} = require('bitcoinjs-lib');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {ECPair} = require('ecpair');
 const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 
 const {claimTransaction} = require('./../../');
 const {swapScript} = require('./../../script');
@@ -101,7 +100,7 @@ const tests = [
     args: makeArgs({}),
     description: 'Claim transaction formed',
     expected: {
-      input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
+      input_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
       input_index: 0,
       input_script: '',
       input_sequence: 1,
@@ -121,7 +120,7 @@ const tests = [
     }),
     description: 'Claim transaction formed',
     expected: {
-      input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
+      input_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
       input_index: 0,
       input_script: '',
       input_sequence: 1,
@@ -157,24 +156,26 @@ tests.forEach(({args, description, error, expected}) => {
     if (!!error) {
       throws(() => claimTransaction(args), new Error(error), 'Got error');
     } else {
-      const tx = Transaction.fromHex(claimTransaction(args).transaction);
+      const {transaction} = claimTransaction(args);
 
-      const [input] = tx.ins;
-      const [out] = tx.outs;
+      const tx = componentsOfTransaction({transaction});
+
+      const [input] = tx.inputs;
+      const [out] = tx.outputs;
 
       const [witnessSig, witnessUnlock, witnessScript] = input.witness;
 
-      equal(input.hash.toString('hex'), expected.input_hash, 'Input hash');
-      equal(input.index, expected.input_index, 'Input index as expected');
-      equal(input.script.toString('hex'), expected.input_script, 'Got script');
+      equal(input.id, expected.input_id, 'Input spends expected tx id');
+      equal(input.vout, expected.input_index, 'Input index as expected');
+      equal(input.script, expected.input_script, 'Got script');
       equal(input.sequence, expected.input_sequence, 'Got input sequence');
-      equal(out.script.toString('hex'), expected.out_script, 'Got out script');
-      equal(out.value, expected.out_value, 'Output value as expected');
+      equal(out.script, expected.out_script, 'Got out script');
+      equal(out.tokens, expected.out_value, 'Output value as expected');
       equal(tx.locktime, expected.locktime, 'Tx locktime as expected');
       equal(tx.version, expected.version, 'Transaction version as expected');
       equal(!!witnessSig, true, 'Witness signature returned');
-      equal(witnessUnlock.toString('hex'), expected.witness_unlock, 'Unlock');
-      equal(witnessScript.toString('hex'), expected.witness_script, 'Script');
+      equal(witnessUnlock, expected.witness_unlock, 'Unlock');
+      equal(witnessScript, expected.witness_script, 'Script');
     }
 
     return;

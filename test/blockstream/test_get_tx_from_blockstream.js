@@ -2,12 +2,19 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {Transaction} = require('bitcoinjs-lib');
+const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const {getTxFromBlockstream} = require('./../../blockstream');
 
+const emptyTx = transactionFromComponents({
+  inputs: [],
+  locktime: 0,
+  outputs: [],
+  version: 1,
+}).transaction;
+
 const makeRequest = ({err, tx}) => {
-  return ({}, cbk) => cbk(err, null, tx || new Transaction().toHex());
+  return ({}, cbk) => cbk(err, null, tx || emptyTx);
 };
 
 const makeArgs = overrides => {

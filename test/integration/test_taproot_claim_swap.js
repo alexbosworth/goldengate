@@ -4,24 +4,23 @@ const test = require('node:test');
 
 const asyncRetry = require('async/retry');
 const {broadcastChainTransaction} = require('ln-service');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {createChainAddress} = require('ln-service');
 const {createPsbt} = require('psbt');
 const {fundPsbt} = require('ln-service');
 const {getHeight} = require('ln-service');
 const {getUtxos} = require('ln-service');
 const {hashForTree} = require('p2tr');
-const {networks} = require('bitcoinjs-lib');
+const {idForTransaction} = require('@alexbosworth/blockchain');
 const {signPsbt} = require('ln-service');
 const {spawnLightningCluster} = require('ln-docker-daemons');
 const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 const {v1OutputScript} = require('p2tr');
 
 const {attemptTaprootClaim} = require('./../../');
 const {swapScriptBranches} = require('./../../');
 
 const defaultInternalKey = '0350929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0';
-const {fromHex} = Transaction;
 const interval = 10;
 const makeSecret = () => randomBytes(32).toString('hex');
 const maturity = 100;
@@ -39,8 +38,8 @@ test(`Taproot claim swap`, async () => {
 
   const [{generate, lnd}, target] = nodes;
 
-  const claimKey = ecp.makeRandom({network: networks.regtest});
-  const refundKey = ecp.makeRandom({network: networks.regtest});
+  const claimKey = ecp.makeRandom();
+  const refundKey = ecp.makeRandom();
   const secret = makeSecret();
 
   try {
@@ -79,7 +78,7 @@ test(`Taproot claim swap`, async () => {
 
       const {utxos} = await getUtxos({lnd});
 
-      const id = fromHex(signed.transaction).getId();
+      const {id} = idForTransaction({transaction: signed.transaction});
 
       const utxo = utxos.find(n => n.transaction_id === id);
 
@@ -88,7 +87,9 @@ test(`Taproot claim swap`, async () => {
       }
     });
 
-    const {outs} = fromHex(signed.transaction);
+    const {outputs} = componentsOfTransaction({
+      transaction: signed.transaction,
+    });
 
     const {transaction} = await attemptTaprootClaim({
       lnd,
@@ -105,12 +106,12 @@ test(`Taproot claim swap`, async () => {
       script_branches: swapScript.branches,
       start_height: (await getHeight({lnd})).current_block_height,
       sweep_address: (await createChainAddress({lnd})).address,
-      transaction_id: fromHex(signed.transaction).getId(),
-      transaction_vout: outs.findIndex(n => n.value === tokens),
+      transaction_id: idForTransaction({transaction: signed.transaction}).id,
+      transaction_vout: outputs.findIndex(n => n.tokens === tokens),
     });
 
     // Confirm sweep success
-    const id = fromHex(transaction).getId();
+    const {id} = idForTransaction({transaction});
 
     await asyncRetry({interval, times}, async () => {
       await generate({});

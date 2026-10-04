@@ -5,20 +5,37 @@ const {throws} = require('node:assert').strict;
 const {ECPair} = require('ecpair');
 const {OP_FALSE} = require('bitcoin-ops');
 const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
+const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const method = require('./../../transactions/witness_for_resolution');
 const {swapScript} = require('./../../script');
 
-const tx = new Transaction();
+const maxSequence = 0xffffffff;
 
-tx.addInput(Buffer.alloc(32), 0);
+const emptyTx = transactionFromComponents({
+  inputs: [],
+  locktime: 0,
+  outputs: [],
+  version: 1,
+}).transaction;
+
+const tx = transactionFromComponents({
+  inputs: [{
+    id: Buffer.alloc(32).toString('hex'),
+    script: String(),
+    sequence: maxSequence,
+    vout: 0,
+  }],
+  locktime: 0,
+  outputs: [],
+  version: 1,
+}).transaction;
 
 const makeArgs = overrides => {
   const args = {
     private_key: '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d',
     tokens: 1e4,
-    transaction: tx.toHex(),
+    transaction: tx,
     unlock: Buffer.alloc(32).toString('hex'),
     vin: 0,
     witness_script: true,
@@ -92,7 +109,7 @@ const tests = [
     error: 'ExpectedWitnessScriptForResolutionTransactionWitness',
   },
   {
-    args: makeArgs({transaction: new Transaction().toHex()}),
+    args: makeArgs({transaction: emptyTx}),
     description: 'Require transaction with input for witness signing',
     error: 'ExpectedInputToSignForResolutionTransactionWitness',
   },

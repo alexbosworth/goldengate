@@ -2,7 +2,7 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {Transaction} = require('bitcoinjs-lib');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 
 const {attemptRefund} = require('./../../');
 
@@ -254,7 +254,7 @@ tests.forEach(({args, description, error, expected}) => {
     } else {
       const refund = await attemptRefund(args);
 
-      Transaction.fromHex(refund.refund_transaction);
+      componentsOfTransaction({transaction: refund.refund_transaction});
 
       equal(refund.transaction_id, Buffer.alloc(32).toString('hex'), 'Got tx');
       equal(refund.transaction_vout, expected.transaction_vout, 'Got vout');

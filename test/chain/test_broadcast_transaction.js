@@ -2,11 +2,19 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {Transaction} = require('bitcoinjs-lib');
+const {idForTransaction} = require('@alexbosworth/blockchain');
+const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const {broadcastTransaction} = require('./../../');
 
-const txId = new Transaction().getId();
+const emptyTx = transactionFromComponents({
+  inputs: [],
+  locktime: 0,
+  outputs: [],
+  version: 1,
+}).transaction;
+
+const txId = idForTransaction({transaction: emptyTx}).id;
 
 const tests = [
   {
@@ -27,7 +35,7 @@ const tests = [
   {
     args: {
       lnd: {wallet: {publishTransaction: ({}, cbk) => cbk(null, {})}},
-      transaction: new Transaction().toHex(),
+      transaction: emptyTx,
     },
     description: 'Transaction published to blockchain',
     expected: {transaction_id: txId},
@@ -44,7 +52,7 @@ const tests = [
             return cbk(new Error('UnexpectedUrlWhenTestingPublishTx'));
         }
       },
-      transaction: new Transaction().toHex(),
+      transaction: emptyTx,
     },
     description: 'Get chain height',
     expected: {transaction_id: txId},

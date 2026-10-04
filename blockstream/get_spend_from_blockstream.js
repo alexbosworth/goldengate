@@ -1,10 +1,9 @@
 const asyncAuto = require('async/auto');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
-const {Transaction} = require('bitcoinjs-lib');
 
 const {apis} = require('./conf/blockstream-info');
 
-const {fromHex} = Transaction;
 const {isBuffer} = Buffer;
 const isHash = n => !!n && /^[0-9A-F]{64}$/i.test(n);
 
@@ -123,7 +122,7 @@ module.exports = (args, cbk) => {
           }
 
           try {
-            fromHex(res)
+            componentsOfTransaction({transaction: res});
           } catch (err) {
             return cbk([503, 'ExpectedRawTransactionInSpendResponse']);
           }

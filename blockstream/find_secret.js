@@ -1,5 +1,6 @@
+const {createHash} = require('crypto');
+
 const asyncAuto = require('async/auto');
-const {crypto} = require('bitcoinjs-lib');
 const {returnResult} = require('asyncjs-util');
 
 const {apis} = require('./conf/blockstream-info');
@@ -7,8 +8,9 @@ const getTxsFromBlockstream = require('./get_txs_from_blockstream');
 
 const {isArray} = Array;
 const flatten = arr => [].concat(...arr);  
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const secretHexLength = Buffer.alloc(32).toString('hex').length;
-const sha256 = hexPreimage => crypto.sha256(Buffer.from(hexPreimage, 'hex'));
+const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
 /** Find a preimage used to sweep an HTLC
 
@@ -67,7 +69,7 @@ module.exports = ({address, hash, network, request}, cbk) => {
             return false;
           }
 
-          return sha256(witness).toString('hex') === hash;
+          return sha256(hexAsBuffer(witness)) === hash;
         });
 
         return {secret, ids: witnesses.ids};

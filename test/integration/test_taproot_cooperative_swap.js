@@ -4,6 +4,7 @@ const test = require('node:test');
 
 const asyncRetry = require('async/retry');
 const {broadcastChainTransaction} = require('ln-service');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {createChainAddress} = require('ln-service');
 const {createPsbt} = require('psbt');
 const {fundPsbt} = require('ln-service');
@@ -12,12 +13,11 @@ const {getHeight} = require('ln-service');
 const {getPublicKey} = require('ln-service');
 const {getUtxos} = require('ln-service');
 const {hashForTree} = require('p2tr');
-const {networks} = require('bitcoinjs-lib');
+const {idForTransaction} = require('@alexbosworth/blockchain');
 const {pointAdd} = require('tiny-secp256k1');
 const {signPsbt} = require('ln-service');
 const {spawnLightningCluster} = require('ln-docker-daemons');
 const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 const {v1OutputScript} = require('p2tr');
 
 const {swapScriptBranches} = require('./../../');
@@ -26,7 +26,6 @@ const {taprootCoopTransaction} = require('./../../');
 const bufferAsHex = buffer => buffer.toString('hex');
 const cltvDelta = 144;
 const family = 805;
-const {fromHex} = Transaction;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const interval = 10;
 const makeSecret = () => randomBytes(32);
@@ -44,8 +43,8 @@ test(`Taproot Coop Swap`, async () => {
 
   const [{generate, lnd}, target] = nodes;
 
-  const clientKey = ecp.makeRandom({network: networks.regtest});
-  const remoteKey = ecp.makeRandom({network: networks.regtest});
+  const clientKey = ecp.makeRandom();
+  const remoteKey = ecp.makeRandom();
 
   const jointPublicKey = pointAdd(clientKey.publicKey, remoteKey.publicKey);
 
@@ -84,7 +83,9 @@ test(`Taproot Coop Swap`, async () => {
 
     await broadcastChainTransaction({lnd, transaction: signed.transaction});
 
-    const {outs} = fromHex(signed.transaction);
+    const {outputs} = componentsOfTransaction({
+      transaction: signed.transaction,
+    });
 
     const {transaction} = taprootCoopTransaction({
       ecp,
@@ -95,20 +96,20 @@ test(`Taproot Coop Swap`, async () => {
       private_keys: [clientKey, remoteKey].map(n => bufferAsHex(n.privateKey)),
       script_branches: branches,
       sweep_address: (await createChainAddress({lnd: target.lnd})).address,
-      transaction_id: fromHex(signed.transaction).getId(),
-      transaction_vout: outs.findIndex(n => n.value === tokens),
+      transaction_id: idForTransaction({transaction: signed.transaction}).id,
+      transaction_vout: outputs.findIndex(n => n.tokens === tokens),
     });
 
-    const tx = fromHex(transaction);
+    const {id} = idForTransaction({transaction});
 
-    await broadcastChainTransaction({lnd, transaction: tx.toHex()});
+    await broadcastChainTransaction({lnd, transaction});
 
     await asyncRetry({interval, times}, async () => {
       await generate({});
 
       const {utxos} = await getUtxos({lnd: target.lnd});
 
-      const utxo = utxos.find(n => n.transaction_id === tx.getId());
+      const utxo = utxos.find(n => n.transaction_id === id);
 
       if (!utxo || !utxo.confirmation_count) {
         throw new Error('ExpectedReceivedTaprootSwapSweep');

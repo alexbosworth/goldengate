@@ -2,9 +2,9 @@ const {equal} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {ECPair} = require('ecpair');
 const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 
 const {refundTransaction} = require('./../../transactions');
 
@@ -112,7 +112,7 @@ const tests = [
     description: 'Refund transaction formed',
     expected: {
       has_sig: true,
-      input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
+      input_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
       input_index: 0,
       input_script: '2200206f569f1dcbb18b78883398b66a52c7c50938119ed4567cc3c2e5bb6d7b36c650',
       input_sequence: 0,
@@ -139,7 +139,7 @@ const tests = [
     description: 'Native refund transaction formed',
     expected: {
       has_sig: true,
-      input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
+      input_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
       input_index: 0,
       input_script: '',
       input_sequence: 0,
@@ -166,7 +166,7 @@ const tests = [
     description: 'Unsigned refund transaction formed',
     expected: {
       has_sig: false,
-      input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
+      input_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
       input_index: 0,
       input_script: '2200206f569f1dcbb18b78883398b66a52c7c50938119ed4567cc3c2e5bb6d7b36c650',
       input_sequence: 0,
@@ -190,7 +190,7 @@ const tests = [
     description: 'Unsigned refund transaction formed',
     expected: {
       has_sig: false,
-      input_hash: '0cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd',
+      input_id: 'bd2eca5cf174d25241ee92df7ab41f1d362e9b1ae6a91ce78886be1c8f31b90c',
       input_index: 0,
       input_script: '',
       input_sequence: 0,
@@ -209,29 +209,32 @@ tests.forEach(({args, description, error, expected}) => {
     if (!!error) {
       throws(() => refundTransaction(args), new Error(error), 'Got error');
     } else {
-      const tx = Transaction.fromHex(refundTransaction(args).transaction);
+      const {transaction} = refundTransaction(args);
 
-      const [input] = tx.ins;
-      const [out] = tx.outs;
+      const tx = componentsOfTransaction({transaction});
 
-      const [sig, unlock, script] = input.witness;
+      const [input] = tx.inputs;
+      const [out] = tx.outputs;
 
-      equal(input.hash.toString('hex'), expected.input_hash, 'Input hash');
-      equal(input.index, expected.input_index, 'Input index as expected');
-      equal(input.script.toString('hex'), expected.input_script, 'Input');
+      // Unsigned transactions have no witness
+      const [sig, unlock, script] = input.witness || [];
+
+      equal(input.id, expected.input_id, 'Input spends expected tx id');
+      equal(input.vout, expected.input_index, 'Input index as expected');
+      equal(input.script, expected.input_script, 'Input');
       equal(input.sequence, expected.input_sequence, 'Input sequence');
-      equal(out.script.toString('hex'), expected.out_script, 'Got out script');
-      equal(out.value, expected.out_value, 'Output value as expected');
+      equal(out.script, expected.out_script, 'Got out script');
+      equal(out.tokens, expected.out_value, 'Output value as expected');
       equal(tx.locktime, expected.locktime, 'Transaction locktime');
       equal(tx.version, expected.version, 'Transaction version as expected');
       equal(!!sig, expected.has_sig, 'Witness signature returned');
 
       if (!!expected.witness_script) {
-        equal(script.toString('hex'), expected.witness_script, 'Script');
+        equal(script, expected.witness_script, 'Script');
       }
 
       if (expected.witness_unlock !== undefined) {
-        equal(unlock.toString('hex'), expected.witness_unlock, 'Unlock');
+        equal(unlock, expected.witness_unlock, 'Unlock');
       }
     }
 

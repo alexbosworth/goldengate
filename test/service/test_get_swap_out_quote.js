@@ -2,8 +2,6 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const fetch = require('@alexbosworth/node-fetch');
-
 const {genericSwapServer} = require('./../../service');
 const {genericSwapService} = require('./../../');
 const {getSwapOutQuote} = require('./../../');

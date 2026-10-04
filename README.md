@@ -336,7 +336,7 @@ const {recovery} = encodeSwapRecovery({
 
 Generic swap service
 
-For fetch, pass a function like `@alexbosworth/node-fetch` that returns a URL
+For fetch, pass a function like the native `fetch` that returns a URL
 
     {
       fetch: <Fetch Function>

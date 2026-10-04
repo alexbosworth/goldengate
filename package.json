@@ -12,9 +12,8 @@
     "url": "https://github.com/alexbosworth/goldengate/issues"
   },
   "dependencies": {
-    "@alexbosworth/blockchain": "4.8.0",
-    "@alexbosworth/node-fetch": "2.6.2",
-    "@grpc/grpc-js": "1.14.4",
+    "@alexbosworth/blockchain": "4.10.0",
+    "@grpc/grpc-js": "1.14.5",
     "@grpc/proto-loader": "0.8.1",
     "async": "3.2.6",
     "asyncjs-util": "1.2.12",
@@ -29,18 +28,18 @@
     "cbor": "10.0.12",
     "ecpair": "2.1.0",
     "express": "5.2.1",
-    "ln-service": "59.3.7",
-    "ln-sync": "8.0.6",
+    "ln-service": "60.1.2",
+    "ln-sync": "8.0.7",
     "macaroon": "3.0.4",
     "p2tr": "3.0.0",
-    "psbt": "6.0.3",
+    "psbt": "6.0.4",
     "pushdata-bitcoin": "1.0.1",
     "tiny-secp256k1": "2.2.4",
-    "varuint-bitcoin": "2.0.0"
+    "varuint-bitcoin": "2.0.1"
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "ln-docker-daemons": "8.0.5"
+    "ln-docker-daemons": "8.1.0"
   },
   "engines": {
     "node": ">=22"
@@ -56,5 +55,5 @@
     "integration-tests": "node test/integration",
     "test": "node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/transactions/*.js"
   },
-  "version": "16.0.7"
+  "version": "16.0.8"
 }

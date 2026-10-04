@@ -5,6 +5,7 @@ const test = require('node:test');
 
 const asyncRetry = require('async/retry');
 const {broadcastChainTransaction} = require('ln-service');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {createChainAddress} = require('ln-service');
 const {createPsbt} = require('psbt');
 const {fundPsbt} = require('ln-service');
@@ -12,11 +13,10 @@ const {getChainFeeRate} = require('ln-service');
 const {getHeight} = require('ln-service');
 const {getUtxos} = require('ln-service');
 const {hashForTree} = require('p2tr');
-const {networks} = require('bitcoinjs-lib');
+const {idForTransaction} = require('@alexbosworth/blockchain');
 const {signPsbt} = require('ln-service');
 const {spawnLightningCluster} = require('ln-docker-daemons');
 const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 const {v1OutputScript} = require('p2tr');
 
 const {swapScriptBranches} = require('./../../');
@@ -24,7 +24,6 @@ const {taprootRefundTransaction} = require('./../../');
 
 const cltvDelta = 20;
 const defaultInternalKey = '0350929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0';
-const {fromHex} = Transaction;
 const interval = 10;
 const makeSecret = () => randomBytes(32);
 const maturity = 100;
@@ -44,8 +43,8 @@ test(`Taproot Refund Swap`, async () => {
   const secret = makeSecret();
 
   try {
-    const claimKey = ecp.makeRandom({network: networks.regtest});
-    const refundKey = ecp.makeRandom({network: networks.regtest});
+    const claimKey = ecp.makeRandom();
+    const refundKey = ecp.makeRandom();
     const currentHeight = (await getHeight({lnd})).current_block_height;
 
     const swapScript = swapScriptBranches({
@@ -80,7 +79,9 @@ test(`Taproot Refund Swap`, async () => {
     // Send the tx to the chain
     await broadcastChainTransaction({lnd, transaction: signed.transaction});
 
-    const {outs} = fromHex(signed.transaction);
+    const {outputs} = componentsOfTransaction({
+      transaction: signed.transaction,
+    });
 
     const {transaction} = taprootRefundTransaction({
       ecp,
@@ -94,22 +95,22 @@ test(`Taproot Refund Swap`, async () => {
       refund_script: swapScript.refund,
       script_branches: swapScript.branches,
       sweep_address: (await createChainAddress({lnd})).address,
-      transaction_id: fromHex(signed.transaction).getId(),
-      transaction_vout: outs.findIndex(n => n.value === tokens),
+      transaction_id: idForTransaction({transaction: signed.transaction}).id,
+      transaction_vout: outputs.findIndex(n => n.tokens === tokens),
     });
 
-    const tx = fromHex(transaction);
+    const {id} = idForTransaction({transaction});
 
     await generate({count: 500});
 
-    await broadcastChainTransaction({lnd, transaction: tx.toHex()});
+    await broadcastChainTransaction({lnd, transaction});
 
     await asyncRetry({interval, times}, async () => {
       await generate({});
 
       const {utxos} = await getUtxos({lnd});
 
-      const utxo = utxos.find(n => n.transaction_id === tx.getId());
+      const utxo = utxos.find(n => n.transaction_id === id);
 
       if (!utxo || !utxo.confirmation_count) {
         throw new Error('ExpectedReceivedTaprootSpend');
