@@ -1,4 +1,5 @@
 const bodyParser = require('body-parser')
+const csrf = require('csrf')
 const express = require('express');
 
 const defaultSwapInBaseFee = 5000;
@@ -52,6 +53,15 @@ module.exports = args => {
   const app = express();
 
   app.use(bodyParser.json());
+
+  // Reject non-JSON requests on mutating routes (CSRF protection for JSON API)
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && !req.is('application/json')) {
+      return res.status(403).end();
+    }
+
+    return next();
+  });
 
   // Create new swap in
   app.post(path(methodNewSwapIn), async (req, res) => {
