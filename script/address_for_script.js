@@ -1,7 +1,7 @@
 const {encodeBase58Address} = require('@alexbosworth/blockchain');
 const {encodeBech32Address} = require('@alexbosworth/blockchain');
 
-const {names} = require('./../conf/bitcoinjs-lib');
+const {names} = require('./../conf/networks');
 const p2shP2wshOutputScript = require('./p2sh_p2wsh_output_script');
 const p2wshOutputScript = require('./p2wsh_output_script');
 

@@ -5,8 +5,6 @@ const {apis} = require('./conf/blockstream-info');
 const getHeightFromBlockstream = require('./get_height_from_blockstream');
 const getUtxosFromBlockstream = require('./get_utxos_from_blockstream');
 
-const {isArray} = Array;
-
 /** Find a UTXO with an output script matching an address
 
   {

@@ -1,6 +1,5 @@
 const EventEmitter = require('events');
 
-const asyncAuto = require('async/auto');
 const asyncWhilst = require('async/whilst');
 const {subscribeToBlocks} = require('ln-service');
 
@@ -51,9 +50,7 @@ module.exports = ({delay, lnd, network, request}) => {
     const sub = subscribeToBlocks({lnd});
 
     sub.on('block', ({height, id}) => emitter.emit('block', {height, id}));
-    sub.on('end', () => {});
     sub.on('error', err => emitter.emit('error', err));
-    sub.on('status', () => {});
 
     emitter.on('removeListener', () => {
       // Exit early when there are still listeners

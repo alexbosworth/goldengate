@@ -2,9 +2,6 @@ const {deepEqual} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {ECPair} = require('ecpair');
-const tinysecp = require('tiny-secp256k1');
-
 const claimOutputs = require('./../../transactions/claim_outputs');
 const {swapScript} = require('./../../script');
 
@@ -159,7 +156,6 @@ tests.forEach(({args, description, error, expected}) => {
   return test(description, async () => {
     const {script} = swapScript({
       claim_private_key: privateKey,
-      ecp: (await import('ecpair')).ECPairFactory(tinysecp),
       refund_public_key: Buffer.alloc(33, 3).toString('hex'),
       secret: Buffer.alloc(32).toString('hex'),
       timeout: 1571879,

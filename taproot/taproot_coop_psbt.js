@@ -1,15 +1,11 @@
 const {createPsbt} = require('psbt');
 const {decodePsbt} = require('psbt');
 const {extendPsbt} = require('psbt');
-const {Transaction} = require('bitcoinjs-lib');
-const {v1OutputScript} = require('p2tr');
+const {v1HashToSign} = require('p2tr');
 
 const taprootClaimOutputs = require('./taproot_claim_outputs');
 
-const bufferAsHex = buffer => buffer.toString('hex');
-const defaultSighash = Transaction.SIGHASH_DEFAULT;
-const {fromHex} = Transaction;
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const defaultSighash = 0;
 const {isArray} = Array;
 const sequence = 0;
 const vin = 0;
@@ -17,7 +13,6 @@ const vin = 0;
 /** Make a cooperative transaction for a taproot swap
 
   {
-    ecp: <ECPair Library Object>
     fee_tokens_per_vbyte: <Chain Fee Tokens Per VByte Number>
     network: <Network Name String>
     output_script: <Spending Output Script Hex String>
@@ -31,7 +26,7 @@ const vin = 0;
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
-    transaction_vout: <UTXO Transaction Vout Hex String>
+    transaction_vout: <UTXO Transaction Vout Number>
   }
 
   @throws
@@ -45,10 +40,6 @@ const vin = 0;
   }
 */
 module.exports = args => {
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpObjectToGenerateTaprootCoopPsbt');
-  }
-
   if (!args.fee_tokens_per_vbyte) {
     throw new Error('ExpectedChainFeeTokensPerVbyteToGenerateTaprootCoopPsbt');
   }
@@ -98,7 +89,6 @@ module.exports = args => {
 
   // Add witness data to the PSBT
   const {psbt} = extendPsbt({
-    ecp: args.ecp,
     inputs: [{
       sighash_type: defaultSighash,
       witness_utxo: {script_pub: args.output_script, tokens: args.tokens},
@@ -106,16 +96,15 @@ module.exports = args => {
     psbt: base.psbt,
   });
 
-  const transaction = decodePsbt({psbt, ecp: args.ecp}).unsigned_transaction;
+  const transaction = decodePsbt({psbt}).unsigned_transaction;
 
-  const tx = fromHex(transaction);
-
-  const hash = bufferAsHex(tx.hashForWitnessV1(
+  // The hash to sign commits to the output being spent by the single input
+  const {hash} = v1HashToSign({
+    transaction,
     vin,
-    [hexAsBuffer(args.output_script)],
-    [args.tokens],
-    defaultSighash
-  ));
+    sighash: defaultSighash,
+    spends: [{script: args.output_script, tokens: args.tokens}],
+  });
 
   return {hash, psbt, transaction};
 };

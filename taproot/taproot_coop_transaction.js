@@ -1,24 +1,26 @@
 const {hashForTree} = require('p2tr');
 const {pointAdd} = require('tiny-secp256k1');
+const {pointFromScalar} = require('tiny-secp256k1');
 const {privateAdd} = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 const {v1OutputScript} = require('p2tr');
 
+const {encodeTransaction} = require('./../transactions');
 const taprootClaimOutputs = require('./taproot_claim_outputs');
 const taprootResolutionWitness = require('./taproot_resolution_witness');
 
+const asTx = components => encodeTransaction(components).transaction;
 const bufferAsHex = buffer => buffer.toString('hex');
+const defaultVersion = 1;
+const emptyScript = '';
 const {from} = Buffer;
-const {fromHex} = Transaction;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const {isArray} = Array;
+const isCompressed = true;
 const sequence = 0;
-const txAsHash = id => Buffer.from(id, 'hex').reverse();
 
 /** Make a cooperative transaction for a taproot swap
 
   {
-    ecp: <ECPair Object>
     fee_tokens_per_vbyte: <Chain Fee Tokens Per VByte Number>
     network: <Network Name String>
     private_keys: [<Raw Private Key Hex String>]
@@ -32,7 +34,7 @@ const txAsHash = id => Buffer.from(id, 'hex').reverse();
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
-    transaction_vout: <UTXO Transaction Vout Hex String>
+    transaction_vout: <UTXO Transaction Vout Number>
   }
 
   @throws
@@ -44,10 +46,6 @@ const txAsHash = id => Buffer.from(id, 'hex').reverse();
   }
 */
 module.exports = args => {
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpairObjectToGenerateCoopTransaction');
-  }
-
   if (!args.fee_tokens_per_vbyte) {
     throw new Error('ExpectedChainFeeTokensPerVbyteToGenerateTaprootCoopTx');
   }
@@ -80,23 +78,29 @@ module.exports = args => {
     throw new Error('ExpectedTxOutputIndexToGenerateTaprootCoopTransaction');
   }
 
-  const keys = args.private_keys
-    .map(n => hexAsBuffer(n))
-    .map(n => args.ecp.fromPrivateKey(n));
+  const privateKeys = args.private_keys.map(n => hexAsBuffer(n));
 
-  const jointPublicKey = pointAdd(...keys.map(n => n.publicKey));
-  const privateKeys = keys.map(n => from(n.privateKey));
+  const publicKeys = privateKeys.map(n => pointFromScalar(n, isCompressed));
+
+  const jointPublicKey = pointAdd(...publicKeys);
 
   const output = v1OutputScript({
     hash: hashForTree({branches: args.script_branches}).hash,
     internal_key: bufferAsHex(from(jointPublicKey)),
   });
 
-  // Make a new tx that will spend the output back into the wallet
-  const tx = new Transaction();
-
-  // The new tx spends the Taproot output
-  tx.addInput(txAsHash(args.transaction_id), args.transaction_vout, sequence);
+  // Make a new tx that will spend the Taproot output back into the wallet
+  const tx = {
+    inputs: [{
+      sequence,
+      id: args.transaction_id,
+      script: emptyScript,
+      vout: args.transaction_vout,
+    }],
+    locktime: Number(),
+    outputs: [],
+    version: defaultVersion,
+  };
 
   // Calculate outputs to attach
   const {outputs} = taprootClaimOutputs({
@@ -109,22 +113,21 @@ module.exports = args => {
   });
 
   // Attach all the outputs
-  outputs.forEach(n => tx.addOutput(hexAsBuffer(n.script), n.tokens));
+  outputs.forEach(n => tx.outputs.push({script: n.script, tokens: n.tokens}));
 
   // Generate signatures and attach witnesses to the transaction
-  tx.ins.forEach((input, vin) => {
+  tx.inputs.forEach((input, vin) => {
     const {witness} = taprootResolutionWitness({
       vin,
-      ecp: args.ecp,
       output_script: output.script,
       private_key: bufferAsHex(from(privateAdd(...privateKeys))),
       script_branches: args.script_branches,
       tokens: args.tokens,
-      transaction: tx.toHex(),
+      transaction: asTx(tx),
     });
 
-    return tx.setWitness(vin, witness.map(hexAsBuffer));
+    return input.witness = witness;
   });
 
-  return {transaction: tx.toHex()};
+  return {transaction: asTx(tx)};
 };

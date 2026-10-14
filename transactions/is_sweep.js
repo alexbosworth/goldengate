@@ -1,9 +1,8 @@
-const {Transaction} = require('bitcoinjs-lib');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 
 const {versionOfSwapScript} = require('./../script');
 
-const bufferAsHex = buffer => buffer.toString('hex');
-const {fromHex} = Transaction;
+const byteLength = hex => hex.length / 2;
 const minWitnessStackLength = 3;
 const preimageByteLength = 32;
 const publicKeyByteLength = 33;
@@ -31,14 +30,17 @@ module.exports = ({transaction}) => {
     throw new Error('ExpectedTransactionToDetermineIfTxIsSweep');
   }
 
-  const {ins} = fromHex(transaction);
+  const {inputs} = componentsOfTransaction({transaction});
 
   // Exit early when the number of inputs is not the expected number
-  if (!ins || ins.length !== sweepInputLength) {
+  if (inputs.length !== sweepInputLength) {
     return {};
   }
 
-  const [{witness}] = ins;
+  const [input] = inputs;
+
+  // An input without a witness has an empty witness stack
+  const witness = input.witness || [];
 
   const [script] = witness.slice().reverse();
 
@@ -46,28 +48,28 @@ module.exports = ({transaction}) => {
     return {};
   }
 
-  const {version} = versionOfSwapScript({script: bufferAsHex(script)});
+  const {version} = versionOfSwapScript({script});
 
   // Exit early when the number of witness stack elements is not expected
-  if (!witness || witness.length < minWitnessStackLength) {
+  if (witness.length < minWitnessStackLength) {
     return {};
   }
 
+  // Byte lengths of the first two witness stack elements
+  const [firstLength, secondLength] = witness.map(byteLength);
+
   switch (version) {
   case swapV1:
-    const [signature, unlock] = witness;
-
+    // A v1 sweep has a signature and then the unlock element
     return {
-      is_success_sweep: unlock.length === preimageByteLength,
-      is_timeout_sweep: unlock.length !== preimageByteLength,
+      is_success_sweep: secondLength === preimageByteLength,
+      is_timeout_sweep: secondLength !== preimageByteLength,
     };
 
   case swapV2:
-    const [stackItem1, stackItem2] = witness;
-
     return {
-      is_success_sweep: stackItem1.length === preimageByteLength,
-      is_timeout_sweep: stackItem2.length === publicKeyByteLength,
+      is_success_sweep: firstLength === preimageByteLength,
+      is_timeout_sweep: secondLength === publicKeyByteLength,
     };
 
   default:

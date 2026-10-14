@@ -1,24 +1,19 @@
-const {createHash} = require('crypto');
-const {randomBytes} = require('crypto');
-
 const asyncAuto = require('async/auto');
-const {ECPair} = require('ecpair');
 const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
 
 const {addressForScript} = require('./../script');
+const {getPublicKey} = require('./../script');
+const {makePrivateKey} = require('./../script');
 const {protocolVersion} = require('./conf/swap_service');
+const {requestNetworks} = require('./conf/swap_service');
 const {swapScriptV2} = require('./../script');
 
 const alreadyCreatedError = 'contract already exists';
 const bufferize = n => Buffer.from(n.toString('base64'), 'base64');
-const currentSwapScriptVersion = 2;
 const bufFromHex = hex => Buffer.from(hex, 'hex');
+const currentSwapScriptVersion = 2;
 const defaultUserAgent = 'nodejs';
-const feeDivisor = 1e6;
-const {isBuffer} = Buffer;
-const networks = {bitcoin: 'btc', testnet: 'btctestnet'};
 const pkLen = 33;
 
 /** Create a swap in
@@ -53,9 +48,6 @@ const pkLen = 33;
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Check arguments
       validate: cbk => {
         if (args.fee === undefined) {
@@ -78,16 +70,20 @@ module.exports = (args, cbk) => {
       },
 
       // Keys
-      keys: ['ecp', 'validate', ({ecp}, cbk) => {
-        const key = ecp.makeRandom();
+      keys: ['validate', ({}, cbk) => {
+        const key = makePrivateKey({});
 
-        const privateKey = args.private_key || key.privateKey.toString('hex');
+        const privateKey = args.private_key || key.private_key;
 
-        const swapKey = ecp.fromPrivateKey(Buffer.from(privateKey, 'hex'));
+        try {
+          const swapKey = getPublicKey({private_key: privateKey});
 
-        const publicKey = args.public_key || swapKey.publicKey.toString('hex');
+          const publicKey = args.public_key || swapKey.public_key;
 
-        return cbk(null, {private_key: privateKey, public_key: publicKey});
+          return cbk(null, {private_key: privateKey, public_key: publicKey});
+        } catch (err) {
+          return cbk([400, 'ExpectedValidPrivateKeyToCreateSwapIn']);
+        }
       }],
 
       // Decode request
@@ -95,13 +91,13 @@ module.exports = (args, cbk) => {
         try {
           const parsed = parsePaymentRequest({request: args.request});
 
-          if (!networks[parsed.network]) {
+          if (!requestNetworks[parsed.network]) {
             return cbk([400, 'ExpectedKnownNetworkForSwapInPaymentRequest']);
           }
 
           return cbk(null, {
             id: parsed.id,
-            network: networks[parsed.network],
+            network: requestNetworks[parsed.network],
             tokens: parsed.tokens,
           });
         } catch (err) {
@@ -164,17 +160,15 @@ module.exports = (args, cbk) => {
       // Swap script. The server has the main pubkey, the client the refund key
       script: [
         'create',
-        'ecp',
         'keys',
         'parsedRequest',
-        ({create, ecp, keys, parsedRequest}, cbk) =>
+        ({create, keys, parsedRequest}, cbk) =>
       {
         try {
           const {script} = swapScriptV2({
-            ecp,
             hash: parsedRequest.id,
             claim_public_key: create.service_public_key,
-            refund_private_key: keys.private_key,
+            refund_public_key: keys.public_key,
             timeout: create.timeout,
           });
 

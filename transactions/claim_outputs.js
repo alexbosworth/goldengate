@@ -1,19 +1,21 @@
-const {address} = require('bitcoinjs-lib');
-const {Transaction} = require('bitcoinjs-lib');
+const {outputScriptForAddress} = require('@alexbosworth/blockchain');
+const {sizeOfTransaction} = require('@alexbosworth/blockchain');
 
+const encodeTransaction = require('./encode_transaction');
 const estimateTxWeight = require('./estimate_tx_weight');
-const {names} = require('./../conf/bitcoinjs-lib');
-const {outputScriptForAddress} = require('./../address');
 
 const {ceil} = Math;
+const defaultSequence = 0xffffffff;
+const defaultVersion = 1;
+const dummyTxId = Buffer.alloc(32).toString('hex');
 const dust = 546;
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const emptyScript = '';
 const {isArray} = Array;
 const {max} = Math;
 const notFoundIndex = -1;
 const secretByteLength = 32;
-const txIdByteLength = 32;
 const vRatio = 4;
+const weightOf = tx => sizeOfTransaction(encodeTransaction(tx)).weight;
 
 /** Determine outputs for a claim transaction
 
@@ -76,16 +78,27 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
     throw new Error('ExpectedTokensToCalculateClaimOutputs');
   }
 
-  const tx = new Transaction();
-
-  // Add UTXO to tx
-  tx.addInput(Buffer.alloc(txIdByteLength), Number());
+  // Add a dummy UTXO to the tx
+  const tx = {
+    inputs: [{
+      id: dummyTxId,
+      script: emptyScript,
+      sequence: defaultSequence,
+      vout: Number(),
+    }],
+    locktime: Number(),
+    outputs: [],
+    version: defaultVersion,
+  };
 
   // Add sweep outputs
   try {
     const {script} = outputScriptForAddress({address, network});
 
-    tx.addOutput(hexAsBuffer(script), tokens);
+    tx.outputs.push({script, tokens});
+
+    // Make sure the sweep output can be encoded
+    encodeTransaction(tx);
   } catch (err) {
     throw new Error('FailedToAddSweepAddressOutputScriptCalculatingOutputs');
   }
@@ -93,7 +106,7 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
   // Estimate final weight with the single output
   const singleOutput = estimateTxWeight({
     unlock: Buffer.alloc(secretByteLength),
-    weight: tx.weight(),
+    weight: weightOf(tx),
     witness_script: script,
   });
 
@@ -128,13 +141,13 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
   outs.forEach(out => {
     const {script} = outputScriptForAddress({network, address: out.address});
 
-    return tx.addOutput(hexAsBuffer(script), out.tokens);
+    return tx.outputs.push({script, tokens: out.tokens});
   });
 
   // Estimate the final weight with the additional output attachments
   const multiOutput = estimateTxWeight({
     unlock: Buffer.alloc(secretByteLength),
-    weight: tx.weight(),
+    weight: weightOf(tx),
     witness_script: script,
   });
 

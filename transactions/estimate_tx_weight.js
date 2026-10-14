@@ -37,6 +37,7 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForTxWeightEstimation');
   }
 
+  const unlock = bufferFromHex(args.unlock);
   const {version} = versionOfSwapScript({script: args.witness_script});
 
   switch (version) {
@@ -47,15 +48,13 @@ module.exports = args => {
         shortPushdataLength,
         maxSignatureLength,
         shortPushdataLength,
-        bufferFromHex(args.unlock).length,
+        unlock.length,
         sequenceLength,
         bufferFromHex(args.witness_script).length,
       ]),
     };
 
   case 2:
-    const unlock = bufferFromHex(args.unlock);
-
     switch (unlock.length) {
     case preimageLength:
       return {

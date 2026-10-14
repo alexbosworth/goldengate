@@ -4,8 +4,6 @@ const {returnResult} = require('asyncjs-util');
 
 const {getBlockstreamChainFeeRate} = require('./../blockstream');
 
-const defaultTokensPerVbyte = 1;
-
 /** Get chain fee rate
 
   {

@@ -6,7 +6,6 @@ const {taprootVersion} = require('./conf/swap_service');
 
 const failureReason = 'LND_FAILURE_REASON_NONE';
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
-const remainingHops = 1;
 const routeType = 'INVOICE_ROUTE';
 
 /** Cancel a swap out

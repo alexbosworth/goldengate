@@ -1,6 +1,8 @@
-const {Transaction} = require('bitcoinjs-lib');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
+const {idForTransaction} = require('@alexbosworth/blockchain');
 
-const {fromHex} = Transaction;
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const isEqualHex = (a, b) => hexAsBuffer(a).equals(hexAsBuffer(b));
 const notFoundIndex = -1;
 
 /** Find an output and input in a transaction matching a pattern of a spend
@@ -35,26 +37,26 @@ module.exports = ({id, script, tokens, transaction, vout}) => {
   }
 
   try {
-    fromHex(transaction)
+    componentsOfTransaction({transaction});
   } catch (err) {
     throw new Error('ExpectedValidTransactionToFindOutput');
   }
 
-  const tx = fromHex(transaction);
+  const tx = componentsOfTransaction({transaction});
 
-  const vin = tx.ins.findIndex(input => {
+  const vin = tx.inputs.findIndex(input => {
     // Any vin is acceptable when there is no spending outpoint specified
     if (!id) {
       return true;
     }
 
     // The input outpoint must match the transaction id
-    if (!input.hash.equals(Buffer.from(id, 'hex').reverse())) {
+    if (!isEqualHex(input.id, id)) {
       return false;
     }
 
     // The input output index must match the transaction vout
-    if (input.index !== vout) {
+    if (input.vout !== vout) {
       return false;
     }
 
@@ -65,14 +67,14 @@ module.exports = ({id, script, tokens, transaction, vout}) => {
     return {};
   }
 
-  const outputIndex = tx.outs.findIndex(output => {
+  const outputIndex = tx.outputs.findIndex(output => {
     // Ignore output if the value isn't as expected
-    if (!!tokens && output.value < tokens) {
+    if (!!tokens && output.tokens < tokens) {
       return false;
     }
 
     // Ignore output if the script isn't as expected
-    if (!output.script.equals(Buffer.from(script, 'hex'))) {
+    if (!isEqualHex(output.script, script)) {
       return false;
     }
 
@@ -85,8 +87,8 @@ module.exports = ({id, script, tokens, transaction, vout}) => {
 
   return {
     output: {
-      id: tx.getId(),
-      tokens: tx.outs[outputIndex].value,
+      id: idForTransaction({transaction}).id,
+      tokens: tx.outputs[outputIndex].tokens,
       vout: outputIndex,
     },
   };

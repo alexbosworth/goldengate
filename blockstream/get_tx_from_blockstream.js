@@ -1,7 +1,7 @@
 const asyncAuto = require('async/auto');
 const asyncRetry = require('async/retry');
+const {idForTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
-const {Transaction} = require('bitcoinjs-lib');
 
 const {apis} = require('./conf/blockstream-info');
 
@@ -68,7 +68,7 @@ module.exports = ({id, interval, network, request, retries}, cbk) => {
             }
 
             try {
-              if (Transaction.fromHex(transaction).getId() !== id) {
+              if (idForTransaction({transaction}).id !== id) {
                 return cbk([503, 'ExpectedRawTransactionInResponse']);
               }
             } catch (err) {

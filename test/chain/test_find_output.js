@@ -103,6 +103,28 @@ const tests = [
     description: 'Avoid output when outpoint and wrong tokens are specified',
     expected: {},
   },
+  {
+    args: {
+      id: tx1Id,
+      script: outputScript(addr).script,
+      transaction: tx2,
+    },
+    description: 'A vout is expected when an outpoint id is specified',
+    error: 'ExpectedVoutWhenSpendingOutpointIdIsSpecified',
+  },
+  {
+    args: {transaction: tx2},
+    description: 'An output script is expected',
+    error: 'ExpectedSpendingScriptToFindOutput',
+  },
+  {
+    args: {
+      script: outputScript(addr).script,
+      transaction: '00',
+    },
+    description: 'A valid transaction is expected',
+    error: 'ExpectedValidTransactionToFindOutput',
+  },
 ];
 
 tests.forEach(({args, description, error, expected}) => {

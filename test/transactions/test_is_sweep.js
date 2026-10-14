@@ -2,10 +2,8 @@ const {equal} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {ECPair} = require('ecpair');
 const {scriptAsScriptElements} = require('@alexbosworth/blockchain');
 const {scriptElementsAsScript} = require('@alexbosworth/blockchain');
-const tinysecp = require('tiny-secp256k1');
 const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const {isSweep} = require('./../../');
@@ -14,7 +12,7 @@ const {swapScriptV2} = require('./../../script');
 
 const maxSequence = 0xffffffff;
 
-const makeTx = ({ecp, input, program, witness, scriptVersion}) => {
+const makeTx = ({input, program, witness, scriptVersion}) => {
   const inputs = [];
 
   if (!!input) {
@@ -28,7 +26,6 @@ const makeTx = ({ecp, input, program, witness, scriptVersion}) => {
 
   if (!!witness) {
     const {script} = !program ? {} : (scriptVersion || swapScript)({
-      ecp,
       claim_public_key: Buffer.alloc(33).toString('hex'),
       hash: Buffer.alloc(32).toString('hex'),
       refund_private_key: Buffer.alloc(32, 1).toString('hex'),
@@ -160,8 +157,6 @@ const tests = [
 
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async () => {
-    args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
-
     const params = {transaction: makeTx(args)};
 
     if (args === false) {

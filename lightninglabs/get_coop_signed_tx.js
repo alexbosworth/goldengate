@@ -1,16 +1,15 @@
 const asyncAuto = require('async/auto');
 const {beginGroupSigningSession} = require('ln-service');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {endGroupSigningSession} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 const {updateGroupSigningSession} = require('ln-service');
 
+const {encodeTransaction} = require('./../transactions');
 const {taprootCoopPsbt} = require('./../taproot');
 const {taprootVersion} = require('./conf/swap_service');
 
 const bufferAsHex = buffer => buffer.toString('hex');
-const {fromHex} = Transaction;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const {isArray} = Array;
 const {isBuffer} = Buffer;
@@ -39,7 +38,7 @@ const {isBuffer} = Buffer;
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
-    transaction_vout: <UTXO Transaction Vout Hex String>
+    transaction_vout: <UTXO Transaction Vout Number>
   }
 
   @returns via cbk or Promise
@@ -50,9 +49,6 @@ const {isBuffer} = Buffer;
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import the ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Check arguments
       validate: cbk => {
         if (!args.fee_tokens_per_vbyte) {
@@ -135,10 +131,9 @@ module.exports = (args, cbk) => {
       }],
 
       // Assemble the PSBT to submit to the server
-      unsigned: ['ecp', 'validate', ({ecp}, cbk) => {
+      unsigned: ['validate', ({}, cbk) => {
         try {
           const {hash, psbt, transaction} = taprootCoopPsbt({
-            ecp,
             fee_tokens_per_vbyte: args.fee_tokens_per_vbyte,
             network: args.network,
             output_script: args.output_script,
@@ -218,14 +213,25 @@ module.exports = (args, cbk) => {
 
       // Assemble the signed sweep
       signed: ['end', 'unsigned', ({end, unsigned}, cbk) => {
-        const tx = fromHex(unsigned.transaction);
-
-        // Generate signatures and attach witnesses to the transaction
-        tx.ins.forEach((input, vin) => {
-          return tx.setWitness(vin, [hexAsBuffer(end.signature)]);
+        const tx = componentsOfTransaction({
+          transaction: unsigned.transaction,
         });
 
-        return cbk(null, {transaction: tx.toHex()});
+        // Attach the joint signature witnesses to the transaction
+        const {transaction} = encodeTransaction({
+          inputs: tx.inputs.map(input => ({
+            id: input.id,
+            script: input.script,
+            sequence: input.sequence,
+            vout: input.vout,
+            witness: [end.signature],
+          })),
+          locktime: tx.locktime,
+          outputs: tx.outputs,
+          version: tx.version,
+        });
+
+        return cbk(null, {transaction});
       }],
     },
     returnResult({reject, resolve, of: 'signed'}, cbk));

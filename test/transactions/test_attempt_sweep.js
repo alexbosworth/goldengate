@@ -143,6 +143,11 @@ const tests = [
     description: 'A swap witness script is required',
     error: [400, 'ExpectedWitnessScriptToExecuteUtxoSweepAttempt'],
   },
+  {
+    args: makeArgs({network: 'btc'}),
+    description: 'A sweep address for the network is required',
+    error: [500, 'FailedToGenerateSweepTransaction'],
+  },
 ];
 
 tests.forEach(({args, description, error, expected}) => {

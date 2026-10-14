@@ -5,7 +5,6 @@ const getHeightFromBlockstream = require('./get_height_from_blockstream');
 const getTxsFromBlockstream = require('./get_txs_from_blockstream');
 
 const confs = (height, confirmed) => !confirmed ? 0 : height - confirmed + 1;
-const {isArray} = Array;
 
 /** Find a spend to an address that is spending a UTXO
 
@@ -151,6 +150,11 @@ module.exports = (args, cbk) => {
 
         // Find the output on the transaction
         const output = spend.outputs.find(output => {
+          // When tokens are specified, the output should have those tokens
+          if (!!args.tokens && output.tokens !== args.tokens) {
+            return false;
+          }
+
           if (!!args.address) {
             return output.address === args.address;
           }

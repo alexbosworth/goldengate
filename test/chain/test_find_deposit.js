@@ -82,6 +82,62 @@ const tests = [
   },
   {
     args: {
+      address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
+      after: 1,
+      confirmations: 3,
+      lnd: {
+        chain: {
+          registerConfirmationsNtfn: ({}) => {
+            const emitter = new EventEmitter();
+
+            emitter.cancel = () => {};
+
+            process.nextTick(() => {
+              emitter.emit('status', {});
+
+              emitter.emit('end');
+
+              return;
+            });
+
+            return emitter;
+          },
+        },
+      },
+      network: 'btctestnet',
+      timeout: 1000,
+      tokens: 100,
+    },
+    description: 'Subscription ends before finding deposit',
+    error: [503, 'SubscriptionEndWithoutDeposit'],
+  },
+  {
+    args: {
+      address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
+      after: 1,
+      confirmations: 3,
+      lnd: {
+        chain: {
+          registerConfirmationsNtfn: ({}) => {
+            const emitter = new EventEmitter();
+
+            emitter.cancel = () => {};
+
+            process.nextTick(() => emitter.emit('error', 'err'));
+
+            return emitter;
+          },
+        },
+      },
+      network: 'btctestnet',
+      timeout: 1000,
+      tokens: 100,
+    },
+    description: 'Subscription fails before finding deposit',
+    error: [503, 'FailedToFindChainDeposit', {err: 'err'}],
+  },
+  {
+    args: {
       address: 'address',
       confirmations: 3,
       network: 'btctestnet',

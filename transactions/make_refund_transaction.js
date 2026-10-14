@@ -1,7 +1,5 @@
 const asyncAuto = require('async/auto');
-const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
 
 const refundTransaction = require('./refund_transaction');
 
@@ -10,12 +8,13 @@ const refundTransaction = require('./refund_transaction');
   {
     block_height: <Timelock Block Height Number>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
+    [is_nested]: <Refund Spending From Nested Output Bool>
     network: <Network Name String>
-    [private_key]: <Refund Private Key WIF String>
+    [private_key]: <Refund Private Key Hex String>
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
-    transaction_vout: <UTXO Transaction Vout Hex String>
+    transaction_vout: <UTXO Transaction Vout Number>
     witness_script: <UTXO Witness Script Hex String>
   }
 
@@ -27,16 +26,13 @@ const refundTransaction = require('./refund_transaction');
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Refund transaction
-      refund: ['ecp', ({ecp}, cbk) => {
+      refund: cbk => {
         try {
           const {transaction} = refundTransaction({
-            ecp,
             block_height: args.block_height,
             fee_tokens_per_vbyte: args.fee_tokens_per_vbyte,
+            is_nested: args.is_nested,
             network: args.network,
             private_key: args.private_key,
             sweep_address: args.sweep_address,
@@ -50,7 +46,7 @@ module.exports = (args, cbk) => {
         } catch (err) {
           return cbk([500, 'FailedToConstructRefundTransaction', {err}]);
         }
-      }],
+      },
     },
     returnResult({reject, resolve, of: 'refund'}, cbk));
   });

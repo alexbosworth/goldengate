@@ -1,16 +1,19 @@
-const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
 const {controlBlock} = require('p2tr');
-const {Transaction} = require('bitcoinjs-lib');
+const {outputScriptForAddress} = require('@alexbosworth/blockchain');
+const {sizeOfTransaction} = require('@alexbosworth/blockchain');
 
-const {names} = require('./../conf/bitcoinjs-lib');
-const {outputScriptForAddress} = require('./../address');
+const {encodeTransaction} = require('./../transactions');
+const {names} = require('./../conf/networks');
 const predictSweepWeight = require('./predict_sweep_weight');
 const taprootResolutionWitness = require('./taproot_resolution_witness');
+const xOnlyPublicKey = require('./x_only_public_key');
 
 const asOut = (address, network) => outputScriptForAddress({address, network});
+const asTx = components => encodeTransaction(components).transaction;
 const {ceil} = Math;
-const hexAsBuf = hex => Buffer.from(hex, 'hex');
+const defaultVersion = 1;
+const emptyScript = '';
 const {isArray} = Array;
 const minSequence = 0;
 const minTokens = 0;
@@ -20,10 +23,9 @@ const vRatio = 4;
 
   {
     block_height: <Timelock Block Height Number>
-    ecp: <ECPair Object>
     external_key: <Taproot Output External Public Key Hex String>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
-    internal_key: <Taproot Output Internal Public Key Hex String>
+    [internal_key]: <Taproot Output Internal Public Key Hex String>
     network: <Network Name String>
     output_script: <Output Script Hex String>
     [private_key]: <Refund Private Key Hex String>
@@ -34,7 +36,7 @@ const vRatio = 4;
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
-    transaction_vout: <UTXO Transaction Vout Hex String>
+    transaction_vout: <UTXO Transaction Vout Number>
   }
 
   @throws
@@ -48,10 +50,6 @@ const vRatio = 4;
 module.exports = args => {
   if (!args.block_height) {
     throw new Error('ExpectedLocktimeHeightForTaprootRefundTransaction');
-  }
-
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpObjectForTaprootRefundTransaction');
   }
 
   if (!args.external_key) {
@@ -94,24 +92,27 @@ module.exports = args => {
     throw new Error('ExpectedTransactionVoutToCreateRefundTaprootTransaction');
   }
 
-  const sweepScript = hexAsBuf(asOut(args.sweep_address, args.network).script);
-  const tx = new Transaction();
+  const sweepScript = asOut(args.sweep_address, args.network).script;
 
-  // Add sweep output
-  tx.addOutput(sweepScript, args.tokens);
+  // OP_CLTV needs the locktime set and prohibits a final sequence
+  const tx = {
+    inputs: [{
+      id: args.transaction_id,
+      script: emptyScript,
+      sequence: minSequence,
+      vout: args.transaction_vout,
+    }],
+    locktime: bip65Encode({blocks: args.block_height}),
+    outputs: [{script: sweepScript, tokens: args.tokens}],
+    version: defaultVersion,
+  };
 
-  // Add the UTXO to sweep
-  tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
-
-  // OP_CLTV prohibits final sequence use
-  tx.ins.forEach(input => input.sequence = minSequence);
-
-  // Set transaction locktime which will be needed for OP_CLTV
-  tx.locktime = bip65Encode({blocks: args.block_height});
+  // Control blocks use the x-only form of the internal key
+  const internalKey = xOnlyPublicKey({public_key: args.internal_key}).x_only;
 
   const {block} = controlBlock({
     external_key: args.external_key,
-    internal_key: args.internal_key,
+    internal_key: internalKey,
     leaf_script: args.refund_script,
     script_branches: args.script_branches,
   });
@@ -120,43 +121,43 @@ module.exports = args => {
   const {weight} = predictSweepWeight({
     control: block,
     script: args.refund_script,
-    weight: tx.weight(),
+    weight: sizeOfTransaction({transaction: asTx(tx)}).weight,
   });
 
   // Reduce the final output value to give some tokens over to fees
-  const [out] = tx.outs;
+  const [out] = tx.outputs;
 
-  out.value -= args.fee_tokens_per_vbyte * ceil(weight / vRatio);
+  out.tokens -= args.fee_tokens_per_vbyte * ceil(weight / vRatio);
 
-  if (out.value < minTokens) {
+  if (out.tokens < minTokens) {
     throw new Error('ExpectedMoreTokensForTaprootRefundTransaction');
   }
 
+  // A fractional fee rate can leave a fractional output value
+  tx.outputs.forEach(out => out.tokens = ceil(out.tokens));
+
   // Exit early when there is no private key to sign the refund inputs
   if (!args.private_key) {
-    return {transaction: tx.toHex()};
+    return {transaction: asTx(tx)};
   }
 
   // Set witness
-  tx.outs.forEach(out => out.value = ceil(out.value));
-
-  tx.ins.forEach((input, i) => {
+  tx.inputs.forEach((input, i) => {
     const {witness} = taprootResolutionWitness({
-      ecp: args.ecp,
       external_key: args.external_key,
-      internal_key: args.internal_key,
+      internal_key: internalKey,
       output_script: args.output_script,
       private_key: args.private_key,
       refund_script: args.refund_script,
       script_branches: args.script_branches,
       tokens: args.tokens,
-      transaction: tx.toHex(),
+      transaction: asTx(tx),
       vin: i,
     });
 
-    return tx.setWitness(i, witness.map(n => hexAsBuf(n)));
+    return input.witness = witness;
   });
 
-  return {transaction: tx.toHex()};
+  return {transaction: asTx(tx)};
 };
 

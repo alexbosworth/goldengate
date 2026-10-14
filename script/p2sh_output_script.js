@@ -1,10 +1,11 @@
-const {crypto} = require('bitcoinjs-lib');
-const {OP_EQUAL} = require('bitcoin-ops');
-const {OP_HASH160} = require('bitcoin-ops');
-const {script} = require('bitcoinjs-lib');
+const {createHash} = require('crypto');
 
-const compileScript = elements => script.compile(elements).toString('hex');
-const hash160 = hexPreimage => crypto.hash160(Buffer.from(hexPreimage, 'hex'));
+const {p2shOutputScript} = require('@alexbosworth/blockchain');
+
+const bufferAsHex = buffer => buffer.toString('hex');
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const ripemd160 = buffer => createHash('ripemd160').update(buffer).digest();
+const sha256 = preimage => createHash('sha256').update(preimage).digest();
 
 /** Get a P2SH output script for a redeem script
 
@@ -18,5 +19,7 @@ const hash160 = hexPreimage => crypto.hash160(Buffer.from(hexPreimage, 'hex'));
   }
 */
 module.exports = ({script}) => {
-  return {output: compileScript([OP_HASH160, hash160(script), OP_EQUAL])};
+  const hash = ripemd160(sha256(hexAsBuffer(script)));
+
+  return {output: bufferAsHex(p2shOutputScript({hash}).script)};
 };

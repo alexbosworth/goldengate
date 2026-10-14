@@ -1,17 +1,21 @@
-const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
 const {OP_FALSE} = require('bitcoin-ops');
-const {Transaction} = require('bitcoinjs-lib');
+const {outputScriptForAddress} = require('@alexbosworth/blockchain');
+const {sizeOfTransaction} = require('@alexbosworth/blockchain');
 
+const encodeTransaction = require('./encode_transaction');
 const estimateTxWeight = require('./estimate_tx_weight');
-const {names} = require('./../conf/bitcoinjs-lib');
+const {names} = require('./../conf/networks');
 const {nestedWitnessScript} = require('./../script');
-const {outputScriptForAddress} = require('./../address');
 const witnessForResolution = require('./witness_for_resolution');
 
+const asTx = components => encodeTransaction(components).transaction;
+const bufferAsHex = buffer => buffer.toString('hex');
 const {ceil} = Math;
+const defaultVersion = 1;
 const dummy = Buffer.from(OP_FALSE.toString(16), 'hex');
-const hexAsBuf = hex => Buffer.from(hex, 'hex');
+const emptyScript = '';
+const {isBuffer} = Buffer;
 const minSequence = 0;
 const minTokens = 0;
 const vRatio = 4;
@@ -20,7 +24,6 @@ const vRatio = 4;
 
   {
     block_height: <Timelock Block Height Number>
-    ecp: <ECPair Object>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
     [is_nested]: <Refund Spending From Nested Output Bool>
     network: <Network Name String>
@@ -28,7 +31,7 @@ const vRatio = 4;
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
-    transaction_vout: <UTXO Transaction Vout Hex String>
+    transaction_vout: <UTXO Transaction Vout Number>
     witness_script: <UTXO Witness Script Hex String>
   }
 
@@ -43,10 +46,6 @@ const vRatio = 4;
 module.exports = args => {
   if (!args.block_height) {
     throw new Error('ExpectedLocktimeHeightForRefundTransaction');
-  }
-
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpObjectForRefundTransaction');
   }
 
   if (!args.fee_tokens_per_vbyte) {
@@ -77,73 +76,71 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForRefundTransaction');
   }
 
-  const tx = new Transaction();
-
   const {script} = outputScriptForAddress({
     network: args.network,
     address: args.sweep_address,
   });
 
-  // Add sweep output
-  tx.addOutput(hexAsBuf(script), args.tokens);
-
-  // Add the UTXO to sweep
-  tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
-
-  // OP_CLTV prohibits final sequence use
-  tx.ins.forEach(input => input.sequence = minSequence);
-
-  // Set transaction locktime which will be needed for OP_CLTV
-  tx.locktime = bip65Encode({blocks: args.block_height});
+  // OP_CLTV needs the locktime set and prohibits a final sequence
+  const tx = {
+    inputs: [{
+      id: args.transaction_id,
+      script: emptyScript,
+      sequence: minSequence,
+      vout: args.transaction_vout,
+    }],
+    locktime: bip65Encode({blocks: args.block_height}),
+    outputs: [{script, tokens: args.tokens}],
+    version: defaultVersion,
+  };
 
   // When using nested P2SH, the true script hash is added to the scriptSig
   if (!!args.is_nested) {
     const nested = nestedWitnessScript({witness_script: args.witness_script});
 
-    const script = hexAsBuf(nested.redeem_script);
-
     // Set the nested redeem script
-    tx.ins.forEach((input, i) => tx.setInputScript(i, script));
+    tx.inputs.forEach(input => input.script = nested.redeem_script);
   }
 
   // Estimate final weight and reduce output by this estimate
   const {weight} = estimateTxWeight({
     unlock: dummy,
-    weight: tx.weight(),
+    weight: sizeOfTransaction({transaction: asTx(tx)}).weight,
     witness_script: args.witness_script,
   });
 
   // Reduce the final output value to give some tokens over to fees
-  const [out] = tx.outs;
+  const [out] = tx.outputs;
 
-  out.value -= args.fee_tokens_per_vbyte * ceil(weight / vRatio);
+  out.tokens -= args.fee_tokens_per_vbyte * ceil(weight / vRatio);
 
-  if (out.value < minTokens) {
+  if (out.tokens < minTokens) {
     throw new Error('ExpectedMoreTokensForRefundTransaction');
   }
 
+  // A fractional fee rate can leave a fractional output value
+  tx.outputs.forEach(out => out.tokens = ceil(out.tokens));
+
   // Exit early when there is no private key to sign the refund inputs
   if (!args.private_key) {
-    return {transaction: tx.toHex()};
+    return {transaction: asTx(tx)};
   }
 
   // Set witness
-  tx.outs.forEach(out => out.value = ceil(out.value));
-
-  tx.ins.forEach((input, i) => {
+  tx.inputs.forEach((input, i) => {
     const {witness} = witnessForResolution({
-      ecp: args.ecp,
       private_key: args.private_key,
       tokens: args.tokens,
-      transaction: tx.toHex(),
+      transaction: asTx(tx),
       unlock: dummy,
       vin: i,
       witness_script: args.witness_script,
     });
 
-    return tx.setWitness(i, witness.map(n => hexAsBuf(n)));
+    // The dummy unlock element is a Buffer
+    return input.witness = witness.map(n => isBuffer(n) ? bufferAsHex(n) : n);
   });
 
-  return {transaction: tx.toHex()};
+  return {transaction: asTx(tx)};
 };
 

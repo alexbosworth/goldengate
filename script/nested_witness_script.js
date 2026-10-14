@@ -1,11 +1,8 @@
-const {crypto} = require('bitcoinjs-lib');
-const {encode} = require('varuint-bitcoin');
-const {OP_0} = require('bitcoin-ops');
-const {script} = require('bitcoinjs-lib');
+const {scriptElementsAsScript} = require('@alexbosworth/blockchain');
 
-const compileScript = elements => script.compile(elements).toString('hex');
-const sha256 = hex => crypto.sha256(Buffer.from(hex, 'hex'));
-const witnessVersion = encode(OP_0).buffer.toString('hex');
+const p2wshOutputScript = require('./p2wsh_output_script');
+
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 
 /** Get a scriptSig-nested witness script
 
@@ -26,9 +23,11 @@ module.exports = args => {
     throw new Error('ExpectedWitnessProgramToCreatedNestedScriptSig');
   }
 
-  const nestComponents = [witnessVersion, sha256(args.witness_script)];
+  // The nested witness program is the P2WSH output script for the script
+  const {output} = p2wshOutputScript({script: args.witness_script});
 
-  const nest = Buffer.from(compileScript(nestComponents), 'hex');
+  // The redeem script pushes the witness program
+  const {script} = scriptElementsAsScript({elements: [hexAsBuffer(output)]});
 
-  return {redeem_script: compileScript([nest])};
+  return {redeem_script: script};
 };

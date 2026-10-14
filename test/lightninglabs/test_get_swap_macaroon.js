@@ -49,10 +49,18 @@ const tests = [
     args: {
       service: {
         loopOutTerms,
-        newLoopOutSwap: ({}, {}, cbk) => cbk({
-          details: 'payment required',
-          metadata: {get: () => [auth]},
-        }),
+        newLoopOutSwap: ({}, metadata, cbk) => {
+          const [authorization] = metadata.get('Authorization');
+
+          if (!!authorization) {
+            return cbk([400, 'UnexpectedAuthorizationSpecified']);
+          }
+
+          return cbk({
+            details: 'payment required',
+            metadata: {get: () => [auth]},
+          });
+        },
       },
     },
     description: 'Payment details are expected',

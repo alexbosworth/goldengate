@@ -1,5 +1,10 @@
 {
   "protocolVersion": "LOOP_OUT_CANCEL",
+  "requestNetworks": {
+    "bitcoin": "btc",
+    "regtest": "btcregtest",
+    "testnet": "btctestnet"
+  },
   "serverSwapFailure": {
     "incorrect_htlc_amount": "SERVER_FAILED_INVALID_HTLC_AMOUNT",
     "late_or_missing_htlc_onchain": "SERVER_FAILED_NO_HTLC",

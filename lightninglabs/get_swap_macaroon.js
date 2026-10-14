@@ -4,7 +4,6 @@ const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
 const getSwapOutTerms = require('./get_swap_out_terms');
-const lightningLabsSwapService = require('./lightning_labs_swap_service');
 const parsePaymentMetadata = require('./parse_payment_metadata');
 const {protocolVersion} = require('./conf/swap_service');
 

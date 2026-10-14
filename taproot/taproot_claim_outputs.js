@@ -1,21 +1,22 @@
-const {address} = require('bitcoinjs-lib');
-const {Transaction} = require('bitcoinjs-lib');
+const {outputScriptForAddress} = require('@alexbosworth/blockchain');
+const {sizeOfTransaction} = require('@alexbosworth/blockchain');
 
-const {names} = require('./../conf/bitcoinjs-lib');
-const {outputScriptForAddress} = require('./../address');
+const {encodeTransaction} = require('./../transactions');
 const predictSweepWeight = require('./predict_sweep_weight');
 
 const asOut = (address, network) => outputScriptForAddress({address, network});
-const bufferAsHex = buffer => buffer.toString('hex');
 const {ceil} = Math;
+const defaultSequence = 0xffffffff;
+const defaultVersion = 1;
+const dummyTxId = Buffer.alloc(32).toString('hex');
 const dust = 546;
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const emptyScript = '';
 const {isArray} = Array;
 const {max} = Math;
 const notFoundIndex = -1;
 const secretByteLength = 32;
-const txIdByteLength = 32;
 const vRatio = 4;
+const weightOf = tx => sizeOfTransaction(encodeTransaction(tx)).weight;
 
 /** Determine outputs for a claim transaction
 
@@ -79,16 +80,27 @@ module.exports = args => {
     throw new Error('ExpectedTokensToCalculateTaprootClaimOutputs');
   }
 
-  const tx = new Transaction();
-
   // Add a dummy UTXO to the tx
-  tx.addInput(Buffer.alloc(txIdByteLength), Number());
+  const tx = {
+    inputs: [{
+      id: dummyTxId,
+      script: emptyScript,
+      sequence: defaultSequence,
+      vout: Number(),
+    }],
+    locktime: Number(),
+    outputs: [],
+    version: defaultVersion,
+  };
 
   // Add the sweep output
   try {
-    const outputScript = hexAsBuffer(asOut(args.address, args.network).script);
+    const outputScript = asOut(args.address, args.network).script;
 
-    tx.addOutput(outputScript, args.tokens);
+    tx.outputs.push({script: outputScript, tokens: args.tokens});
+
+    // Make sure the sweep output can be encoded
+    encodeTransaction(tx);
   } catch (err) {
     throw new Error('FailedToAddSweepAddressOutputCalculatingTaprootOutputs');
   }
@@ -97,7 +109,7 @@ module.exports = args => {
   const singleOutput = predictSweepWeight({
     control: args.control,
     unlock: Buffer.alloc(secretByteLength),
-    weight: tx.weight(),
+    weight: weightOf(tx),
     script: args.script,
   });
 
@@ -130,9 +142,9 @@ module.exports = args => {
 
   // Attach the extra desired outputs
   outs.forEach(out => {
-    const scriptPub = hexAsBuffer(asOut(out.address, args.network).script);
+    const scriptPub = asOut(out.address, args.network).script;
 
-    return tx.addOutput(scriptPub, out.tokens);
+    return tx.outputs.push({script: scriptPub, tokens: out.tokens});
   });
 
   // Estimate the final weight with the additional output attachments
@@ -140,7 +152,7 @@ module.exports = args => {
     control: args.control,
     script: args.script,
     unlock: Buffer.alloc(secretByteLength),
-    weight: tx.weight(),
+    weight: weightOf(tx),
   });
 
   const multiOutputFee = args.rate * ceil(multiOutput.weight / vRatio);
@@ -160,10 +172,10 @@ module.exports = args => {
 
   const outputs = [].concat([sweep]).concat(outs);
 
-  return outputs.map(output => ({
-    script: asOut(output.address, args.network).script,
-    tokens: output.tokens,
-  }));
-
-  return {outputs};
+  return {
+    outputs: outputs.map(output => ({
+      script: asOut(output.address, args.network).script,
+      tokens: output.tokens,
+    })),
+  };
 };

@@ -63,11 +63,14 @@ Once a transaction is formed, it can be broadcast with `broadcastTransaction`.
 
 Attempt a refund
 
+Specify `is_nested` to refund a deposit to the nested swap address
+
     {
       [fee_tokens_per_vbyte]: <Fee Tokens Per Virtual Byte Number>
       hash: <Swap Hash Hex String>
+      [is_nested]: <Deposit Is To Nested Swap Address Bool>
       [lnd]: <Authenticated LND API gRPC Object>
-      [network]: <Network Name String>
+      network: <Network Name String>
       refund_private_key: <Refund Private Key Hex String>
       [request]: <Request Function>
       service_public_key: <Service Public Key Hex String>

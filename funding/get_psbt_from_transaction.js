@@ -1,15 +1,11 @@
 const asyncAuto = require('async/auto');
 const asyncMapSeries = require('async/mapSeries');
-const {finalizePsbt} = require('psbt');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
 const {unextractTransaction} = require('psbt');
 
 const {getTxFromBlockstream} = require('./../blockstream');
 
-const bufferAsHex = buffer => buffer.toString('hex');
-const {fromHex} = Transaction;
 const retries = 10;
 const uniq = arr => Array.from(new Set(arr));
 
@@ -29,9 +25,6 @@ const uniq = arr => Array.from(new Set(arr));
 module.exports = ({network, request, transaction}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import the ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Check arguments
       validate: cbk => {
         if (!network) {
@@ -46,16 +39,20 @@ module.exports = ({network, request, transaction}, cbk) => {
           return cbk([400, 'ExpectedTransactionToGetPsbtFromTransaction']);
         }
 
+        try {
+          componentsOfTransaction({transaction});
+        } catch (err) {
+          return cbk([400, 'ExpectedValidTxToGetPsbtFromTransaction']);
+        }
+
         return cbk();
       },
 
       // Pull out input transaction ids
       ids: ['validate', ({}, cbk) => {
-        const {ins} = fromHex(transaction);
+        const {inputs} = componentsOfTransaction({transaction});
 
-        const ids = uniq(ins.map(n => bufferAsHex(n.hash.reverse())));
-
-        return cbk(null, ids);
+        return cbk(null, uniq(inputs.map(n => n.id)));
       }],
 
       // Get raw transactions that represent the coins for the tx
@@ -67,11 +64,11 @@ module.exports = ({network, request, transaction}, cbk) => {
       }],
 
       // Finalize PSBT
-      finalize: ['ecp', 'getTransactions', ({ecp, getTransactions}, cbk) => {
+      finalize: ['getTransactions', ({getTransactions}, cbk) => {
         const spending = getTransactions.map(n => n.transaction);
 
         try {
-          const {psbt} = unextractTransaction({ecp, spending, transaction});
+          const {psbt} = unextractTransaction({spending, transaction});
 
           return cbk(null, {psbt});
         } catch (err) {

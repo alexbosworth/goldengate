@@ -43,6 +43,21 @@ const tests = [
     expected: {},
   },
   {
+    args: makeArgs({
+      claim_private_key: undefined,
+      claim_public_key: '0366d6a3884e943c40a10c85220753548fb7e15dd20752f6fa026d5dd5737f4a5a',
+      execution_id: undefined,
+      id: 'e837f9497cf9b7f172a9d3da93d767f5778386556ed3ac8225dd998ba28de1fd',
+      refund_private_key: Buffer.alloc(32, 1).toString('hex'),
+      refund_public_key: undefined,
+      secret: undefined,
+    }),
+    description: 'Encode swap recovery for a refund',
+    expected: {
+      script: '8201208763a91423d93e25796298628506157d4ab530aa0b255b3088210366d6a3884e943c40a10c85220753548fb7e15dd20752f6fa026d5dd5737f4a5a677503d2f017b17521031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f68ac',
+    },
+  },
+  {
     args: makeArgs({secret: undefined}),
     description: 'A secret is expected when there is a claim key',
     error: 'ExpectedClaimSecretToEncodeClaimRecovery',

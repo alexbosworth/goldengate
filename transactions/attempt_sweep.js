@@ -1,7 +1,5 @@
 const asyncAuto = require('async/auto');
-const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
 
 const {broadcastTransaction} = require('./../chain');
 const claimTransaction = require('./claim_transaction');
@@ -46,9 +44,6 @@ const longRangeConfTarget = 1008;
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Check arguments
       validate: cbk => {
         if (!args.current_height) {
@@ -145,16 +140,10 @@ module.exports = (args, cbk) => {
       }],
 
       // Claim transaction
-      claim: [
-        'ecp',
-        'getChainFee',
-        'rate',
-        ({ecp, getChainFee, rate}, cbk) =>
-      {
+      claim: ['getChainFee', 'rate', ({getChainFee, rate}, cbk) => {
         try {
           // Form the claim transaction to sweep the output
           const {transaction} = claimTransaction({
-            ecp,
             block_height: args.current_height,
             fee_tokens_per_vbyte: rate,
             network: args.network,

@@ -1,7 +1,9 @@
-const {script} = require('bitcoinjs-lib');
+const {scriptAsScriptElements} = require('@alexbosworth/blockchain');
 
+const minimalScriptElement = require('./minimal_script_element');
+
+const asMinimal = element => minimalScriptElement({element}).element;
 const bufferAsHex = buffer => buffer.toString('hex');
-const {decompile} = script;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const {isArray} = Array;
 const {isBuffer} = Buffer;
@@ -29,14 +31,24 @@ module.exports = ({script, template}) => {
     throw new Error('ExpectedScriptTemplateToCheckIfScriptMatchesTemplate');
   }
 
-  const decompiled = decompile(hexAsBuffer(script));
+  // Parse the hex like Buffer.from does, so invalid hex is a mismatch
+  const {elements} = scriptAsScriptElements({
+    script: bufferAsHex(hexAsBuffer(script)),
+  });
 
-  // Exit early when the script element count does not match the template
-  if (!decompiled || decompiled.length !== template.length) {
+  // Exit early when the script cannot be decoded into elements
+  if (!elements) {
     return false;
   }
 
-  const unexpectedElement = decompiled.find((element, i) => {
+  const decompiled = elements.map(asMinimal);
+
+  // Exit early when the script element count does not match the template
+  if (decompiled.length !== template.length) {
+    return false;
+  }
+
+  const hasUnexpectedElement = decompiled.some((element, i) => {
     const expected = template[i];
 
     // When a buffer is expected, the element should be a buffer
@@ -49,9 +61,9 @@ module.exports = ({script, template}) => {
       return element.length < expected.length;
     }
 
-    // When the expected element is a string, check hex serialized
+    // When the expected element is a string, check hex serialized data
     if (isString(expected)) {
-      return bufferAsHex(element) !== expected;
+      return !isBuffer(element) || bufferAsHex(element) !== expected;
     }
 
     // The op code should match the expected op code
@@ -59,5 +71,5 @@ module.exports = ({script, template}) => {
   });
 
   // The presence of no unexpected element indicates a template match
-  return !unexpectedElement;
+  return !hasUnexpectedElement;
 };

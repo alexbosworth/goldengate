@@ -71,6 +71,11 @@ const tests = [
     error: [503, 'ExpectedValidTransactionInResponse'],
   },
   {
+    args: makeArgs({id: Buffer.alloc(32).toString('hex')}),
+    description: 'A transaction with the requested id is expected',
+    error: [503, 'ExpectedRawTransactionInResponse'],
+  },
+  {
     args: makeArgs({}),
     description: 'Got raw transaction',
     expected: {transaction: '01000000000000000000'},

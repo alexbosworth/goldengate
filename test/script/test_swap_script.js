@@ -2,9 +2,6 @@ const {equal} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {ECPair} = require('ecpair');
-const tinysecp = require('tiny-secp256k1');
-
 const {swapScript} = require('./../../');
 
 const tests = [
@@ -95,8 +92,6 @@ const tests = [
 
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async () => {
-    args.ecp = (await import('ecpair')).ECPairFactory(tinysecp);
-
     if (!!error) {
       throws(() => swapScript(args), new Error(error), 'Error returned');
     } else {

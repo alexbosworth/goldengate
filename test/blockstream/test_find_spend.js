@@ -156,6 +156,20 @@ const tests = [
     error: [404, 'FailedToFindSpendToAddress'],
   },
   {
+    args: makeArgs({
+      address: undefined,
+      output_script: '00',
+      request: req({txs: [{
+        txid,
+        status: {},
+        vin: [{txid, vout: 0, witness: []}],
+        vout: [{scriptpubkey: '01', value: 100}],
+      }]}),
+    }),
+    description: 'Output script should match',
+    error: [404, 'FailedToFindSpendToAddress'],
+  },
+  {
     args: makeArgs({tokens: 999}),
     description: 'Tokens should match',
     error: [404, 'FailedToFindSpendToAddress'],
@@ -163,12 +177,12 @@ const tests = [
   {
     args: makeArgs({}),
     description: 'Find a spend',
-    expected: {transaction_id: txid, transaction_vout: 0},
+    expected: {output_tokens: 100, transaction_id: txid, transaction_vout: 0},
   },
   {
     args: makeArgs({address: undefined, output_script: '00'}),
     description: 'Find a spend by output script',
-    expected: {transaction_id: txid, transaction_vout: 0},
+    expected: {output_tokens: 100, transaction_id: txid, transaction_vout: 0},
   },
   {
     args: makeArgs({
@@ -177,7 +191,22 @@ const tests = [
       transaction_vout: 0,
     }),
     description: 'Find a spend by tx id',
-    expected: {transaction_id: txid, transaction_vout: 0},
+    expected: {output_tokens: 100, transaction_id: txid, transaction_vout: 0},
+  },
+  {
+    args: makeArgs({
+      request: req({txs: [{
+        txid,
+        status: {block_height: 100},
+        vin: [{txid, vout: 0, witness: []}],
+        vout: [
+          {scriptpubkey: '00', scriptpubkey_address: 'address', value: 99},
+          {scriptpubkey: '00', scriptpubkey_address: 'address', value: 100},
+        ],
+      }]}),
+    }),
+    description: 'Find the spend output that pays the tokens to the address',
+    expected: {output_tokens: 100, transaction_id: txid, transaction_vout: 1},
   },
 ];
 
@@ -188,6 +217,7 @@ tests.forEach(({args, description, error, expected}) => {
     } else {
       const spend = await findSpend(args);
 
+      equal(spend.output_tokens, expected.output_tokens, 'Got tokens');
       equal(spend.transaction_id, expected.transaction_id, 'Got tx id');
       equal(spend.transaction_vout, expected.transaction_vout, 'Got tx vout');
     }

@@ -1,26 +1,22 @@
 const {createHash} = require('crypto');
 
 const bip65Encode = require('bip65').encode;
-const {crypto} = require('bitcoinjs-lib');
 const {OP_1} = require('bitcoin-ops');
 const {OP_CHECKLOCKTIMEVERIFY} = require('bitcoin-ops');
 const {OP_CHECKSEQUENCEVERIFY} = require('bitcoin-ops');
-const {OP_CHECKSIG} = require('bitcoin-ops');
 const {OP_CHECKSIGVERIFY} = require('bitcoin-ops');
-const {OP_ENDIF} = require('bitcoin-ops');
 const {OP_EQUALVERIFY} = require('bitcoin-ops');
 const {OP_HASH160} = require('bitcoin-ops');
 const {OP_SIZE} = require('bitcoin-ops');
-const {script} = require('bitcoinjs-lib');
+const {scriptElementsAsScript} = require('@alexbosworth/blockchain');
 
+const encodeScriptNumber = require('./encode_script_number');
 const getPublicKey = require('./get_public_key');
-const scriptElementsAsScript = require('./script_elements_as_script');
 
-const encodeNumber = script.number.encode;
-const {hash160} = crypto;
+const encodeNumber = number => encodeScriptNumber({number}).encoded;
 const hexAsBuffer = hex => !!hex ? Buffer.from(hex, 'hex') : undefined;
-const pubKey = (ecp, key) => getPublicKey({ecp, private_key: key}).public_key;
-const {ripemd160} = crypto;
+const pubKey = key => getPublicKey({private_key: key}).public_key;
+const ripemd160 = buffer => createHash('ripemd160').update(buffer).digest();
 const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 const shortKey = hexPublicKey => hexPublicKey.slice(2);
 
@@ -32,7 +28,6 @@ const shortKey = hexPublicKey => hexPublicKey.slice(2);
   {
     [claim_private_key]: <Claim Private Key Hex String>
     [claim_public_key]: <Claim Public Key Hex String>
-    ecp: <ECPair Object>
     [hash]: <Preimage Hash Hex String>
     [refund_private_key]: <Refund Private Key Hex String>
     [refund_public_key]: <Refund Public Key Hex String>
@@ -58,10 +53,6 @@ module.exports = args => {
     throw new Error('ExpectedEitherPrivateKeyOrPublicKeyForSwapBranches');
   }
 
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpairObjectForSwapScriptBranches');
-  }
-
   if (!args.hash && !args.secret) {
     throw new Error('ExpectedEitherHashOrSecretForSwapScriptBranches');
   }
@@ -83,8 +74,8 @@ module.exports = args => {
   try {
     const cltv = encodeNumber(bip65Encode({blocks: args.timeout}));
 
-    const claim = args.claim_public_key || pubKey(args.ecp, claimPrivKey);
-    const refund = args.refund_public_key || pubKey(args.ecp, refundPrivKey);
+    const claim = args.claim_public_key || pubKey(claimPrivKey);
+    const refund = args.refund_public_key || pubKey(refundPrivKey);
 
     const claimElements = [
       hexAsBuffer(shortKey(claim)), OP_CHECKSIGVERIFY,

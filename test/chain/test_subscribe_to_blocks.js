@@ -1,3 +1,4 @@
+const {deepEqual} = require('node:assert').strict;
 const {equal} = require('node:assert').strict;
 const EventEmitter = require('node:events');
 const test = require('node:test');
@@ -7,8 +8,62 @@ const {subscribeToBlocks} = require('./../../');
 
 const api = 'https://blockstream.info/testnet/api/block';
 const confirmationCount = 6;
+const id = Buffer.alloc(32).toString('hex');
 const network = 'btctestnet';
 const okStatus = {statusCode: 200};
+
+const makeRequest = ({tips}) => {
+  return ({url}, cbk) => {
+    if (url === `${api}/${id}`) {
+      return cbk(null, okStatus, {height: 1});
+    }
+
+    if (!tips.length) {
+      return cbk();
+    }
+
+    return cbk(null, okStatus, tips.shift());
+  };
+};
+
+const tests = [
+  {
+    args: {
+      lnd: {
+        chain: {
+          registerBlockEpochNtfn: ({}) => {
+            const emitter = new EventEmitter();
+
+            emitter.cancel = () => {};
+
+            process.nextTick(() => emitter.emit('error', 'err'));
+
+            return emitter;
+          },
+        },
+      },
+    },
+    description: 'Errors in the lnd blocks subscription are emitted',
+    expected: {
+      events: [[503, 'UnexpectedErrInBlocksSubscription', {err: 'err'}]],
+    },
+  },
+  {
+    args: {network, delay: 100, request: makeRequest({tips: [id, id]})},
+    description: 'An unchanged chain tip is not emitted',
+    expected: {
+      events: [
+        {id, height: 1},
+        [503, 'UnexpectedResponseGettingChainTipHash'],
+      ],
+    },
+  },
+  {
+    args: {network, request: makeRequest({tips: [id]})},
+    description: 'Polling starts right away with the default delay',
+    expected: {events: [{id, height: 1}]},
+  },
+];
 
 // Subscribers to blocks should receive block notifications
 test(`Subscribe to blocks`, (t, end) => {
@@ -88,4 +143,37 @@ test(`Subscribe to blocks`, (t, end) => {
   });
 
   return;
+});
+
+tests.forEach(({args, description, expected}) => {
+  return test(description, (t, end) => {
+    const events = [];
+    const sub = subscribeToBlocks(args);
+
+    sub.on('error', err => {
+      events.push(err);
+
+      sub.removeAllListeners();
+
+      deepEqual(events, expected.events, 'Got expected events');
+
+      return end();
+    });
+
+    sub.on('block', block => {
+      events.push(block);
+
+      if (events.length !== expected.events.length) {
+        return;
+      }
+
+      sub.removeAllListeners();
+
+      deepEqual(events, expected.events, 'Got expected events');
+
+      return end();
+    });
+
+    return;
+  });
 });

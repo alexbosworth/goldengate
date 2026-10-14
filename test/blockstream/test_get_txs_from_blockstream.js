@@ -1,8 +1,9 @@
+const {deepEqual} = require('node:assert').strict;
 const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const getTxsFromBlockstream = require('./../../blockstream/get_txs_from_blockstream');
+const method = require('./../../blockstream/get_txs_from_blockstream');
 
 const address = 'address';
 const network = 'network';
@@ -50,6 +51,15 @@ const tests = [
     args: {
       address,
       network,
+      request: ({}, cbk) => cbk(null, {statusCode}, [null]),
+    },
+    description: 'Expected transactions returned from request',
+    error: [503, 'ExpectedTransactionFromBlockstreamInArray'],
+  },
+  {
+    args: {
+      address,
+      network,
       request: ({}, cbk) => cbk(null, {statusCode}, [{txid}]),
     },
     description: 'Expected array of inputs returned from request',
@@ -68,6 +78,15 @@ const tests = [
     args: {
       address,
       network,
+      request: ({}, cbk) => cbk(null, {statusCode}, [{txid, vin: []}]),
+    },
+    description: 'Expected transaction status returned from request',
+    error: [503, 'ExpectedTransactionStatusInBlockstreamTx'],
+  },
+  {
+    args: {
+      address,
+      network,
       request: ({}, cbk) => {
         return cbk(null, {statusCode}, [{
           txid,
@@ -78,16 +97,46 @@ const tests = [
       },
     },
     description: 'Expected array of inputs returned from request',
-    expected: {id: txid, input: {witness}},
+    expected: {id: txid, input: {witness}, outputs: []},
+  },
+  {
+    args: {
+      network: 'btc',
+      request: ({url}, cbk) => {
+        switch (url) {
+          case 'https://blockstream.info/api/scripthash/6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d/txs':
+            return cbk(null, {statusCode}, [{
+              txid,
+              status: {},
+              vin: [{witness}],
+              vout: [{
+                scriptpubkey: '00',
+                scriptpubkey_address: address,
+                value: 1,
+              }],
+            }]);
+
+          default:
+            return cbk(new Error('UnexpectedUrlWhenTestingGetTxs'));
+        }
+      },
+      script: '00',
+    },
+    description: 'Get transactions for an output script',
+    expected: {
+      id: txid,
+      input: {witness},
+      outputs: [{address, index: 0, script: '00', tokens: 1}],
+    },
   },
 ];
 
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async () => {
     if (!!error) {
-      await rejects(getTxsFromBlockstream(args), error, 'Got expected error');
+      await rejects(method(args), error, 'Got expected error');
     } else {
-      const {transactions} = await getTxsFromBlockstream(args);
+      const {transactions} = await method(args);
 
       const [tx] = transactions;
 
@@ -95,6 +144,7 @@ tests.forEach(({args, description, error, expected}) => {
 
       equal(tx.id, expected.id, 'Got expected transaction id');
       equal(input.witness, expected.input.witness, 'Got expected witness');
+      deepEqual(tx.outputs, expected.outputs, 'Got expected outputs');
     }
 
     return;

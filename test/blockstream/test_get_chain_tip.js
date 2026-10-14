@@ -6,6 +6,21 @@ const {getChainTip} = require('./../../blockstream');
 
 const hash = Buffer.alloc(32).toString('hex');
 
+const makeRequest = ({block, err, response}) => {
+  return ({url}, cbk) => {
+    switch (url) {
+      case 'https://blockstream.info/testnet/api/blocks/tip/hash':
+        return cbk(null, {statusCode: 200}, hash);
+
+      case `https://blockstream.info/testnet/api/block/${hash}`:
+        return cbk(err, response, block);
+
+      default:
+        return cbk(new Error('UnexpectedUrlWhenTestingGetChainTip'));
+    }
+  };
+};
+
 const tests = [
   {
     args: {request: ({}, cbk) => cbk()},
@@ -38,20 +53,40 @@ const tests = [
     error: [503, 'ExpectedBlockHashWhenGettingChainTipHash'],
   },
   {
+    args: {network: 'btctestnet', request: makeRequest({err: 'err'})},
+    description: 'Block lookup errors are passed back',
+    error: [503, 'UnexpectedErrorGettingTipBlockDetails', {err: 'err'}],
+  },
+  {
+    args: {network: 'btctestnet', request: makeRequest({})},
+    description: 'A block lookup response is expected',
+    error: [503, 'ExpectedResponseWhenGettingChainTipBlock'],
+  },
+  {
+    args: {network: 'btctestnet', request: makeRequest({response: {}})},
+    description: 'An ok block lookup status is expected',
+    error: [503, 'UnexpectedStatusCodeGettingBlockDetails'],
+  },
+  {
     args: {
       network: 'btctestnet',
-      request: ({url}, cbk) => {
-        switch (url) {
-          case 'https://blockstream.info/testnet/api/blocks/tip/hash':
-            return cbk(null, {statusCode: 200}, hash);
-
-          case `https://blockstream.info/testnet/api/block/${hash}`:
-            return cbk(null, {statusCode: 200}, {height: 1});
-
-          default:
-            return cbk(new Error('UnexpedtedUrlWhenTestingGetChainTip'));
-        }
-      },
+      request: makeRequest({response: {statusCode: 200}}),
+    },
+    description: 'Block details are expected',
+    error: [503, 'ExpectedBlockDetailsInBlockLookupResponse'],
+  },
+  {
+    args: {
+      network: 'btctestnet',
+      request: makeRequest({block: {}, response: {statusCode: 200}}),
+    },
+    description: 'A block height is expected',
+    error: [503, 'ExpectedBlockHeightInBlockLookupDetails'],
+  },
+  {
+    args: {
+      network: 'btctestnet',
+      request: makeRequest({block: {height: 1}, response: {statusCode: 200}}),
     },
     description: 'Get chain tip',
     expected: {height: 1, id: hash},

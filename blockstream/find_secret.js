@@ -3,11 +3,9 @@ const {createHash} = require('crypto');
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
-const {apis} = require('./conf/blockstream-info');
 const getTxsFromBlockstream = require('./get_txs_from_blockstream');
 
-const {isArray} = Array;
-const flatten = arr => [].concat(...arr);  
+const flatten = arr => [].concat(...arr);
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const secretHexLength = Buffer.alloc(32).toString('hex').length;
 const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');

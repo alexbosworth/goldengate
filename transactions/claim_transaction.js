@@ -1,16 +1,16 @@
-const {address} = require('bitcoinjs-lib');
 const bip65Encode = require('bip65').encode;
 const bip68Encode = require('bip68').encode;
-const {Transaction} = require('bitcoinjs-lib');
+const {outputScriptForAddress} = require('@alexbosworth/blockchain');
 
 const claimOutputs = require('./claim_outputs');
-const {names} = require('./../conf/bitcoinjs-lib');
-const {outputScriptForAddress} = require('./../address');
+const encodeTransaction = require('./encode_transaction');
+const {names} = require('./../conf/networks');
 const {versionOfSwapScript} = require('./../script');
 const witnessForResolution = require('./witness_for_resolution');
 
+const asTx = components => encodeTransaction(components).transaction;
 const blocks = 1;
-const hexAsBuf = hex => Buffer.from(hex, 'hex');
+const emptyScript = '';
 const txVersion = 2;
 
 /** Make a claim transaction for a swap
@@ -28,7 +28,7 @@ const txVersion = 2;
     sweep_address: <Sweep Tokens to Address String>
     tokens: <UTXO Tokens Number>
     transaction_id: <UTXO Transaction Id Hex String>
-    transaction_vout: <UTXO Transaction Vout Hex String>
+    transaction_vout: <UTXO Transaction Vout Number>
     witness_script: <UTXO Witness Script Hex String>
   }
 
@@ -43,10 +43,6 @@ const txVersion = 2;
 module.exports = args => {
   if (!args.block_height) {
     throw new Error('ExpectedBlockHeightForClaimTransaction');
-  }
-
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpObjectForClaimTransaction');
   }
 
   if (args.fee_tokens_per_vbyte === undefined) {
@@ -89,12 +85,6 @@ module.exports = args => {
     throw new Error('ExpectedKnownSwapScriptTypeForClaimTransaction');
   }
 
-  const tx = new Transaction();
-  const {version} = versionOfSwapScript({script: args.witness_script});
-
-  // Add UTXO to tx
-  tx.addInput(hexAsBuf(args.transaction_id).reverse(), args.transaction_vout);
-
   const {outputs} = claimOutputs({
     address: args.sweep_address,
     network: args.network,
@@ -104,36 +94,35 @@ module.exports = args => {
     tokens: args.tokens,
   });
 
-  // Setup appropriate outputs
-  outputs.forEach(({address, tokens}) => {
-    const {script} = outputScriptForAddress({address, network: args.network});
-
-    return tx.addOutput(hexAsBuf(script), tokens);
-  });
-
-  // Set input sequence number
-  tx.ins.forEach(n => n.sequence = bip68Encode({blocks}));
-
-  // Set tx locktime
-  tx.locktime = bip65Encode({blocks: args.block_height});
-
-  // Set tx version
-  tx.version = txVersion;
+  // Spend the UTXO with an input sequence, tx locktime, and tx version
+  const tx = {
+    inputs: [{
+      id: args.transaction_id,
+      script: emptyScript,
+      sequence: bip68Encode({blocks}),
+      vout: args.transaction_vout,
+    }],
+    locktime: bip65Encode({blocks: args.block_height}),
+    outputs: outputs.map(({address, tokens}) => ({
+      tokens,
+      script: outputScriptForAddress({address, network: args.network}).script,
+    })),
+    version: txVersion,
+  };
 
   // Set witness
-  tx.ins.forEach((input, i) => {
+  tx.inputs.forEach((input, i) => {
     const {witness} = witnessForResolution({
-      ecp: args.ecp,
       private_key: args.private_key,
       tokens: args.tokens,
-      transaction: tx.toHex(),
+      transaction: asTx(tx),
       unlock: args.secret,
       vin: i,
       witness_script: args.witness_script,
     });
 
-    return tx.setWitness(i, witness.map(n => hexAsBuf(n)));
+    return input.witness = witness;
   });
 
-  return {transaction: tx.toHex()};
+  return {transaction: asTx(tx)};
 };

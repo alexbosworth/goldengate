@@ -1,17 +1,12 @@
-const {address} = require('bitcoinjs-lib');
 const asyncRetry = require('async/retry');
+const {outputScriptForAddress} = require('@alexbosworth/blockchain');
 const {subscribeToChainAddress} = require('ln-service');
-const {Transaction} = require('bitcoinjs-lib');
 
 const findOutput = require('./find_output');
 const {findSpend} = require('./../blockstream');
-const {names} = require('./../conf/bitcoinjs-lib');
-const {outputScriptForAddress} = require('./../address');
 
 const {ceil} = Math;
-const {fromHex} = Transaction;
 const msPerMin = 1000 * 60;
-const notFoundIndex = -1;
 const sPub = (address, network) => outputScriptForAddress({address, network});
 
 /** Find a deposit to a chain address.
@@ -19,14 +14,13 @@ const sPub = (address, network) => outputScriptForAddress({address, network});
   Either lnd or an http request function is required.
 
   An `after` height is required if `lnd` is given
-  A `network` name is required if `request` is given
 
   {
     [address]: <Chain Address String>
     [after]: <After Chain Height Number>
     confirmations: <Swap Deposit Confirmations Count Number>
     [lnd]: <Authenticated LND API gRPC Object>
-    [network]: <Network Name String>
+    network: <Network Name String>
     [output_script]: <Output Script Hex String>
     [poll_interval_ms]: <Request Poll Interval Milliseconds Number>
     [request]: <HTTP Request Function>

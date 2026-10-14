@@ -2,12 +2,11 @@ const {createHash} = require('crypto');
 const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
-const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
 
 const {addressForScript} = require('./../script');
-const parsePaymentMetadata = require('./parse_payment_metadata');
+const {getPublicKey} = require('./../script');
+const {makePrivateKey} = require('./../script');
 const {protocolVersion} = require('./conf/swap_service');
 const {swapScriptV2} = require('./../script');
 
@@ -56,9 +55,6 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Check arguments
       validate: cbk => {
         if (!!args.hash && !!args.secret) {
@@ -104,24 +100,27 @@ module.exports = (args, cbk) => {
       }],
 
       // Keys
-      keys: ['ecp', 'validate', ({ecp}, cbk) => {
-        const key = ecp.makeRandom();
+      keys: ['validate', ({}, cbk) => {
+        const key = makePrivateKey({});
 
-        const privateKey = args.private_key || key.privateKey.toString('hex');
+        const privateKey = args.private_key || key.private_key;
         const swapSecret = args.secret || randomHex(preimageLen);
 
         const preimage = Buffer.from(swapSecret, 'hex');
-        const swapKey = ecp.fromPrivateKey(Buffer.from(privateKey, 'hex'));
-
-        const publicKey = args.public_key || swapKey.publicKey.toString('hex');
         const swapHash = args.hash || sha256(preimage);
 
-        return cbk(null, {
-          private_key: privateKey,
-          public_key: publicKey,
-          swap_hash: swapHash,
-          swap_secret: swapSecret,
-        });
+        try {
+          const swapKey = getPublicKey({private_key: privateKey});
+
+          return cbk(null, {
+            private_key: privateKey,
+            public_key: args.public_key || swapKey.public_key,
+            swap_hash: swapHash,
+            swap_secret: swapSecret,
+          });
+        } catch (err) {
+          return cbk([400, 'ExpectedValidPrivateKeyToCreateSwapOut']);
+        }
       }],
 
       // Create the swap
@@ -166,14 +165,13 @@ module.exports = (args, cbk) => {
         });
       }],
 
-      // Swap script
-      script: ['create', 'ecp', 'keys', ({create, ecp, keys}, cbk) => {
+      // Swap script for the key and hash that were sent to the server
+      script: ['create', 'keys', ({create, keys}, cbk) => {
         try {
           const {script} = swapScriptV2({
-            ecp,
-            claim_private_key: keys.private_key,
+            claim_public_key: keys.public_key,
+            hash: keys.swap_hash,
             refund_public_key: create.sender_key.toString('hex'),
-            secret: keys.swap_secret,
             timeout: create.expiry,
           });
 

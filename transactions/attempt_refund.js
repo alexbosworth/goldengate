@@ -1,7 +1,5 @@
 const asyncAuto = require('async/auto');
-const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
 
 const {broadcastTransaction} = require('./../chain');
 const {findDeposit} = require('./../chain');
@@ -18,11 +16,14 @@ const scriptVersion2 = 2;
 
 /** Attempt a refund
 
+  Specify `is_nested` to refund a deposit to the nested swap address
+
   {
     [fee_tokens_per_vbyte]: <Fee Tokens Per Virtual Byte Number>
     hash: <Swap Hash Hex String>
+    [is_nested]: <Deposit Is To Nested Swap Address Bool>
     [lnd]: <Authenticated LND API gRPC Object>
-    [network]: <Network Name String>
+    network: <Network Name String>
     refund_private_key: <Refund Private Key Hex String>
     [request]: <Request Function>
     service_public_key: <Service Public Key Hex String>
@@ -43,10 +44,7 @@ const scriptVersion2 = 2;
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
-      // Check arugments
+      // Check arguments
       validate: cbk => {
         if (!args.hash) {
           return cbk([400, 'ExpectedHashOfSwapToAttemptRefund']);
@@ -56,7 +54,7 @@ module.exports = (args, cbk) => {
           return cbk([400, 'ExpectedLndOrRequestToAttemptRefund']);
         }
 
-        if (!args.network && !args.lnd) {
+        if (!args.network) {
           return cbk([400, 'ExpectedNetworkToAttemptRefund']);
         }
 
@@ -98,12 +96,11 @@ module.exports = (args, cbk) => {
       }],
 
       // Swap script
-      script: ['ecp', 'validate', ({ecp}, cbk) => {
+      script: ['validate', ({}, cbk) => {
         try {
           switch (args.version) {
           case scriptVersion1:
             return cbk(null, swapScript({
-              ecp,
               hash: args.hash,
               claim_public_key: args.service_public_key,
               refund_private_key: args.refund_private_key,
@@ -112,7 +109,6 @@ module.exports = (args, cbk) => {
 
           case scriptVersion2:
             return cbk(null, swapScriptV2({
-              ecp,
               hash: args.hash,
               claim_public_key: args.service_public_key,
               refund_private_key: args.refund_private_key,
@@ -144,7 +140,7 @@ module.exports = (args, cbk) => {
       // Find deposit
       findDeposit: ['checkHeight', 'swapAddress', ({swapAddress}, cbk) => {
         return findDeposit({
-          address: swapAddress.nested,
+          address: !!args.is_nested ? swapAddress.nested : swapAddress.address,
           after: args.start_height,
           confirmations: [].length,
           lnd: args.lnd,
@@ -161,6 +157,7 @@ module.exports = (args, cbk) => {
         return makeRefundTransaction({
           block_height: args.timeout_height,
           fee_tokens_per_vbyte: args.fee_tokens_per_vbyte || minRelayFee,
+          is_nested: !!args.is_nested,
           network: args.network,
           private_key: args.refund_private_key,
           sweep_address: args.sweep_address,

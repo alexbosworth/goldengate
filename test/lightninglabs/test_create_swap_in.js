@@ -2,11 +2,12 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {ECPair} = require('ecpair');
-
+const {addressForScript} = require('./../../');
 const {createSwapIn} = require('./../../');
+const {swapScriptV2} = require('./../../');
 
 const expiry = 150;
+const regtestRequest = 'lnbcrt1500n1p54twgqpp5dgen963wrgm3y2ls8r0qv0guwgz6jjepn6w83803hlu2yp54r2fs9qqxqyz5vqdqvwdmkzupqd9hqnp4qvdcf32k0vfxgsyet5ldt246q4jaw8scx3sysx0lnstlt6w4m5rc7cqzpgej0fj4g50uq9u09qk7zrlz3m9rxa2c43tty7042fxrxvjjw29sp92kkvgec6kl4wxhehu7r4ush9uk2zmwk43v2knfjlmncku33j52sq0eltf7';
 const request = 'lntb1500n1pwne5trpp5dgen963wrgm3y2ls8r0qv0guwgz6jjepn6w83803hlu2yp54r2fsdqvg9jxgg8zn2sscqzpgxqr23s02xlzwwanxyun29cgggcytlepmu352v2njq6cuvhl6uz6wlv7jzx8pxgvlf0983n43g243uxgv6ejt58ps035lerdulymarz9j98nqqp8340y4';
 const serviceKey = Buffer.alloc(33, 3).toString('hex');
 
@@ -68,6 +69,11 @@ const tests = [
     args: makeArgs({service: undefined}),
     description: 'Expected service to create swap in',
     error: [400, 'ExpectedServiceToCreateSwapIn'],
+  },
+  {
+    args: makeArgs({private_key: Buffer.alloc(32).toString('hex')}),
+    description: 'Expected valid private key to create swap in',
+    error: [400, 'ExpectedValidPrivateKeyToCreateSwapIn'],
   },
   {
     args: makeArgs({service: makeService({err: 'err'})}),
@@ -142,8 +148,8 @@ const tests = [
     description: 'Create a swap in',
     expected: {
       id: '6a3332ea2e1a37122bf038de063d1c7205a94b219e9c789df1bff8a206951a93',
+      network: 'btctestnet',
       private_key: true,
-      script: '21034ee0ae3699f1b423286a8e19396365e1246c5b161f36924366189369c5027943ac6476a914a6c608cb65b77279465241c90d8a476cc065c0d188ad02c800b16782012088a914b0b56f62f01c2bf02d954b258d566106078cc33e8851b268',
       timeout: 200,
       tokens: 153,
       version: 2,
@@ -161,8 +167,20 @@ const tests = [
     description: 'Create a swap in and specify a public key',
     expected: {
       id: '6a3332ea2e1a37122bf038de063d1c7205a94b219e9c789df1bff8a206951a93',
+      network: 'btctestnet',
       private_key: false,
-      script: '21034ee0ae3699f1b423286a8e19396365e1246c5b161f36924366189369c5027943ac6476a914a6c608cb65b77279465241c90d8a476cc065c0d188ad02c800b16782012088a914b0b56f62f01c2bf02d954b258d566106078cc33e8851b268',
+      timeout: 200,
+      tokens: 153,
+      version: 2,
+    },
+  },
+  {
+    args: makeArgs({request: regtestRequest}),
+    description: 'Create a swap in with a regtest payment request',
+    expected: {
+      id: '6a3332ea2e1a37122bf038de063d1c7205a94b219e9c789df1bff8a206951a93',
+      network: 'btcregtest',
+      private_key: true,
       timeout: 200,
       tokens: 153,
       version: 2,
@@ -177,14 +195,30 @@ tests.forEach(({args, description, error, expected}) => {
     } else {
       const res = await createSwapIn(args);
 
-      equal(!!res.address, true, 'Address returned');
       equal(res.id, expected.id, 'Id returned');
-      equal(!!res.nested_address, true, 'Nested address returned');
-      equal(!!res.script, true, 'Script returned');
       equal(!!res.private_key, expected.private_key, 'Private key creation');
       equal(res.timeout, expected.timeout, 'Swap timeout height');
       equal(res.tokens, expected.tokens, 'Swap tokens returned');
       equal(res.version, expected.version, 'Swap version returned');
+
+      // The swap refunds to the key that the client holds
+      const {script} = swapScriptV2({
+        claim_public_key: serviceKey,
+        hash: expected.id,
+        refund_private_key: res.private_key,
+        refund_public_key: args.public_key,
+        timeout: expected.timeout,
+      });
+
+      equal(res.script, script, 'Swap script refunds to the client');
+
+      const {address, nested} = addressForScript({
+        script,
+        network: expected.network,
+      });
+
+      equal(res.address, address, 'Got swap address');
+      equal(res.nested_address, nested, 'Got nested swap address');
     }
 
     return;

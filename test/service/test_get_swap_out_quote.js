@@ -2,7 +2,7 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {genericSwapServer} = require('./../../service');
+const {genericSwapServer} = require('./../macros');
 const {genericSwapService} = require('./../../');
 const {getSwapOutQuote} = require('./../../');
 

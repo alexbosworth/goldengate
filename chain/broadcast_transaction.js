@@ -1,11 +1,11 @@
 const asyncAuto = require('async/auto');
 const {broadcastChainTransaction} = require('ln-service');
+const {idForTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
-const {Transaction} = require('bitcoinjs-lib');
 
 const {publishTxToBlockstream} = require('./../blockstream');
 
-const {fromHex} = Transaction;
+const txId = transaction => idForTransaction({transaction}).id;
 
 /** Broadcast a transaction to the miners to be published to the Blockchain
 
@@ -39,7 +39,7 @@ module.exports = ({lnd, network, request, transaction}, cbk) => {
         }
 
         try {
-          fromHex(transaction);
+          txId(transaction);
         } catch (err) {
           return cbk([400, 'ExpectedValidTransactionToPublish', {err}]);
         }
@@ -81,10 +81,10 @@ module.exports = ({lnd, network, request, transaction}, cbk) => {
         const successPublish = pushes.find(n => !!n && n.is_success === true);
 
         if (!successPublish) {
-          return cbk(failedPublish.err || [500, 'FailedToPublishTx']);
+          return cbk(failedPublish.err);
         }
 
-        return cbk(null, {transaction_id: fromHex(transaction).getId()});
+        return cbk(null, {transaction_id: txId(transaction)});
       }],
     },
     returnResult({reject, resolve, of: 'transactionId'}, cbk));

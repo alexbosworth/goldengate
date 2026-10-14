@@ -37,6 +37,18 @@ const tests = [
     error: [400, 'ExpectedTransactionToGetPsbtFromTransaction'],
   },
   {
+    args: makeArgs({transaction: '00'}),
+    description: 'A valid transaction is expected.',
+    error: [400, 'ExpectedValidTxToGetPsbtFromTransaction'],
+  },
+  {
+    args: makeArgs({
+      transaction: '0100000001f0ea93013c35acbf94695db3bf806c0de68f5309d63f415f1f74548e37db277f0200000000ffffffff0000000000',
+    }),
+    description: 'Spent outputs are expected to exist.',
+    error: [400, 'FailedToConvertTxToPsbt'],
+  },
+  {
     args: makeArgs({}),
     description: 'PSBT is derived from a transaction',
     expected: {

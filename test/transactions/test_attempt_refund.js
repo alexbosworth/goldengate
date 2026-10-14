@@ -37,6 +37,14 @@ const makeRequest = () => {
             scriptpubkey_address: '2N45aT3R9DSp21VYyE3y84GABP2uPaWmZfJ',
             value: 1000,
           },
+          {
+            scriptpubkey_address: 'tb1q3r8m7ujvpd8nm9pvzxp9458hytcnhwq6ax0p3xyz6u8zt0ssu9psrk3jhj',
+            value: 1000,
+          },
+          {
+            scriptpubkey_address: 'tb1qgua2z2d0rp0hw5phqcwzgwqu3kahxejrzfkv6p5s4etrqd7j099q0y3e87',
+            value: 1000,
+          },
         ],
       }]);
     }
@@ -62,6 +70,11 @@ const tests = [
   },
   {
     args: {hash, lnd},
+    description: 'Refund with lnd requires network name',
+    error: [400, 'ExpectedNetworkToAttemptRefund'],
+  },
+  {
+    args: {hash, lnd, network: 'btctestnet'},
     description: 'Refund with lnd requires refund privkey',
     error: [400, 'ExpectedRefundPrivateKeyToAttemptRefund'],
   },
@@ -208,7 +221,8 @@ const tests = [
     },
     description: 'Refund with request returns refund details',
     expected: {
-      transaction_vout: 0,
+      input_script: '',
+      transaction_vout: 2,
     },
   },
   {
@@ -226,6 +240,46 @@ const tests = [
     },
     description: 'Refund with request v2 returns refund details',
     expected: {
+      input_script: '',
+      transaction_vout: 3,
+    },
+  },
+  {
+    args: {
+      hash,
+      network,
+      service_public_key,
+      is_nested: true,
+      refund_private_key: '803375fb23692ebfe2ba6ad8023c07d8f4feb055f195534381f9b1b8a1cecac4',
+      request: makeRequest({}),
+      start_height: 1,
+      sweep_address: '2MzzyB5svcN3bNptiMtR3iH2jwRJjnWkUR4',
+      timeout_height: 100,
+      tokens: 1000,
+    },
+    description: 'Refund with request returns nested refund details',
+    expected: {
+      input_script: '22002088cfbf724c0b4f3d942c11825ad0f722f13bb81ae99e189882d70e25be10e143',
+      transaction_vout: 0,
+    },
+  },
+  {
+    args: {
+      hash,
+      network,
+      service_public_key,
+      is_nested: true,
+      refund_private_key: '803375fb23692ebfe2ba6ad8023c07d8f4feb055f195534381f9b1b8a1cecac4',
+      request: makeRequest({}),
+      start_height: 1,
+      sweep_address: '2MuZSbMqRdSgRJNYqthHaUwaewiCL85mGvd',
+      timeout_height: 100,
+      tokens: 1000,
+      version: 2,
+    },
+    description: 'Refund with request v2 returns nested refund details',
+    expected: {
+      input_script: '220020473aa129af185f775037061c24381c8dbb736643126ccd0690ae563037d2794a',
       transaction_vout: 1,
     },
   },
@@ -254,10 +308,17 @@ tests.forEach(({args, description, error, expected}) => {
     } else {
       const refund = await attemptRefund(args);
 
-      componentsOfTransaction({transaction: refund.refund_transaction});
+      const {inputs} = componentsOfTransaction({
+        transaction: refund.refund_transaction,
+      });
+
+      const [input] = inputs;
 
       equal(refund.transaction_id, Buffer.alloc(32).toString('hex'), 'Got tx');
       equal(refund.transaction_vout, expected.transaction_vout, 'Got vout');
+      equal(input.id, refund.transaction_id, 'Refund spends the deposit tx');
+      equal(input.vout, expected.transaction_vout, 'Refund spends deposit');
+      equal(input.script, expected.input_script, 'Refund has input script');
     }
 
     return;

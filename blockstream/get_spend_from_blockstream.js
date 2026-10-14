@@ -4,7 +4,6 @@ const {returnResult} = require('asyncjs-util');
 
 const {apis} = require('./conf/blockstream-info');
 
-const {isBuffer} = Buffer;
 const isHash = n => !!n && /^[0-9A-F]{64}$/i.test(n);
 
 /** Get a spend of an outpoint from Blockstream

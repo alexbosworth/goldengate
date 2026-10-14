@@ -57,6 +57,15 @@ const tests = [
     description: 'Get chain height',
     expected: {transaction_id: txId},
   },
+  {
+    args: {
+      network: 'btctestnet',
+      request: ({}, cbk) => cbk(null, {statusCode: 503}),
+      transaction: emptyTx,
+    },
+    description: 'A failure to publish the transaction is returned',
+    error: [503, 'UnexpectedResponsePostingTransaction'],
+  },
 ];
 
 tests.forEach(({args, description, error, expected}) => {

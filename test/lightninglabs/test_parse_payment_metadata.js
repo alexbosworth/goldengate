@@ -47,8 +47,18 @@ const tests = [
     expected: {},
   },
   {
+    args: {metadata: [makeAuth({macaroon: 'macaroon="", macaroon="m"'})]},
+    description: 'A non-empty macaroon is required',
+    expected: {},
+  },
+  {
     args: {metadata: [makeAuth({request: 'r="r"'})]},
     description: 'A payment request is expected',
+    expected: {},
+  },
+  {
+    args: {metadata: [makeAuth({request: 'invoice="", invoice="invoice"'})]},
+    description: 'A non-empty payment request is expected',
     expected: {},
   },
   {

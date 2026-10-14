@@ -16,13 +16,13 @@ const {hashForTree} = require('p2tr');
 const {idForTransaction} = require('@alexbosworth/blockchain');
 const {signPsbt} = require('ln-service');
 const {spawnLightningCluster} = require('ln-docker-daemons');
-const tinysecp = require('tiny-secp256k1');
 const {v1OutputScript} = require('p2tr');
 
+const {getPublicKey} = require('./../../script');
+const {makePrivateKey} = require('./../../script');
 const {swapScriptBranches} = require('./../../');
 const {taprootRefundTransaction} = require('./../../');
 
-const cltvDelta = 20;
 const defaultInternalKey = '0350929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0';
 const interval = 10;
 const makeSecret = () => randomBytes(32);
@@ -36,22 +36,20 @@ const tokens = 1e6;
 
 // Swapping in taproot with a timeout should result in a successful refund
 test(`Taproot Refund Swap`, async () => {
-  const ecp = (await import('ecpair')).ECPairFactory(tinysecp);
   const {kill, nodes} = await spawnLightningCluster({size});
 
   const [{generate, lnd}, target] = nodes;
   const secret = makeSecret();
 
   try {
-    const claimKey = ecp.makeRandom();
-    const refundKey = ecp.makeRandom();
+    const claimKey = makePrivateKey({}).private_key;
+    const refundKey = makePrivateKey({}).private_key;
     const currentHeight = (await getHeight({lnd})).current_block_height;
 
     const swapScript = swapScriptBranches({
-      ecp,
-      claim_public_key: claimKey.publicKey.toString('hex'),
+      claim_public_key: getPublicKey({private_key: claimKey}).public_key,
       hash: sha256(secret),
-      refund_private_key: refundKey.privateKey.toString('hex'),
+      refund_private_key: refundKey,
       timeout: timeoutHeight,
     });
 
@@ -84,14 +82,13 @@ test(`Taproot Refund Swap`, async () => {
     });
 
     const {transaction} = taprootRefundTransaction({
-      ecp,
       tokens,
       block_height: (await getHeight({lnd})).current_block_height + 400,
       external_key: output.external_key,
       fee_tokens_per_vbyte: (await getChainFeeRate({lnd})).tokens_per_vbyte,
       network: networkName,
       output_script: output.script,
-      private_key: refundKey.privateKey.toString('hex'),
+      private_key: refundKey,
       refund_script: swapScript.refund,
       script_branches: swapScript.branches,
       sweep_address: (await createChainAddress({lnd})).address,
@@ -118,9 +115,9 @@ test(`Taproot Refund Swap`, async () => {
     });
   } catch (err) {
     equal(err, null, 'Expected no error');
+  } finally {
+    await kill({});
   }
-
-  await kill({});
 
   return;
 });

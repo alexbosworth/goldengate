@@ -1,18 +1,20 @@
-const {script} = require('bitcoinjs-lib');
-const {Transaction} = require('bitcoinjs-lib');
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
+const {pointFromScalar} = require('tiny-secp256k1');
+const {sign} = require('tiny-secp256k1');
+const {v0HashToSign} = require('@alexbosworth/blockchain');
 
+const encodeSignature = require('./encode_signature');
 const {versionOfSwapScript} = require('./../script');
 
-const encodeSig = script.signature.encode;
-const {fromHex} = Transaction;
-const hashFlag = Transaction.SIGHASH_ALL;
+const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const isCompressed = true;
 const preimageHexLength = 32 * 2;
+const sighashAll = 1;
 
 /** Generate signed witnesses for swap resolution transaction
 
   {
-    ecp: <ECPair Object>
     private_key: <Raw Private Key Hex String>
     tokens: <Tokens Number>
     transaction: <Unsigned Transaction Hex String>
@@ -29,10 +31,6 @@ const preimageHexLength = 32 * 2;
   }
 */
 module.exports = args => {
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpairObjectForResolutionTransactionWitness');
-  }
-
   if (!args.private_key) {
     throw new Error('ExpectedPrivateKeyForResolutionTransactionWitness');
   }
@@ -46,7 +44,7 @@ module.exports = args => {
   }
 
   try {
-    fromHex(args.transaction)
+    componentsOfTransaction({transaction: args.transaction});
   } catch (err) {
     throw new Error('ExpectedValidTransactionHexForWitnessGeneration');
   }
@@ -67,19 +65,30 @@ module.exports = args => {
     throw new Error('ExpectedKnownSwapScriptTypeToDeriveResolutionWitness');
   }
 
-  const script = hexAsBuffer(args.witness_script);
-  const signingKey = args.ecp.fromPrivateKey(hexAsBuffer(args.private_key));
-  const tx = fromHex(args.transaction);
+  const signingKey = hexAsBuffer(args.private_key);
+  const tx = componentsOfTransaction({transaction: args.transaction});
   const {version} = versionOfSwapScript({script: args.witness_script});
 
-  if (!tx.ins[args.vin]) {
+  const publicKey = bufferAsHex(pointFromScalar(signingKey, isCompressed));
+
+  if (!tx.inputs[args.vin]) {
     throw new Error('ExpectedInputToSignForResolutionTransactionWitness');
   }
 
-  const publicKey = signingKey.publicKey.toString('hex');
-  const sigHash = tx.hashForWitnessV0(args.vin, script, args.tokens, hashFlag);
+  // The signature commits to the witness script and the spending tokens
+  const {hash} = v0HashToSign({
+    script: args.witness_script,
+    sighash: sighashAll,
+    tokens: args.tokens,
+    transaction: args.transaction,
+    vin: args.vin,
+  });
 
-  const sig = encodeSig(signingKey.sign(sigHash), hashFlag).toString('hex');
+  const signature = Buffer.from(sign(hexAsBuffer(hash), signingKey));
+
+  const {encoded} = encodeSignature({signature, flag: sighashAll});
+
+  const sig = bufferAsHex(encoded);
 
   switch (version) {
   case 1:

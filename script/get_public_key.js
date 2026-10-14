@@ -1,10 +1,13 @@
-const bufferAsHex = buffer => buffer.toString('hex');
+const {isPrivate} = require('tiny-secp256k1');
+const {pointFromScalar} = require('tiny-secp256k1');
+
+const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const isCompressed = true;
 
 /** Get the public key for a private key
 
   {
-    ecp: <ECPair Object>
     private_key: <Private Key Hex String>
   }
 
@@ -17,15 +20,15 @@ const hexAsBuffer = hex => Buffer.from(hex, 'hex');
   }
 */
 module.exports = args => {
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpairToDerivePublicKey');
-  }
-
-  if (!args.private_key){
+  if (!args.private_key) {
     throw new Error('ExpectedPrivateKeyToDerivePublicKey');
   }
 
-  const keyPair = args.ecp.fromPrivateKey(hexAsBuffer(args.private_key));
+  if (!isPrivate(hexAsBuffer(args.private_key))) {
+    throw new Error('ExpectedValidPrivateKeyToDerivePublicKey');
+  }
 
-  return {public_key: bufferAsHex(keyPair.publicKey)};
+  const key = pointFromScalar(hexAsBuffer(args.private_key), isCompressed);
+
+  return {public_key: bufferAsHex(key)};
 };

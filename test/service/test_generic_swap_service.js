@@ -1,4 +1,5 @@
 const {deepEqual} = require('node:assert').strict;
+const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
@@ -91,6 +92,16 @@ tests.forEach(({args, description, error, expected}) => {
       const quote = await getSwapOutTerms({metadata, service})
 
       deepEqual(quote, expected, 'got expected response');
+
+      // Streaming methods are unsupported and return inert emitters
+      const streams = [
+        service.subscribeLoopInUpdates({}, metadata),
+        service.subscribeLoopOutUpdates({}, metadata),
+      ];
+
+      streams.forEach(stream => {
+        return equal(typeof stream.on, 'function', 'Got emitter');
+      });
     }
 
     return;

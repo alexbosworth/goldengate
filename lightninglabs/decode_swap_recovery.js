@@ -1,14 +1,11 @@
 const asyncAuto = require('async/auto');
 const {decodeFirst} = require('cbor');
-const {ECPair} = require('ecpair');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
 
 const encodeSwapRecovery = require('./encode_swap_recovery');
 const {swapScript} = require('./../script');
 const {swapScriptV2} = require('./../script');
 
-const scriptVersion1 = undefined;
 const scriptVersion2 = 2;
 
 /** Decode encoded swap recovery blob
@@ -37,9 +34,6 @@ const scriptVersion2 = 2;
 module.exports = ({recovery}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Check arguments
       validate: cbk => {
         if (!recovery) {
@@ -56,41 +50,13 @@ module.exports = ({recovery}, cbk) => {
             return cbk([400, 'ExpectedValidCborEncodedRecoverData', {err}]);
           }
 
+          // Exit early when there are no swap details in the recovery data
+          if (!recover) {
+            return cbk([400, 'ExpectedSwapDetailsInRecoveryDataToDecode']);
+          }
+
           return cbk(null, recover);
         });
-      }],
-
-      // Script details
-      scriptDetails: ['ecp', 'recovery', ({ecp, recovery}, cbk) => {
-        return cbk(null, {
-          ecp,
-          claim_private_key: recovery.claim_private_key || undefined,
-          claim_public_key: recovery.claim_public_key || undefined,
-          hash: recovery.id || undefined,
-          refund_private_key: recovery.refund_private_key || undefined,
-          refund_public_key: recovery.refund_public_key || undefined,
-          secret: recovery.secret || undefined,
-          timeout: recovery.timeout,
-          version: recovery.version,
-        });
-      }],
-
-      // Derive swap script from components
-      deriveScript: ['scriptDetails', ({scriptDetails}, cbk) => {
-        try {
-          switch (scriptDetails.version) {
-          case scriptVersion1:
-            return cbk(null, swapScript(scriptDetails));
-
-          case scriptVersion2:
-            return cbk(null, swapScriptV2(scriptDetails));
-
-          default:
-            return cbk([400, 'UnrecognizedSwapVersionNumber']);
-          }
-        } catch (err) {
-          return cbk([400, 'ExpectedValidRecoveryDetails', {err}]);
-        }
       }],
 
       // Check recovery
@@ -113,6 +79,38 @@ module.exports = ({recovery}, cbk) => {
           return cbk();
         } catch (err) {
           return cbk([400, 'ExpectedValidSwapRecoveryToDecode', {err}]);
+        }
+      }],
+
+      // Script details
+      scriptDetails: ['recovery', ({recovery}, cbk) => {
+        return cbk(null, {
+          claim_private_key: recovery.claim_private_key || undefined,
+          claim_public_key: recovery.claim_public_key || undefined,
+          hash: recovery.id || undefined,
+          refund_private_key: recovery.refund_private_key || undefined,
+          refund_public_key: recovery.refund_public_key || undefined,
+          secret: recovery.secret || undefined,
+          timeout: recovery.timeout,
+          version: recovery.version,
+        });
+      }],
+
+      // Derive swap script from components
+      deriveScript: [
+        'checkRecovery',
+        'scriptDetails',
+        ({scriptDetails}, cbk) =>
+      {
+        try {
+          // The recovery check only allows for version 1 or 2 swap scripts
+          if (scriptDetails.version === scriptVersion2) {
+            return cbk(null, swapScriptV2(scriptDetails));
+          }
+
+          return cbk(null, swapScript(scriptDetails));
+        } catch (err) {
+          return cbk([400, 'ExpectedValidRecoveryDetails', {err}]);
         }
       }],
 

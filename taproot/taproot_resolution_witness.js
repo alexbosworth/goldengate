@@ -1,22 +1,24 @@
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {controlBlock} = require('p2tr');
 const {hashForTree} = require('p2tr');
-const {leafHash} = require('p2tr');
+const {pointFromScalar} = require('tiny-secp256k1');
 const {signHash} = require('p2tr');
 const {signSchnorr} = require('tiny-secp256k1');
-const {Transaction} = require('bitcoinjs-lib');
+const {v1HashToSign} = require('p2tr');
+
+const xOnlyPublicKey = require('./x_only_public_key');
 
 const bufferAsHex = buffer => buffer.toString('hex');
-const defaultSighash = Transaction.SIGHASH_DEFAULT;
+const defaultSighash = 0;
 const {from} = Buffer;
-const {fromHex} = Transaction;
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const {isArray} = Array;
-const leaf = script => !!script ? leafHash({script}).hash : undefined;
+const isCompressed = true;
+const leaf = script => !!script ? {script} : undefined;
 
 /** Generate signed witness stack for Taproot swap resolution transaction
 
   {
-    ecp: <ECPair Object>
     [external_key]: <External Public Key Hex String>
     [claim_script]: <Claim Leaf Script Hex String>
     [internal_key]: <Internal Public Key Hex String>
@@ -40,10 +42,6 @@ const leaf = script => !!script ? leafHash({script}).hash : undefined;
   }
 */
 module.exports = args => {
-  if (!args.ecp) {
-    throw new Error('ExpectedEcpToDeriveTaprootResolutionWitness');
-  }
-
   if (!!args.claim_script && !args.external_key) {
     throw new Error('ExpectedExternalKeyToDeriveClaimScriptWitness');
   }
@@ -84,29 +82,39 @@ module.exports = args => {
     throw new Error('ExpectedInputIndexToSignToGenerateResolutionWitness');
   }
 
-  const signingKey = args.ecp.fromPrivateKey(hexAsBuffer(args.private_key));
+  const signingKey = hexAsBuffer(args.private_key);
 
-  const tx = fromHex(args.transaction);
+  const publicKey = from(pointFromScalar(signingKey, isCompressed));
+
+  const spends = [{script: args.output_script, tokens: args.tokens}];
+  const tx = componentsOfTransaction({transaction: args.transaction});
+
+  // The hash to sign commits to the outputs spent by every input
+  if (tx.inputs.length !== spends.length) {
+    throw new Error('ExpectedSpendForEveryInputToDeriveTaprootWitnessStack');
+  }
 
   const witnessScript = args.claim_script || args.refund_script;
 
-  const hashToSign = tx.hashForWitnessV1(
-    args.vin,
-    [hexAsBuffer(args.output_script)],
-    [args.tokens],
-    defaultSighash,
-    !!witnessScript ? hexAsBuffer(leaf(witnessScript)) : undefined,
-  );
+  const {hash} = v1HashToSign({
+    spends,
+    leaf: leaf(witnessScript),
+    sighash: defaultSighash,
+    transaction: args.transaction,
+    vin: args.vin,
+  });
 
-  const signature = from(signSchnorr(hashToSign, signingKey.privateKey));
+  const hashToSign = hexAsBuffer(hash);
+
+  const signature = from(signSchnorr(hashToSign, signingKey));
 
   // Exit early when there is no script path
   if (!witnessScript) {
     const signedInput = signHash({
       hash: hashForTree({branches: args.script_branches}).hash,
       private_key: args.private_key,
-      public_key: bufferAsHex(signingKey.publicKey),
-      sign_hash: bufferAsHex(hashToSign),
+      public_key: bufferAsHex(publicKey),
+      sign_hash: hash,
     });
 
     return {witness: [signedInput.signature]};
@@ -115,7 +123,7 @@ module.exports = args => {
   // Create the control block proving the witness script is part of the output
   const {block} = controlBlock({
     external_key: args.external_key,
-    internal_key: args.internal_key,
+    internal_key: xOnlyPublicKey({public_key: args.internal_key}).x_only,
     leaf_script: witnessScript,
     script_branches: args.script_branches,
   });

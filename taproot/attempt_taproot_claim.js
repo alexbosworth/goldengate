@@ -1,6 +1,5 @@
 const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
-const tinysecp = require('tiny-secp256k1');
 
 const {broadcastTransaction} = require('./../chain');
 const taprootClaimTransaction = require('./taproot_claim_transaction');
@@ -18,6 +17,7 @@ const longRangeConfTarget = 1008;
     current_height: <Current Chain Height Number>
     deadline_height: <Ultimate Target Chain Height Number>
     external_key: <External Public Key Hex String>
+    [internal_key]: <Taproot Output Internal Public Key Hex String>
     [is_dry_run]: <Avoid Broadcasting Transaction Bool>
     [lnd]: <Authenticated LND API Object>
     [min_fee_rate]: <Minimum Relay Fee Tokens Per VByte Number>
@@ -26,6 +26,9 @@ const longRangeConfTarget = 1008;
     output_script: <UTXO Output Script Hex String>
     private_key: <Sweep Claim Key Private Key Hex String>
     [request]: <Request Function>
+    script_branches: [{
+      script: <Leaf Script Hex String>
+    }]
     secret: <Secret Preimage Hex String>
     [sends]: [{
       address: <Send to Address String>
@@ -48,9 +51,6 @@ const longRangeConfTarget = 1008;
 module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Import ECPair library
-      ecp: async () => (await import('ecpair')).ECPairFactory(tinysecp),
-
       // Check arguments
       validate: cbk => {
         if (!args.claim_script) {
@@ -159,20 +159,15 @@ module.exports = (args, cbk) => {
       }],
 
       // Claim transaction
-      claim: [
-        'ecp',
-        'getChainFee',
-        'rate',
-        ({ecp, getChainFee, rate}, cbk) =>
-      {
+      claim: ['getChainFee', 'rate', ({getChainFee, rate}, cbk) => {
         try {
           // Form the claim transaction to sweep the output
           const {transaction} = taprootClaimTransaction({
-            ecp,
             block_height: args.current_height,
             claim_script: args.claim_script,
             external_key: args.external_key,
             fee_tokens_per_vbyte: rate,
+            internal_key: args.internal_key,
             network: args.network,
             output_script: args.output_script,
             private_key: args.private_key,
