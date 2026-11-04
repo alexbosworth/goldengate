@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
 
@@ -103,44 +104,49 @@ module.exports = (args, cbk) => {
             return cbk([503, 'ExpectedResponseWhenCreatingTaprootSwap']);
           }
 
-          if (!res.prepay_invoice) {
-            return cbk([503, 'ExpectedPrepayInvoiceInTaprootSwapResponse']);
-          }
-
-          try {
-            parsePaymentRequest({request: res.prepay_invoice});
-          } catch (err) {
-            return cbk([503, 'FailedToParseSwapDepositRequestInSwap', {err}]);
-          }
-
-          if (!res.swap_invoice) {
-            return cbk([503, 'ExpectedSwapInvoiceInTaprootSwapResponse']);
-          }
-
-          try {
-            parsePaymentRequest({request: res.swap_invoice});
-          } catch (err) {
-            return cbk([503, 'FailedToParseSwapInvoiceInTaprootSwap', {err}]);
-          }
-
-          const {id} = parsePaymentRequest({request: res.swap_invoice});
-
-          if (id !== args.hash) {
-            return cbk([503, 'ExpectedFundingRequestToTaprootSwapHash']);
-          }
-
-          if (!res.sender_key) {
-            return cbk([503, 'ExpectedPubKeyInTaprootSwapCreationResponse']);
-          }
-
-          return cbk(null, {
-            service_public_key: bufferAsHex(asKey(res.sender_key)),
-            swap_execute_request: res.prepay_invoice,
-            swap_fund_request: res.swap_invoice,
-          });
+          return cbk(null, res);
         });
       }],
+
+      // Check the created swap details
+      swap: ['create', asyncify(({create}) => {
+        if (!create.prepay_invoice) {
+          throw [503, 'ExpectedPrepayInvoiceInTaprootSwapResponse'];
+        }
+
+        try {
+          parsePaymentRequest({request: create.prepay_invoice});
+        } catch (err) {
+          throw [503, 'FailedToParseSwapDepositRequestInSwap', {err}];
+        }
+
+        if (!create.swap_invoice) {
+          throw [503, 'ExpectedSwapInvoiceInTaprootSwapResponse'];
+        }
+
+        try {
+          parsePaymentRequest({request: create.swap_invoice});
+        } catch (err) {
+          throw [503, 'FailedToParseSwapInvoiceInTaprootSwap', {err}];
+        }
+
+        const {id} = parsePaymentRequest({request: create.swap_invoice});
+
+        if (id !== args.hash) {
+          throw [503, 'ExpectedFundingRequestToTaprootSwapHash'];
+        }
+
+        if (!create.sender_key) {
+          throw [503, 'ExpectedPubKeyInTaprootSwapCreationResponse'];
+        }
+
+        return {
+          service_public_key: bufferAsHex(asKey(create.sender_key)),
+          swap_execute_request: create.prepay_invoice,
+          swap_fund_request: create.swap_invoice,
+        };
+      })],
     },
-    returnResult({reject, resolve, of: 'create'}, cbk));
+    returnResult({reject, resolve, of: 'swap'}, cbk));
   });
 };

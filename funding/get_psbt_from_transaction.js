@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const asyncMapSeries = require('async/mapSeries');
 const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
@@ -39,21 +40,19 @@ module.exports = ({network, request, transaction}, cbk) => {
           return cbk([400, 'ExpectedTransactionToGetPsbtFromTransaction']);
         }
 
-        try {
-          componentsOfTransaction({transaction});
-        } catch (err) {
-          return cbk([400, 'ExpectedValidTxToGetPsbtFromTransaction']);
-        }
-
         return cbk();
       },
 
       // Pull out input transaction ids
-      ids: ['validate', ({}, cbk) => {
-        const {inputs} = componentsOfTransaction({transaction});
+      ids: ['validate', asyncify(({}) => {
+        try {
+          const {inputs} = componentsOfTransaction({transaction});
 
-        return cbk(null, uniq(inputs.map(n => n.id)));
-      }],
+          return uniq(inputs.map(n => n.id));
+        } catch (err) {
+          throw [400, 'ExpectedValidTxToGetPsbtFromTransaction'];
+        }
+      })],
 
       // Get raw transactions that represent the coins for the tx
       getTransactions: ['ids', ({ids}, cbk) => {
@@ -64,17 +63,17 @@ module.exports = ({network, request, transaction}, cbk) => {
       }],
 
       // Finalize PSBT
-      finalize: ['getTransactions', ({getTransactions}, cbk) => {
+      finalize: ['getTransactions', asyncify(({getTransactions}) => {
         const spending = getTransactions.map(n => n.transaction);
 
         try {
           const {psbt} = unextractTransaction({spending, transaction});
 
-          return cbk(null, {psbt});
+          return {psbt};
         } catch (err) {
-          return cbk([400, 'FailedToConvertTxToPsbt', {err}]);
+          throw [400, 'FailedToConvertTxToPsbt', {err}];
         }
-      }],
+      })],
     },
     returnResult({reject, resolve, of: 'finalize'}, cbk));
   });

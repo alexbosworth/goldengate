@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
 
@@ -98,7 +99,7 @@ module.exports = (args, cbk) => {
       getTransaction: ['getSpend', ({getSpend}, cbk) => {
         // Exit early when there is no spend
         if (!getSpend) {
-          return cbk(null, {});
+          return cbk();
         }
 
         const url = `${apis[args.network]}/tx/${getSpend}/hex`;
@@ -120,16 +121,26 @@ module.exports = (args, cbk) => {
             return cbk([503, 'ExpectedRawHexTransactionForTxLookup']);
           }
 
-          try {
-            componentsOfTransaction({transaction: res});
-          } catch (err) {
-            return cbk([503, 'ExpectedRawTransactionInSpendResponse']);
-          }
-
-          return cbk(null, {transaction: res});
+          return cbk(null, res);
         });
       }],
+
+      // Check the spend is a valid raw transaction
+      transaction: ['getTransaction', asyncify(({getTransaction}) => {
+        // Exit early when there is no spend
+        if (!getTransaction) {
+          return {};
+        }
+
+        try {
+          componentsOfTransaction({transaction: getTransaction});
+        } catch (err) {
+          throw [503, 'ExpectedRawTransactionInSpendResponse'];
+        }
+
+        return {transaction: getTransaction};
+      })],
     },
-    returnResult({reject, resolve, of: 'getTransaction'}, cbk));
+    returnResult({reject, resolve, of: 'transaction'}, cbk));
   });
 };

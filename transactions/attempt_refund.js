@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {returnResult} = require('asyncjs-util');
 
 const {broadcastTransaction} = require('./../chain');
@@ -96,32 +97,29 @@ module.exports = (args, cbk) => {
       }],
 
       // Swap script
-      script: ['validate', ({}, cbk) => {
-        try {
-          switch (args.version) {
-          case scriptVersion1:
-            return cbk(null, swapScript({
-              hash: args.hash,
-              claim_public_key: args.service_public_key,
-              refund_private_key: args.refund_private_key,
-              timeout: args.timeout_height,
-            }).script);
+      script: ['validate', asyncify(({}) => {
+        const versions = [scriptVersion1, scriptVersion2];
 
-          case scriptVersion2:
-            return cbk(null, swapScriptV2({
-              hash: args.hash,
-              claim_public_key: args.service_public_key,
-              refund_private_key: args.refund_private_key,
-              timeout: args.timeout_height,
-            }).script);
-
-          default:
-            return cbk([400, 'UnrecognizedScriptVersionForRefundAttempt']);
-          }
-        } catch (err) {
-          return cbk([400, 'FailedToDeriveSwapScriptForRefundAttempt', {err}]);
+        // Exit early when the swap script version is not a known version
+        if (!versions.includes(args.version)) {
+          throw [400, 'UnrecognizedScriptVersionForRefundAttempt'];
         }
-      }],
+
+        const deriveScript = args.version === scriptVersion2 ?
+          swapScriptV2 :
+          swapScript;
+
+        try {
+          return deriveScript({
+            hash: args.hash,
+            claim_public_key: args.service_public_key,
+            refund_private_key: args.refund_private_key,
+            timeout: args.timeout_height,
+          }).script;
+        } catch (err) {
+          throw [400, 'FailedToDeriveSwapScriptForRefundAttempt', {err}];
+        }
+      })],
 
       // Swap address
       swapAddress: ['script', ({script}, cbk) => {

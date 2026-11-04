@@ -13,37 +13,34 @@ const {stringify} = JSON;
 module.exports = ({fetch, headers, method, parameters, socket, ver}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
-      // Post API call
+      // Post API call, a failure to post or to parse the response is thrown
       post: async () => {
-        try {
-          // Bytes cannot be serialized in JSON so convert them to hex
-          keys(parameters)
-            .filter(key => isBuffer(parameters[key]))
-            .forEach(key => parameters[key] = asHex(parameters[key]));
+        // Bytes cannot be serialized in JSON so convert them to hex
+        keys(parameters)
+          .filter(key => isBuffer(parameters[key]))
+          .forEach(key => parameters[key] = asHex(parameters[key]));
 
-          const res = await fetch(servicePath(socket, ver, method), {
-            headers: assign(headers, requestHeaders),
-            method: serviceMethod,
-            body: stringify(parameters),
-          });
+        const res = await fetch(servicePath(socket, ver, method), {
+          headers: assign(headers, requestHeaders),
+          method: serviceMethod,
+          body: stringify(parameters),
+        });
 
-          const json = await res.json();
+        const json = await res.json();
 
-          json.metadata = {get: () => json.authenticate};
+        json.metadata = {get: () => json.authenticate};
 
-          return !res.ok ? {err: json} : {result: json};
-        } catch (err) {
-          return {err};
-        }
+        return {json, is_ok: res.ok};
       },
 
       // Parse out result from API call
       result: ['post', ({post}, cbk) => {
-        if (!!post.err) {
-          return cbk(post.err);
+        // A failure response from the service is passed back as the error
+        if (!post.is_ok) {
+          return cbk(post.json);
         }
 
-        return cbk(null, post.result);
+        return cbk(null, post.json);
       }],
     },
     returnResult({reject, resolve, of: 'result'}, cbk));

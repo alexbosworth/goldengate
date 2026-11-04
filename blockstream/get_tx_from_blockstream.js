@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const asyncRetry = require('async/retry');
 const {idForTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
@@ -67,20 +68,29 @@ module.exports = ({id, interval, network, request, retries}, cbk) => {
               return cbk([503, 'ExpectedTransactionInResponse']);
             }
 
-            try {
-              if (idForTransaction({transaction}).id !== id) {
-                return cbk([503, 'ExpectedRawTransactionInResponse']);
-              }
-            } catch (err) {
-              return cbk([503, 'ExpectedValidTransactionInResponse']);
-            }
-
             return cbk(null, {transaction});
           });
         },
         cbk);
       }],
+
+      // Check the raw transaction is the transaction with the requested id
+      transaction: ['getTransaction', asyncify(({getTransaction}) => {
+        const {transaction} = getTransaction;
+
+        try {
+          idForTransaction({transaction});
+        } catch (err) {
+          throw [503, 'ExpectedValidTransactionInResponse'];
+        }
+
+        if (idForTransaction({transaction}).id !== id) {
+          throw [503, 'ExpectedRawTransactionInResponse'];
+        }
+
+        return {transaction};
+      })],
     },
-    returnResult({reject, resolve, of: 'getTransaction'}, cbk));
+    returnResult({reject, resolve, of: 'transaction'}, cbk));
   });
 };

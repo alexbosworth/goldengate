@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
 
@@ -70,7 +71,7 @@ module.exports = (args, cbk) => {
       },
 
       // Keys
-      keys: ['validate', ({}, cbk) => {
+      keys: ['validate', asyncify(({}) => {
         const key = makePrivateKey({});
 
         const privateKey = args.private_key || key.private_key;
@@ -80,30 +81,32 @@ module.exports = (args, cbk) => {
 
           const publicKey = args.public_key || swapKey.public_key;
 
-          return cbk(null, {private_key: privateKey, public_key: publicKey});
+          return {private_key: privateKey, public_key: publicKey};
         } catch (err) {
-          return cbk([400, 'ExpectedValidPrivateKeyToCreateSwapIn']);
+          throw [400, 'ExpectedValidPrivateKeyToCreateSwapIn'];
         }
-      }],
+      })],
 
       // Decode request
-      parsedRequest: ['validate', ({}, cbk) => {
+      parsedRequest: ['validate', asyncify(({}) => {
         try {
-          const parsed = parsePaymentRequest({request: args.request});
-
-          if (!requestNetworks[parsed.network]) {
-            return cbk([400, 'ExpectedKnownNetworkForSwapInPaymentRequest']);
-          }
-
-          return cbk(null, {
-            id: parsed.id,
-            network: requestNetworks[parsed.network],
-            tokens: parsed.tokens,
-          });
+          parsePaymentRequest({request: args.request});
         } catch (err) {
-          return cbk([400, 'ExpectedValidPayReqToCreateSwapIn', {err}]);
+          throw [400, 'ExpectedValidPayReqToCreateSwapIn', {err}];
         }
-      }],
+
+        const parsed = parsePaymentRequest({request: args.request});
+
+        if (!requestNetworks[parsed.network]) {
+          throw [400, 'ExpectedKnownNetworkForSwapInPaymentRequest'];
+        }
+
+        return {
+          id: parsed.id,
+          network: requestNetworks[parsed.network],
+          tokens: parsed.tokens,
+        };
+      })],
 
       // Create the swap
       create: ['keys', 'parsedRequest', ({keys, parsedRequest}, cbk) => {
@@ -162,7 +165,7 @@ module.exports = (args, cbk) => {
         'create',
         'keys',
         'parsedRequest',
-        ({create, keys, parsedRequest}, cbk) =>
+        asyncify(({create, keys, parsedRequest}) =>
       {
         try {
           const {script} = swapScriptV2({
@@ -172,11 +175,11 @@ module.exports = (args, cbk) => {
             timeout: create.timeout,
           });
 
-          return cbk(null, script);
+          return script;
         } catch (err) {
-          return cbk([500, 'FailedToDeriveSwapScriptWhenCreatingSwap', {err}]);
+          throw [500, 'FailedToDeriveSwapScriptWhenCreatingSwap', {err}];
         }
-      }],
+      })],
 
       // Final swap details
       swap: [

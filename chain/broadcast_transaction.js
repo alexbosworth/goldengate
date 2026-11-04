@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {broadcastChainTransaction} = require('ln-service');
 const {idForTransaction} = require('@alexbosworth/blockchain');
 const {returnResult} = require('asyncjs-util');
@@ -38,17 +39,20 @@ module.exports = ({lnd, network, request, transaction}, cbk) => {
           return cbk([400, 'ExpectedNetworkToPublishTransaction']);
         }
 
-        try {
-          txId(transaction);
-        } catch (err) {
-          return cbk([400, 'ExpectedValidTransactionToPublish', {err}]);
-        }
-
         return cbk();
       },
 
+      // Derive the id of the transaction to publish
+      id: ['validate', asyncify(({}) => {
+        try {
+          return txId(transaction);
+        } catch (err) {
+          throw [400, 'ExpectedValidTransactionToPublish', {err}];
+        }
+      })],
+
       // Publish to the mempool via Blockstream API
-      blockstreamPublish: ['validate', ({}, cbk) => {
+      blockstreamPublish: ['id', ({}, cbk) => {
         if (!request) {
           return cbk();
         }
@@ -59,7 +63,7 @@ module.exports = ({lnd, network, request, transaction}, cbk) => {
       }],
 
       // Publish via the wallet lnd RPC connection
-      lndPublish: ['validate', ({}, cbk) => {
+      lndPublish: ['id', ({}, cbk) => {
         if (!lnd) {
           return cbk();
         }
@@ -72,8 +76,9 @@ module.exports = ({lnd, network, request, transaction}, cbk) => {
       // Transaction id for published transaction
       transactionId: [
         'blockstreamPublish',
+        'id',
         'lndPublish',
-        ({blockstreamPublish, lndPublish}, cbk) =>
+        ({blockstreamPublish, id, lndPublish}, cbk) =>
       {
         const pushes = [blockstreamPublish, lndPublish];
 
@@ -84,7 +89,7 @@ module.exports = ({lnd, network, request, transaction}, cbk) => {
           return cbk(failedPublish.err);
         }
 
-        return cbk(null, {transaction_id: txId(transaction)});
+        return cbk(null, {transaction_id: id});
       }],
     },
     returnResult({reject, resolve, of: 'transactionId'}, cbk));

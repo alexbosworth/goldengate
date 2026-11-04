@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {beginGroupSigningSession} = require('ln-service');
 const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {endGroupSigningSession} = require('ln-service');
@@ -131,7 +132,7 @@ module.exports = (args, cbk) => {
       }],
 
       // Assemble the PSBT to submit to the server
-      unsigned: ['validate', ({}, cbk) => {
+      unsigned: ['validate', asyncify(({}) => {
         try {
           const {hash, psbt, transaction} = taprootCoopPsbt({
             fee_tokens_per_vbyte: args.fee_tokens_per_vbyte,
@@ -145,11 +146,11 @@ module.exports = (args, cbk) => {
             transaction_vout: args.transaction_vout,
           });
 
-          return cbk(null, {hash, psbt, transaction});
+          return {hash, psbt, transaction};
         } catch (err) {
-          return cbk([400, err.message]);
+          throw [400, err.message];
         }
-      }],
+      })],
 
       // Request the partial signature from the server
       request: ['begin', 'unsigned', ({begin, unsigned}, cbk) => {

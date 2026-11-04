@@ -2,6 +2,7 @@ const {createHash} = require('crypto');
 const {randomBytes} = require('crypto');
 
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {returnResult} = require('asyncjs-util');
 
 const {addressForScript} = require('./../script');
@@ -100,7 +101,7 @@ module.exports = (args, cbk) => {
       }],
 
       // Keys
-      keys: ['validate', ({}, cbk) => {
+      keys: ['validate', asyncify(({}) => {
         const key = makePrivateKey({});
 
         const privateKey = args.private_key || key.private_key;
@@ -112,16 +113,16 @@ module.exports = (args, cbk) => {
         try {
           const swapKey = getPublicKey({private_key: privateKey});
 
-          return cbk(null, {
+          return {
             private_key: privateKey,
             public_key: args.public_key || swapKey.public_key,
             swap_hash: swapHash,
             swap_secret: swapSecret,
-          });
+          };
         } catch (err) {
-          return cbk([400, 'ExpectedValidPrivateKeyToCreateSwapOut']);
+          throw [400, 'ExpectedValidPrivateKeyToCreateSwapOut'];
         }
-      }],
+      })],
 
       // Create the swap
       create: ['deadline', 'keys', ({deadline, keys}, cbk) => {
@@ -166,7 +167,7 @@ module.exports = (args, cbk) => {
       }],
 
       // Swap script for the key and hash that were sent to the server
-      script: ['create', 'keys', ({create, keys}, cbk) => {
+      script: ['create', 'keys', asyncify(({create, keys}) => {
         try {
           const {script} = swapScriptV2({
             claim_public_key: keys.public_key,
@@ -175,22 +176,22 @@ module.exports = (args, cbk) => {
             timeout: create.expiry,
           });
 
-          return cbk(null, script);
+          return script;
         } catch (err) {
-          return cbk([500, 'FailedToDeriveSwapScriptWhenCreatingSwap', {err}]);
+          throw [500, 'FailedToDeriveSwapScriptWhenCreatingSwap', {err}];
         }
-      }],
+      })],
 
       // Swap address
-      address: ['script', ({script}, cbk) => {
+      address: ['script', asyncify(({script}) => {
         try {
           const {address} = addressForScript({script, network: args.network});
 
-          return cbk(null, address);
+          return address;
         } catch (err) {
-          return cbk([503, 'FailedToDeriveAddressFromOutputScript']);
+          throw [503, 'FailedToDeriveAddressFromOutputScript'];
         }
-      }],
+      })],
 
       // Final swap details
       swap: [

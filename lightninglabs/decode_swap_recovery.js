@@ -1,7 +1,8 @@
 const asyncAuto = require('async/auto');
-const {decodeFirst} = require('cbor');
+const asyncify = require('async/asyncify');
 const {returnResult} = require('asyncjs-util');
 
+const decodeCborMap = require('./decode_cbor_map');
 const encodeSwapRecovery = require('./encode_swap_recovery');
 const {swapScript} = require('./../script');
 const {swapScriptV2} = require('./../script');
@@ -44,25 +45,29 @@ module.exports = ({recovery}, cbk) => {
       },
 
       // Decode recover hex blob
-      recovery: ['validate', ({}, cbk) => {
-        return decodeFirst(Buffer.from(recovery, 'hex'), (err, recover) => {
-          if (!!err) {
-            return cbk([400, 'ExpectedValidCborEncodedRecoverData', {err}]);
-          }
+      recovery: ['validate', asyncify(({}) => {
+        const encoded = Buffer.from(recovery, 'hex');
 
-          // Exit early when there are no swap details in the recovery data
-          if (!recover) {
-            return cbk([400, 'ExpectedSwapDetailsInRecoveryDataToDecode']);
-          }
+        try {
+          decodeCborMap({encoded});
+        } catch (err) {
+          throw [400, 'ExpectedValidCborEncodedRecoverData', {err}];
+        }
 
-          return cbk(null, recover);
-        });
-      }],
+        const {decoded} = decodeCborMap({encoded});
+
+        // Exit early when there are no swap details in the recovery data
+        if (!decoded) {
+          throw [400, 'ExpectedSwapDetailsInRecoveryDataToDecode'];
+        }
+
+        return decoded;
+      })],
 
       // Check recovery
-      checkRecovery: ['recovery', ({recovery}, cbk) => {
+      checkRecovery: ['recovery', asyncify(({recovery}) => {
         try {
-          encodeSwapRecovery({
+          return encodeSwapRecovery({
             claim_private_key: recovery.claim_private_key,
             claim_public_key: recovery.claim_public_key,
             execution_id: recovery.execution_id,
@@ -75,12 +80,10 @@ module.exports = ({recovery}, cbk) => {
             tokens: recovery.tokens,
             version: recovery.version,
           });
-
-          return cbk();
         } catch (err) {
-          return cbk([400, 'ExpectedValidSwapRecoveryToDecode', {err}]);
+          throw [400, 'ExpectedValidSwapRecoveryToDecode', {err}];
         }
-      }],
+      })],
 
       // Script details
       scriptDetails: ['recovery', ({recovery}, cbk) => {
@@ -100,19 +103,19 @@ module.exports = ({recovery}, cbk) => {
       deriveScript: [
         'checkRecovery',
         'scriptDetails',
-        ({scriptDetails}, cbk) =>
+        asyncify(({scriptDetails}) =>
       {
         try {
           // The recovery check only allows for version 1 or 2 swap scripts
           if (scriptDetails.version === scriptVersion2) {
-            return cbk(null, swapScriptV2(scriptDetails));
+            return swapScriptV2(scriptDetails);
           }
 
-          return cbk(null, swapScript(scriptDetails));
+          return swapScript(scriptDetails);
         } catch (err) {
-          return cbk([400, 'ExpectedValidRecoveryDetails', {err}]);
+          throw [400, 'ExpectedValidRecoveryDetails', {err}];
         }
-      }],
+      })],
 
       // Final decoded result
       decoded: [

@@ -13,6 +13,8 @@ const emptyTx = transactionFromComponents({
   version: 1,
 }).transaction;
 
+const requests = [];
+
 const makeRequest = ({err, tx}) => {
   return ({}, cbk) => cbk(err, null, tx || emptyTx);
 };
@@ -74,6 +76,24 @@ const tests = [
     args: makeArgs({id: Buffer.alloc(32).toString('hex')}),
     description: 'A transaction with the requested id is expected',
     error: [503, 'ExpectedRawTransactionInResponse'],
+  },
+  {
+    args: makeArgs({
+      interval: undefined,
+      retries: 2,
+      request: ({}, cbk) => {
+        requests.push({});
+
+        // The first request fails, the retry gets the transaction
+        if (requests.length === 1) {
+          return cbk('err');
+        }
+
+        return cbk(null, null, emptyTx);
+      },
+    }),
+    description: 'A failed request is retried',
+    expected: {transaction: '01000000000000000000'},
   },
   {
     args: makeArgs({}),

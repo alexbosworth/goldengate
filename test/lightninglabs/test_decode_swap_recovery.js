@@ -26,7 +26,7 @@ const tests = [
     error: [
       400,
       'ExpectedValidCborEncodedRecoverData',
-      {err: new Error('Invalid BREAK')},
+      {err: new Error('UnsupportedCborSimpleValue')},
     ],
   },
   {

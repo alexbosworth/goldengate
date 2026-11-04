@@ -1,4 +1,4 @@
-const {encode} = require('cbor');
+const encodeCborMap = require('./encode_cbor_map');
 
 const swapV1 = undefined;
 const swapV2 = 2;
@@ -75,7 +75,7 @@ module.exports = args => {
     throw new Error('ExpectedSwapVersionToEncodeSwapRecovery');
   }
 
-  const recovery = encode({
+  const {encoded} = encodeCborMap({map: {
     claim_private_key: args.claim_private_key || undefined,
     claim_public_key: args.claim_public_key || undefined,
     execution_id: args.execution_id || undefined,
@@ -88,7 +88,7 @@ module.exports = args => {
     timeout: args.timeout,
     tokens: args.tokens,
     version: args.version || undefined,
-  });
+  }});
 
-  return {recovery: recovery.toString('hex')};
+  return {recovery: encoded.toString('hex')};
 };

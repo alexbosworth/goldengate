@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {returnResult} = require('asyncjs-util');
 
 const {broadcastTransaction} = require('./../chain');
@@ -143,7 +144,7 @@ module.exports = (args, cbk) => {
       }],
 
       // Get an adjusted fee based on block progression
-      rate: ['getChainFee', ({getChainFee}, cbk) => {
+      rate: ['getChainFee', asyncify(({getChainFee}) => {
         try {
           const {rate} = confirmationFee({
             before: args.deadline_height - args.start_height,
@@ -152,14 +153,14 @@ module.exports = (args, cbk) => {
             multiplier: args.max_fee_multiplier,
           });
 
-          return cbk(null, rate);
+          return rate;
         } catch (err) {
-          return cbk([500, 'FailedToCalculateConfirmationFeeRate', err]);
+          throw [500, 'FailedToCalculateConfirmationFeeRate', err];
         }
-      }],
+      })],
 
       // Claim transaction
-      claim: ['getChainFee', 'rate', ({getChainFee, rate}, cbk) => {
+      claim: ['getChainFee', 'rate', asyncify(({getChainFee, rate}) => {
         try {
           // Form the claim transaction to sweep the output
           const {transaction} = taprootClaimTransaction({
@@ -180,15 +181,11 @@ module.exports = (args, cbk) => {
             transaction_vout: args.transaction_vout,
           });
 
-          return cbk(null, {
-            transaction,
-            fee_rate: rate,
-            min_fee_rate: getChainFee,
-          });
+          return {transaction, fee_rate: rate, min_fee_rate: getChainFee};
         } catch (err) {
-          return cbk([500, 'FailedToGenerateTaprootClaimTransaction', {err}]);
+          throw [500, 'FailedToGenerateTaprootClaimTransaction', {err}];
         }
-      }],
+      })],
 
       // Send transaction to peers to be mined
       broadcast: ['claim', ({claim}, cbk) => {

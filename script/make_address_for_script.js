@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {returnResult} = require('asyncjs-util');
 
 const addressForScript = require('./address_for_script');
@@ -20,15 +21,15 @@ module.exports = ({network, script}, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Address
-      address: cbk => {
+      address: asyncify(() => {
         try {
           const {address, nested} = addressForScript({network, script});
 
-          return cbk(null, {address, nested});
+          return {address, nested};
         } catch (err) {
-          return cbk([400, 'FailedToDeriveSwapScript', {err}]);
+          throw [400, 'FailedToDeriveSwapScript', {err}];
         }
-      },
+      }),
     },
     returnResult({reject, resolve, of: 'address'}, cbk));
   });

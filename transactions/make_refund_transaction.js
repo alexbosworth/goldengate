@@ -1,4 +1,5 @@
 const asyncAuto = require('async/auto');
+const asyncify = require('async/asyncify');
 const {returnResult} = require('asyncjs-util');
 
 const refundTransaction = require('./refund_transaction');
@@ -27,7 +28,7 @@ module.exports = (args, cbk) => {
   return new Promise((resolve, reject) => {
     return asyncAuto({
       // Refund transaction
-      refund: cbk => {
+      refund: asyncify(() => {
         try {
           const {transaction} = refundTransaction({
             block_height: args.block_height,
@@ -42,11 +43,11 @@ module.exports = (args, cbk) => {
             witness_script: args.witness_script,
           });
 
-          return cbk(null, {transaction});
+          return {transaction};
         } catch (err) {
-          return cbk([500, 'FailedToConstructRefundTransaction', {err}]);
+          throw [500, 'FailedToConstructRefundTransaction', {err}];
         }
-      },
+      }),
     },
     returnResult({reject, resolve, of: 'refund'}, cbk));
   });
