@@ -2,12 +2,13 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {createLegacySwapOut} = require('./../../');
 const {genericSwapServer} = require('./../macros');
 const {genericSwapService} = require('./../../');
-const {createSwapOut} = require('./../../');
 
 const metadata = {get: () => [String()]};
 const port = 2347;
+
 const socket = `http://localhost:${port}`;
 
 const tests = [
@@ -66,9 +67,9 @@ tests.forEach(({args, description, error, expected}) => {
     const {server} = await startSwapServer({app, port});
 
     if (!!error) {
-      await rejects(createSwapOut(args), error, 'Got ExpectedError');
+      await rejects(createLegacySwapOut(args), error, 'Got ExpectedError');
     } else {
-      const result = await createSwapOut(args);
+      const result = await createLegacySwapOut(args);
 
       deepEqual(result, expected, 'Got expected result');
     }

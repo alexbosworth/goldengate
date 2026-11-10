@@ -16,6 +16,16 @@ const tests = [
     expected: {socket: 'swap.lightning.today:11010'},
   },
   {
+    args: {network: 'btcsignet'},
+    description: 'Get service socket for signet',
+    expected: {socket: 'signet.swap.lightning.today:11010'},
+  },
+  {
+    args: {is_free: true, network: 'btcsignet'},
+    description: 'There is no free service socket for signet',
+    error: 'ExpectedKnownNetworkForServiceSocket',
+  },
+  {
     args: {},
     description: 'Service socket requires network',
     error: 'ExpectedNetworkNameForSwapServiceSocket',

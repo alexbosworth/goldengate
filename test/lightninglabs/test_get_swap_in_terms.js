@@ -8,10 +8,13 @@ const makeArgs = overrides => {
   const args = {
     metadata: {},
     service: {
-      loopInTerms: ({}, {}, cbk) => cbk(null, {
-        max_swap_amount: '2',
-        min_swap_amount: '1',
-      }),
+      loopInTerms: (args, {}, cbk) => {
+        if (args.protocol_version !== 'MUSIG2') {
+          return cbk([400, 'InvalidProtocolVersionSpecified']);
+        }
+
+        return cbk(null, {max_swap_amount: '2', min_swap_amount: '1'});
+      },
     },
   };
 

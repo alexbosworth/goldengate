@@ -11,6 +11,21 @@ const auth = `LSAT macaroon="${macaroon}", invoice="invoice"`;
 
 const loopOutTerms = ({}, {}, cbk) => cbk(null, loopOutTermsResponse);
 
+// A swap service that asks for payment for a swap macaroon
+const newLoopOutSwap = (args, metadata, cbk) => {
+  if (args.protocol_version !== 'MUSIG2') {
+    return cbk([400, 'InvalidProtocolVersionSpecified']);
+  }
+
+  const [authorization] = metadata.get('Authorization');
+
+  if (!!authorization) {
+    return cbk([400, 'UnexpectedAuthorizationSpecified']);
+  }
+
+  return cbk({details: 'payment required', metadata: {get: () => [auth]}});
+};
+
 const tests = [
   {
     args: {},
@@ -46,23 +61,7 @@ const tests = [
     error: [503, 'FailedToGetPaymentDetailsForSwapMacaroon'],
   },
   {
-    args: {
-      service: {
-        loopOutTerms,
-        newLoopOutSwap: ({}, metadata, cbk) => {
-          const [authorization] = metadata.get('Authorization');
-
-          if (!!authorization) {
-            return cbk([400, 'UnexpectedAuthorizationSpecified']);
-          }
-
-          return cbk({
-            details: 'payment required',
-            metadata: {get: () => [auth]},
-          });
-        },
-      },
-    },
+    args: {service: {loopOutTerms, newLoopOutSwap}},
     description: 'Payment details are expected',
     expected: {macaroon, request: 'invoice'},
   },

@@ -1,16 +1,9 @@
 const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const {isArray} = Array;
-const isInt32 = n => isInteger(n) && n >= minInt32 && n <= maxInt32;
-const {isInteger} = Number;
-const isTokens = n => isInteger(n) && n >= minTokens && n <= maxTokens;
-const isUint32 = n => isInteger(n) && n >= minUint32 && n <= maxUint32;
-const maxInt32 = 2147483647;
-const maxTokens = 21e14;
-const maxUint32 = 4294967295;
-const minInt32 = -2147483648;
-const minTokens = 0;
-const minUint32 = 0;
+const isInt32 = n => Number.isInteger(n) && n >= -(2 ** 31) && n < 2 ** 31;
+const isTokens = n => Number.isInteger(n) && n >= 0 && n <= 21e14;
+const isUint32 = n => Number.isInteger(n) && n >= 0 && n < 2 ** 32;
 
 /** Encode transaction components as a raw transaction
 

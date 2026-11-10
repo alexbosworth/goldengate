@@ -1,38 +1,28 @@
-const {createHash} = require('crypto');
-const {randomBytes} = require('crypto');
-
 const asyncAuto = require('async/auto');
 const asyncify = require('async/asyncify');
+const {parsePaymentRequest} = require('ln-service');
 const {returnResult} = require('asyncjs-util');
 
-const {addressForScript} = require('./../script');
-const {getPublicKey} = require('./../script');
-const {makePrivateKey} = require('./../script');
 const {protocolVersion} = require('./conf/swap_service');
-const {swapScriptV2} = require('./../script');
 
 const asKey = n => Buffer.from(n.toString('base64'), 'base64');
-const currentSwapVersion = 2;
+const bufferAsHex = buffer => buffer.toString('hex');
 const defaultUserAgent = 'nodejs';
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const msPerSec = 1e3;
 const paymentRequiredError = 'payment required';
-const preimageLen = 32;
-const randomHex = byteLength => randomBytes(byteLength).toString('hex');
 const {round} = Math;
-const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
-/** Create a swap out request
+/** Create a Taproot swap out request
 
   Get the `timeout` value by getting swap out terms to determine a CLTV delta
 
   {
-    [fund_at]: <Request Funding On-Chain Before ISO 8601 Date String>
-    [hash]: <Swap Hash String>
+    fund_at: <Request Funding On-Chain Before ISO 8601 Date String>
+    hash: <Swap Hash String>
     metadata: <Authentication Metadata Object>
     network: <Network Name String>
-    [private_key]: <Private Key Hex String>
-    [public_key]: <Public Key Hex String>
-    [secret]: <Secret Hex String>
+    public_key: <Public Key Hex String>
     service: <gRPC Swap Service Object>
     timeout: <Requested Timeout Height Number>
     tokens: <Swap Tokens Number>
@@ -41,16 +31,9 @@ const sha256 = preimage => createHash('sha256').update(preimage).digest('hex');
 
   @returns via cbk or Promise
   {
-    address: <Swap Chain Address String>
-    [private_key]: <Claim Private Key Hex String>
-    script: <Redeem Script Hex String>
-    [secret]: <Swap Preimage Hex String>
-    service_message: <Service Message String>
     service_public_key: <Service Public Key Hex String>
     swap_execute_request: <Execute Swap Payment Request String>
     swap_fund_request: <Swap Funding Payment Request String>
-    timeout: <Swap Timeout Chain Height Number>
-    version: <Swap Version Number>
   }
 */
 module.exports = (args, cbk) => {
@@ -58,24 +41,28 @@ module.exports = (args, cbk) => {
     return asyncAuto({
       // Check arguments
       validate: cbk => {
-        if (!!args.hash && !!args.secret) {
-          return cbk([400, 'ExpectedOnlySwapHashOrSwapSecretNotBoth']);
+        if (!args.fund_at) {
+          return cbk([400, 'ExpectedFundAtDateToCreateTaprootSwapOut']);
+        }
+
+        if (!args.hash) {
+          return cbk([400, 'ExpectedSwapHashToCreateTaprootSwapOut']);
         }
 
         if (!args.metadata) {
-          return cbk([400, 'ExpectedAuthenticationMetadataToCreateSwapOut']);
+          return cbk([400, 'ExpectedAuthMetadataToCreateTaprootSwapOut']);
         }
 
         if (!args.network) {
-          return cbk([400, 'ExpectedNetworkWhenCreatingSwap']);
+          return cbk([400, 'ExpectedNetworkToCreateTaprootSwapOut']);
         }
 
-        if (!!args.private_key && !!args.public_key) {
-          return cbk([400, 'ExpectedOnlyPrivateKeyOrPublicKeyNotBoth']);
+        if (!args.public_key) {
+          return cbk([400, 'ExpectedPublicKeyToCreateTaprootSwapOut']);
         }
 
         if (!args.service || !args.service.newLoopOutSwap) {
-          return cbk([400, 'ExpectedServiceToCreateSwap']);
+          return cbk([400, 'ExpectedServiceToCreateTaprootSwap']);
         }
 
         if (!args.timeout) {
@@ -89,140 +76,76 @@ module.exports = (args, cbk) => {
         return cbk();
       },
 
-      // Deadline for swap execution
-      deadline: ['validate', ({}, cbk) => {
-        if (!args.fund_at) {
-          return cbk();
-        }
-
-        const epochMs = new Date(args.fund_at).getTime();
-
-        return cbk(null, round(epochMs / msPerSec).toString());
-      }],
-
-      // Keys
-      keys: ['validate', asyncify(({}) => {
-        const key = makePrivateKey({});
-
-        const privateKey = args.private_key || key.private_key;
-        const swapSecret = args.secret || randomHex(preimageLen);
-
-        const preimage = Buffer.from(swapSecret, 'hex');
-        const swapHash = args.hash || sha256(preimage);
-
-        try {
-          const swapKey = getPublicKey({private_key: privateKey});
-
-          return {
-            private_key: privateKey,
-            public_key: args.public_key || swapKey.public_key,
-            swap_hash: swapHash,
-            swap_secret: swapSecret,
-          };
-        } catch (err) {
-          throw [400, 'ExpectedValidPrivateKeyToCreateSwapOut'];
-        }
-      })],
-
       // Create the swap
-      create: ['deadline', 'keys', ({deadline, keys}, cbk) => {
+      create: ['validate', ({}, cbk) => {
+        const deadline = round(new Date(args.fund_at).getTime() / msPerSec);
+
         return args.service.newLoopOutSwap({
-          amt: `${args.tokens}`,
+          amt: args.tokens.toString(),
           expiry: args.timeout,
           protocol_version: protocolVersion,
-          receiver_key: Buffer.from(keys.public_key, 'hex'),
-          swap_hash: Buffer.from(keys.swap_hash, 'hex'),
-          swap_publication_deadline: deadline,
+          receiver_key: hexAsBuffer(args.public_key),
+          swap_hash: hexAsBuffer(args.hash),
+          swap_publication_deadline: deadline.toString(),
           user_agent: args.user_agent || defaultUserAgent,
         },
         args.metadata,
         (err, res) => {
           // Exit early when the service requires a macaroon
           if (!!err && err.details === paymentRequiredError) {
-            return cbk([402, 'PaymentRequiredToCreateSwap']);
+            return cbk([402, 'PaymentRequiredToCreateTaprootSwap']);
           }
 
-          // Exit early on an unanticipated error from the remote service
           if (!!err) {
-            return cbk([503, 'UnexpectedErrorCreatingSwap', {err}]);
+            return cbk([503, 'UnexpectedErrorCreatingTaprootSwap', {err}]);
           }
 
-          // Exit early when there is no response
           if (!res) {
-            return cbk([503, 'ExpectedResponseWhenCreatingSwap']);
+            return cbk([503, 'ExpectedResponseWhenCreatingTaprootSwap']);
           }
 
-          if (!res.sender_key) {
-            return cbk([503, 'ExpectedSenderKeyInSwapCreationResponse']);
-          }
-
-          return cbk(null, {
-            expiry: args.timeout,
-            prepay_invoice: res.prepay_invoice,
-            sender_key: asKey(res.sender_key),
-            service_message: res.server_message,
-            swap_invoice: res.swap_invoice,
-          });
+          return cbk(null, res);
         });
       }],
 
-      // Swap script for the key and hash that were sent to the server
-      script: ['create', 'keys', asyncify(({create, keys}) => {
-        try {
-          const {script} = swapScriptV2({
-            claim_public_key: keys.public_key,
-            hash: keys.swap_hash,
-            refund_public_key: create.sender_key.toString('hex'),
-            timeout: create.expiry,
-          });
-
-          return script;
-        } catch (err) {
-          throw [500, 'FailedToDeriveSwapScriptWhenCreatingSwap', {err}];
-        }
-      })],
-
-      // Swap address
-      address: ['script', asyncify(({script}) => {
-        try {
-          const {address} = addressForScript({script, network: args.network});
-
-          return address;
-        } catch (err) {
-          throw [503, 'FailedToDeriveAddressFromOutputScript'];
-        }
-      })],
-
-      // Final swap details
-      swap: [
-        'address',
-        'create',
-        'keys',
-        'script',
-        ({address, create, keys, script}, cbk) =>
-      {
+      // Check the created swap details
+      swap: ['create', asyncify(({create}) => {
         if (!create.prepay_invoice) {
-          return cbk([503, 'ExpectedPrepayInvoiceInSwapCreationResponse']);
+          throw [503, 'ExpectedPrepayInvoiceInTaprootSwapResponse'];
+        }
+
+        try {
+          parsePaymentRequest({request: create.prepay_invoice});
+        } catch (err) {
+          throw [503, 'FailedToParseSwapDepositRequestInSwap', {err}];
         }
 
         if (!create.swap_invoice) {
-          return cbk([503, 'ExpectedSwapInvoiceInSwapCreationResponse']);
+          throw [503, 'ExpectedSwapInvoiceInTaprootSwapResponse'];
         }
 
-        return cbk(null, {
-          address,
-          script,
-          private_key: !!args.public_key ? undefined : keys.private_key,
-          protocol_version: protocolVersion,
-          secret: !!args.hash ? undefined : keys.swap_secret,
-          service_message: create.service_message || undefined,
-          service_public_key: create.sender_key.toString('hex'),
+        try {
+          parsePaymentRequest({request: create.swap_invoice});
+        } catch (err) {
+          throw [503, 'FailedToParseSwapInvoiceInTaprootSwap', {err}];
+        }
+
+        const {id} = parsePaymentRequest({request: create.swap_invoice});
+
+        if (id !== args.hash) {
+          throw [503, 'ExpectedFundingRequestToTaprootSwapHash'];
+        }
+
+        if (!create.sender_key) {
+          throw [503, 'ExpectedPubKeyInTaprootSwapCreationResponse'];
+        }
+
+        return {
+          service_public_key: bufferAsHex(asKey(create.sender_key)),
           swap_execute_request: create.prepay_invoice,
           swap_fund_request: create.swap_invoice,
-          timeout: create.expiry,
-          version: currentSwapVersion,
-        });
-      }],
+        };
+      })],
     },
     returnResult({reject, resolve, of: 'swap'}, cbk));
   });

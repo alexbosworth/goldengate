@@ -9,7 +9,7 @@ const makeArgs = override => {
     metadata: {},
     service: {
       loopOutQuote: (args, {}, cbk) => {
-        if (args.protocol_version !== 'LOOP_OUT_CANCEL') {
+        if (args.protocol_version !== 'MUSIG2') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 

@@ -1,4 +1,4 @@
-const {equal} = require('node:assert').strict;
+const {deepEqual} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
@@ -14,7 +14,7 @@ const tests = [
       timeout_height: 120,
     },
     description: 'Return buffer block count',
-    expected: 8,
+    expected: {buffer_count: 8},
   },
   {
     args: {
@@ -24,7 +24,27 @@ const tests = [
       timeout_height: 120,
     },
     description: 'Return general buffer block count',
-    expected: 8,
+    expected: {buffer_count: 8},
+  },
+  {
+    args: {
+      current_block_height: 100,
+      required_funding_confirmations: 6,
+      required_sweep_confirmations: 6,
+      timeout_height: 112,
+    },
+    description: 'No buffer is needed without a required buffer',
+    expected: {buffer_count: 0},
+  },
+  {
+    args: {
+      current_block_height: 100,
+      required_funding_confirmations: 6,
+      required_sweep_confirmations: 6,
+      timeout_height: 111,
+    },
+    description: 'Confirmations are needed without a required buffer',
+    error: 'InsufficientTimeRemainingForSwap',
   },
   {
     args: {
@@ -64,15 +84,13 @@ const tests = [
 ];
 
 tests.forEach(({args, description, error, expected}) => {
-  return test(description, (t, end) => {
+  return test(description, () => {
     if (!!error) {
-      throws(() => checkSwapTiming(args), new Error(error));
+      throws(() => checkSwapTiming(args), new Error(error), 'Got error');
     } else {
-      const res = checkSwapTiming(args);
-
-      equal(res.buffer_count, expected, 'Got buffer blocks count');
+      deepEqual(checkSwapTiming(args), expected, 'Got buffer blocks count');
     }
 
-    return end();
+    return;
   });
 });

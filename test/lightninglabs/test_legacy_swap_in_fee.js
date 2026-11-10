@@ -1,8 +1,8 @@
-const {equal} = require('node:assert').strict;
+const {deepEqual} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {swapInFee} = require('./../../');
+const {legacySwapInFee} = require('./../../');
 
 const tests = [
   {
@@ -35,11 +35,9 @@ const tests = [
 tests.forEach(({args, description, error, expected}) => {
   return test(description, (t, end) => {
     if (!!error) {
-      throws(() => swapInFee(args), new Error(error));
+      throws(() => legacySwapInFee(args), new Error(error), 'Got error');
     } else {
-      const {fee} = swapInFee(args);
-
-      equal(fee, expected.fee, 'Swap fee derived');
+      deepEqual(legacySwapInFee(args), expected, 'Got expected fee');
     }
 
     return end();

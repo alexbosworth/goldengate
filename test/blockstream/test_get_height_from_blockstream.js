@@ -4,6 +4,17 @@ const test = require('node:test');
 
 const {getHeightFromBlockstream} = require('./../../blockstream');
 
+const signetTipUrl = 'https://blockstream.info/signet/api/blocks/tip/height';
+
+// Answer only a request for the chain tip height of signet
+const signetRequest = ({url}, cbk) => {
+  if (url !== signetTipUrl) {
+    return cbk(null, {statusCode: 404});
+  }
+
+  return cbk(null, {statusCode: 200}, '2');
+};
+
 const makeArgs = override => {
   const args = {
     network: 'btctestnet',
@@ -60,6 +71,11 @@ const tests = [
     args: makeArgs({}),
     description: 'Get height from Blockstream',
     expected: {height: 1},
+  },
+  {
+    args: makeArgs({network: 'btcsignet', request: signetRequest}),
+    description: 'Get the signet height from Blockstream',
+    expected: {height: 2},
   },
 ];
 

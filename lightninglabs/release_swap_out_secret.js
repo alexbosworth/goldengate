@@ -2,7 +2,6 @@ const asyncAuto = require('async/auto');
 const {returnResult} = require('asyncjs-util');
 
 const {protocolVersion} = require('./conf/swap_service');
-const {taprootVersion} = require('./conf/swap_service');
 
 const bufferFromHex = hex => Buffer.from(hex, 'hex');
 const isPreimage = n => !!n && /^[0-9A-F]{64}$/i.test(n);
@@ -10,7 +9,6 @@ const isPreimage = n => !!n && /^[0-9A-F]{64}$/i.test(n);
 /** Release the swap secret to the swap server to obtain inbound more quickly
 
   {
-    [is_taproot]: <Use Taproot Swap Service Protocol Bool>
     metadata: <Authentication Metadata Object>
     secret: <Secret Preimage Hex String>
     service: <Swap Service Object>
@@ -42,7 +40,7 @@ module.exports = (args, cbk) => {
       reveal: ['validate', ({}, cbk) => {
         return args.service.loopOutPushPreimage({
           preimage: bufferFromHex(args.secret),
-          protocol_version: args.is_taproot ? taprootVersion : protocolVersion,
+          protocol_version: protocolVersion,
         },
         args.metadata,
         err => {

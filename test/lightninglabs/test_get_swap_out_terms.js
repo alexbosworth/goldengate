@@ -2,8 +2,8 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {loopOutTermsResponse} = require('./fixtures');
 const {getSwapOutTerms} = require('./../../');
+const {loopOutTermsResponse} = require('./fixtures');
 
 const copyJson = json => JSON.parse(JSON.stringify(json));
 
@@ -15,10 +15,17 @@ const makeResponse = overrides => {
   return response;
 };
 
+// A swap service that checks the protocol version of terms requests
 const makeService = ({overrides}) => {
   return {
-    loopOutTerms: ({}, {}, cbk) => cbk(null, makeResponse(overrides || {})),
-  }
+    loopOutTerms: (args, {}, cbk) => {
+      if (args.protocol_version !== 'MUSIG2') {
+        return cbk([400, 'InvalidProtocolVersionSpecified']);
+      }
+
+      return cbk(null, makeResponse(overrides || {}));
+    },
+  };
 };
 
 const makeArgs = overrides => {

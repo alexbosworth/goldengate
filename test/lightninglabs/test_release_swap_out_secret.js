@@ -9,7 +9,7 @@ const makeArgs = override => {
     secret: Buffer.alloc(32).toString('hex'),
     service: {
       loopOutPushPreimage: (args, metadata, cbk) => {
-        if (args.protocol_version !== 'LOOP_OUT_CANCEL') {
+        if (args.protocol_version !== 'MUSIG2') {
           return cbk([400, 'InvalidProtocolVersionSpecified']);
         }
 
@@ -27,21 +27,6 @@ const tests = [
   {
     args: makeArgs({}),
     description: 'Release the preimage to the server',
-  },
-  {
-    args: makeArgs({
-      is_taproot: true,
-      service: {
-        loopOutPushPreimage: (args, metadata, cbk) => {
-          if (args.protocol_version !== 'MUSIG2') {
-            return cbk([400, 'InvalidProtocolVersionSpecified']);
-          }
-
-          return cbk();
-        },
-      },
-    }),
-    description: 'Release the preimage to the server for a taproot swap',
   },
   {
     args: makeArgs({metadata: undefined}),

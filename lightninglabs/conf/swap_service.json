@@ -1,8 +1,13 @@
 {
-  "protocolVersion": "LOOP_OUT_CANCEL",
+  "legacyProtocolVersion": "LOOP_OUT_CANCEL",
+  "maxSharedAddressExpiry": 28800,
+  "maxSwapInBackupFallbackFeeRatio": 0.5,
+  "maxSwapInFallbackFeeRatio": 0.2,
+  "protocolVersion": "MUSIG2",
   "requestNetworks": {
     "bitcoin": "btc",
     "regtest": "btcregtest",
+    "signet": "btcsignet",
     "testnet": "btctestnet"
   },
   "serverSwapFailure": {
@@ -29,8 +34,27 @@
     },
     "paid": {
       "btc": "swap.lightning.today:11010",
+      "btcsignet": "signet.swap.lightning.today:11010",
       "btctestnet": "test.swap.lightning.today:11010"
     }
   },
-  "taprootVersion": "MUSIG2"
+  "sharedAddressProtocolVersion": "V0",
+  "swapInFallbacks": [
+    {
+      "info": "standard_htlc_info",
+      "is_backup": false,
+      "type": "standard"
+    },
+    {
+      "info": "high_fee_htlc_info",
+      "is_backup": true,
+      "type": "high"
+    },
+    {
+      "info": "extreme_fee_htlc_info",
+      "is_backup": true,
+      "type": "extreme"
+    }
+  ],
+  "swapInPaymentTimeoutSeconds": 60
 }

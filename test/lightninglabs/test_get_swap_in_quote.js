@@ -1,8 +1,27 @@
-const {equal} = require('node:assert').strict;
+const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
 const {getSwapInQuote} = require('./../../lightninglabs');
+
+// A swap service that checks the version and shared address fields of quotes
+const makeService = ({fast, fee, utxosCount}) => ({
+  loopInQuote: (args, {}, cbk) => {
+    if (args.protocol_version !== 'MUSIG2') {
+      return cbk([400, 'InvalidProtocolVersionSpecified']);
+    }
+
+    if (args.fast !== fast) {
+      return cbk([400, 'UnexpectedFastFlagInQuoteRequest']);
+    }
+
+    if (args.num_static_address_deposits !== utxosCount) {
+      return cbk([400, 'UnexpectedUtxosCountInQuoteRequest']);
+    }
+
+    return cbk(null, {cltv_delta: 5, swap_fee: fee});
+  },
+});
 
 const makeArgs = overrides => {
   const args = {
@@ -19,6 +38,16 @@ const makeArgs = overrides => {
 };
 
 const tests = [
+  {
+    args: makeArgs({utxos_count: 1.5}),
+    description: 'A whole number of shared address utxos is expected',
+    error: [400, 'ExpectedUtxosCountNumberToGetSwapInQuote'],
+  },
+  {
+    args: makeArgs({utxos_count: 0}),
+    description: 'A positive number of shared address utxos is expected',
+    error: [400, 'ExpectedPositiveUtxosCountToGetSwapInQuote'],
+  },
   {
     args: makeArgs({metadata: undefined}),
     description: 'Metadata is required',
@@ -71,6 +100,20 @@ const tests = [
     description: 'Get a swap in quote',
     expected: {cltv_delta: 5, fee: 1},
   },
+  {
+    args: makeArgs({service: makeService({fee: '1'})}),
+    description: 'A regular swap in quote has no shared address fields',
+    expected: {cltv_delta: 5, fee: 1},
+  },
+  {
+    args: makeArgs({
+      is_fast: true,
+      service: makeService({fast: true, fee: '2', utxosCount: 3}),
+      utxos_count: 3,
+    }),
+    description: 'Get a swap in quote for shared address utxos',
+    expected: {cltv_delta: 5, fee: 2},
+  },
 ];
 
 tests.forEach(({args, description, error, expected}) => {
@@ -78,10 +121,7 @@ tests.forEach(({args, description, error, expected}) => {
     if (!!error) {
       await rejects(getSwapInQuote(args), error, 'Got expected error');
     } else {
-      const res = await getSwapInQuote(args);
-
-      equal(res.fee, expected.fee, 'Swap in quote fee');
-      equal(res.cltv_delta, expected.cltv_delta, 'Swap in quote cltv delta');
+      deepEqual(await getSwapInQuote(args), expected, 'Got expected quote');
     }
 
     return;

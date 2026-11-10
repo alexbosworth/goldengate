@@ -1,8 +1,7 @@
 const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {idForTransaction} = require('@alexbosworth/blockchain');
 
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
-const isEqualHex = (a, b) => hexAsBuffer(a).equals(hexAsBuffer(b));
+const isEqual = (a, b) => Buffer.from(a, 'hex').equals(Buffer.from(b, 'hex'));
 const notFoundIndex = -1;
 
 /** Find an output and input in a transaction matching a pattern of a spend
@@ -51,7 +50,7 @@ module.exports = ({id, script, tokens, transaction, vout}) => {
     }
 
     // The input outpoint must match the transaction id
-    if (!isEqualHex(input.id, id)) {
+    if (!isEqual(input.id, id)) {
       return false;
     }
 
@@ -74,7 +73,7 @@ module.exports = ({id, script, tokens, transaction, vout}) => {
     }
 
     // Ignore output if the script isn't as expected
-    if (!isEqualHex(output.script, script)) {
+    if (!isEqual(output.script, script)) {
       return false;
     }
 

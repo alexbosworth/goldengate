@@ -1,5 +1,41 @@
 # Versions
 
+## 17.0.0
+
+- Add support for the `btcsignet` network
+- `cancelSwapIn`: Add method to cancel a swap in before signing its fallback
+- `cancelSwapOut`, `releaseSwapOutSecret`: `is_taproot` is no longer needed
+- `createSharedAddress`: Add method to create a shared address with the swap
+    service to receive utxos for swap ins
+- `createSwapIn`: Add method to create a swap in with shared address utxos
+- `deferSwapInCoopSettlement`: Add method to defer cosigning the cooperative
+    settlement of a swap in that is not paid yet
+- `getSharedUtxos`: Add method to get the unspent utxos of a shared address
+- `getSwapInQuote`: Add `is_fast` and `utxos_count` to quote swap ins
+- `sharedAddressScript`: Add method to derive the scripts of a shared address
+- `signSharedUtxosRefund`: Add method to refund expired shared address utxos
+- `signSwapInCoopSettlement`: Add method to cosign the cooperative settlement
+    of a swap in
+- `signSwapInFallbackRefund`: Add method to refund a swap in fallback HTLC
+    that the swap service published without paying, after it times out
+- `signSwapInServiceFallback`: Add method to sign the service fallback
+    transactions of a swap in
+- `spendSharedUtxos`: Add method to spend shared address utxos with the swap
+    service
+- `subscribeToSwapInStatus`: Add method to subscribe to the status of swap ins
+- `swapInServiceFallbackTx`: Add method to get a swap in service fallback
+    transaction
+
+### Breaking Changes
+
+- `checkQuote`: Method is removed
+- `createSwapIn`: Method is renamed to `createLegacySwapIn`
+- `createSwapOut`: Method is renamed to `createLegacySwapOut`
+- `createTaprootSwapOut`: Method is renamed to `createSwapOut`
+- `subscribeToSwapInStatus`: Method is renamed to
+    `subscribeToLegacySwapInStatus`
+- `swapInFee`: Method is renamed to `legacySwapInFee`
+
 ## 16.0.10
 
 ### Breaking Changes

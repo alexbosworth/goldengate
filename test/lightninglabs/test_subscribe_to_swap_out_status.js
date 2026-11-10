@@ -13,7 +13,11 @@ const makeArgs = overrides => {
     id: Buffer.alloc(32).toString('hex'),
     metadata: {},
     service: {
-      subscribeLoopOutUpdates: ({}) => {
+      subscribeLoopOutUpdates: args => {
+        if (args.protocol_version !== 'MUSIG2') {
+          throw new Error('InvalidProtocolVersionSpecified');
+        }
+
         const emitter = new EventEmitter();
 
         emitter.cancel = () => {};

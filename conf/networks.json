@@ -2,6 +2,7 @@
   "names": {
     "btc": "mainnet",
     "btcregtest": "regtest",
+    "btcsignet": "signet",
     "btctestnet": "testnet"
   }
 }

@@ -3,6 +3,7 @@ const checkSwapTiming = require('./check_swap_timing');
 const findDeposit = require('./find_deposit');
 const getChainFeeRate = require('./get_chain_fee_rate');
 const getHeight = require('./get_height');
+const getSharedUtxos = require('./get_shared_utxos');
 const subscribeToBlocks = require('./subscribe_to_blocks');
 const subscribeToSpend = require('./subscribe_to_spend');
 
@@ -12,6 +13,7 @@ module.exports = {
   findDeposit,
   getChainFeeRate,
   getHeight,
+  getSharedUtxos,
   subscribeToBlocks,
   subscribeToSpend,
 };

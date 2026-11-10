@@ -6,8 +6,13 @@ const p2shP2wshOutputScript = require('./p2sh_p2wsh_output_script');
 const p2wshOutputScript = require('./p2wsh_output_script');
 
 const hexAsBuf = hex => Buffer.from(hex, 'hex');
-const p2shVersions = {mainnet: 0x05, regtest: 0xc4, testnet: 0xc4};
-const prefixes = {mainnet: 'bc', regtest: 'bcrt', testnet: 'tb'};
+const p2shVersions = {
+  mainnet: 0x05,
+  regtest: 0xc4,
+  signet: 0xc4,
+  testnet: 0xc4,
+};
+const prefixes = {mainnet: 'bc', regtest: 'bcrt', signet: 'tb', testnet: 'tb'};
 const scriptHashEnd = 2 + 20;
 const scriptHashStart = 2;
 const witnessProgramStart = 2;

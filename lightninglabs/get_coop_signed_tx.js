@@ -7,8 +7,8 @@ const {returnResult} = require('asyncjs-util');
 const {updateGroupSigningSession} = require('ln-service');
 
 const {encodeTransaction} = require('./../transactions');
+const {protocolVersion} = require('./conf/swap_service');
 const {taprootCoopPsbt} = require('./../taproot');
-const {taprootVersion} = require('./conf/swap_service');
 
 const bufferAsHex = buffer => buffer.toString('hex');
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
@@ -157,7 +157,7 @@ module.exports = (args, cbk) => {
         return args.service.muSig2SignSweep({
           nonce: hexAsBuffer(begin.nonce),
           payment_address: hexAsBuffer(args.funding_payment),
-          protocol_version: taprootVersion,
+          protocol_version: protocolVersion,
           swap_hash: hexAsBuffer(args.funding_hash),
           sweep_tx_psbt: hexAsBuffer(unsigned.psbt),
         },

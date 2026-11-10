@@ -4,7 +4,7 @@ const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {createSwapOut} = require('./../../');
+const {createLegacySwapOut} = require('./../../');
 const {genericSwapService} = require('./../../');
 const {getSwapOutTerms} = require('./../../');
 
@@ -66,7 +66,7 @@ tests.forEach(({args, description, error, expected}) => {
         socket: args.socket
       });
 
-      await rejects(createSwapOut({
+      await rejects(createLegacySwapOut({
         metadata,
         network: 'btctestnet',
         service: failResponse.service,
@@ -74,7 +74,7 @@ tests.forEach(({args, description, error, expected}) => {
         tokens: 100,
       }));
 
-      await rejects(createSwapOut({
+      await rejects(createLegacySwapOut({
         metadata,
         network: 'btctestnet',
         service: fail.service,

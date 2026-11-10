@@ -35,13 +35,14 @@ module.exports = args => {
     throw new Error('ExpectedSwapTimeoutHeight');
   }
 
+  const bufferBlocks = args.required_buffer_blocks || minRequiredBufferBlocks;
   const requiredFundingBlocks = args.required_funding_confirmations;
   const requiredSweepBlocks = args.required_sweep_confirmations;
   const timeoutBlocks = args.timeout_height - args.current_block_height;
 
   const blocks = timeoutBlocks - requiredFundingBlocks - requiredSweepBlocks;
 
-  if (blocks < args.required_buffer_blocks || minRequiredBufferBlocks) {
+  if (blocks < bufferBlocks) {
     throw new Error('InsufficientTimeRemainingForSwap');
   }
 

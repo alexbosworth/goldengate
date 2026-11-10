@@ -1,178 +1,148 @@
 const {deepEqual} = require('node:assert').strict;
-const {equal} = require('node:assert').strict;
 const EventEmitter = require('node:events');
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
 const {subscribeToBlocks} = require('./../../');
 
-const api = 'https://blockstream.info/testnet/api/block';
-const confirmationCount = 6;
-const id = Buffer.alloc(32).toString('hex');
+const api = 'https://blockstream.info/testnet/api';
 const network = 'btctestnet';
 const okStatus = {statusCode: 200};
 
+// Blocks at the tip of the chain
+const blocks = [1, 2, 3].map(height => ({
+  height,
+  id: Buffer.alloc(32, height).toString('hex'),
+}));
+
+// A fake LND that announces blocks, then fails
+const makeLnd = ({announce}) => ({
+  chain: {
+    registerBlockEpochNtfn: ({}) => {
+      const emitter = new EventEmitter();
+
+      emitter.cancel = () => {};
+
+      process.nextTick(() => {
+        // Block hashes are in the reverse byte order of block ids
+        announce.forEach(({height, id}) => {
+          const hash = Buffer.from(id, 'hex').reverse();
+
+          return emitter.emit('data', {hash, height});
+        });
+
+        return emitter.emit('error', 'err');
+      });
+
+      return emitter;
+    },
+  },
+});
+
+// A fake request that serves chain tips, then has no response
 const makeRequest = ({tips}) => {
+  const remaining = tips.slice();
+
   return ({url}, cbk) => {
-    if (url === `${api}/${id}`) {
-      return cbk(null, okStatus, {height: 1});
+    const tip = tips.find(n => url === `${api}/block/${n.id}`);
+
+    // The details of a tip block give the height of the tip
+    if (!!tip) {
+      return cbk(null, okStatus, {height: tip.height});
     }
 
-    if (!tips.length) {
+    // Requests are expected to be for tip blocks or for the tip hash
+    if (url !== `${api}/blocks/tip/hash`) {
+      return cbk([400, 'UnexpectedUrlRequested', {url}]);
+    }
+
+    // There is no response after all the tips are served
+    if (!remaining.length) {
       return cbk();
     }
 
-    return cbk(null, okStatus, tips.shift());
+    return cbk(null, okStatus, remaining.shift().id);
   };
 };
 
-const tests = [
-  {
-    args: {
-      lnd: {
-        chain: {
-          registerBlockEpochNtfn: ({}) => {
-            const emitter = new EventEmitter();
+// Subscribe to blocks and collect the events up to the first error
+const eventsOf = args => {
+  const events = [];
+  const sub = subscribeToBlocks(args);
 
-            emitter.cancel = () => {};
-
-            process.nextTick(() => emitter.emit('error', 'err'));
-
-            return emitter;
-          },
-        },
-      },
-    },
-    description: 'Errors in the lnd blocks subscription are emitted',
-    expected: {
-      events: [[503, 'UnexpectedErrInBlocksSubscription', {err: 'err'}]],
-    },
-  },
-  {
-    args: {network, delay: 100, request: makeRequest({tips: [id, id]})},
-    description: 'An unchanged chain tip is not emitted',
-    expected: {
-      events: [
-        {id, height: 1},
-        [503, 'UnexpectedResponseGettingChainTipHash'],
-      ],
-    },
-  },
-  {
-    args: {network, request: makeRequest({tips: [id]})},
-    description: 'Polling starts right away with the default delay',
-    expected: {events: [{id, height: 1}]},
-  },
-];
-
-// Subscribers to blocks should receive block notifications
-test(`Subscribe to blocks`, (t, end) => {
-  throws(
-    () => subscribeToBlocks({}),
-    new Error('ExpectedLndOrRequestToSubscribeToBlocks'),
-    'LND or request is required'
-  )
-
-  throws(
-    () => subscribeToBlocks({request: ({}) => {}}),
-    new Error('ExpectedNetworkNameToSubscribeToBlocks'),
-    'A network is required when request is given'
-  )
-
-  let confs = confirmationCount;
-  let err = 503;
-
-  const hashes = [...Array(confirmationCount)]
-    .map((_, i) => Buffer.alloc(32, i).toString('hex'));
-
-  const request = ({url}, cbk) => {
-    if (url === 'https://blockstream.info/testnet/api/blocks/tip/hash') {
-      return cbk(null, okStatus, hashes[confs - 1]);
-    }
-
-    const height = hashes.map(hash => `${api}/${hash}`).indexOf(url);
-
-    return cbk(null, okStatus, {height});
-  };
-
-  const sub = subscribeToBlocks({network, request, delay: 20});
-
-  sub.on('error', err => {
-    const [code, message] = err;
-
-    equal(code, 503, 'Got expected error code');
-    equal(message, 'UnexpectedResponseGettingChainTipHash', 'Got err message');
-
-    return;
-  });
-
-  const blockEmitter = new EventEmitter();
-
-  const lnd = {chain: {registerBlockEpochNtfn: () => blockEmitter}};
-  const lndSub = subscribeToBlocks({lnd});
-
-  lndSub.on('block', data => {
-    equal(data.id.length, 64, 'Lnd block id emitted');
-    equal(data.height, confs, 'Lnd block height emitted');
-
-    return;
-  });
-
-  sub.on('end', () => {});
-  sub.on('error', err => {});
-  sub.on('status', () => {});
-
-  sub.on('block', data => {
-    equal(data.id.length, 64, 'Block id emitted');
-    equal(data.height + 1, confs, 'Block height emitted');
-
-    blockEmitter.emit('data', {
-      hash: Buffer.from(data.id, 'hex'),
-      height: data.height + 1,
-    });
-
-    confs--;
-
-    if (!!confs) {
-      return;
-    }
-
-    sub.removeAllListeners();
-
-    return end();
-  });
-
-  return;
-});
-
-tests.forEach(({args, description, expected}) => {
-  return test(description, (t, end) => {
-    const events = [];
-    const sub = subscribeToBlocks(args);
+  return new Promise(resolve => {
+    sub.on('block', block => events.push(block));
 
     sub.on('error', err => {
       events.push(err);
 
       sub.removeAllListeners();
 
-      deepEqual(events, expected.events, 'Got expected events');
-
-      return end();
+      return resolve({events});
     });
+  });
+};
 
-    sub.on('block', block => {
-      events.push(block);
+const tests = [
+  {
+    args: {},
+    description: 'LND or request is required',
+    error: new Error('ExpectedLndOrRequestToSubscribeToBlocks'),
+  },
+  {
+    args: {request: ({}) => {}},
+    description: 'A network is required when request is given',
+    error: new Error('ExpectedNetworkNameToSubscribeToBlocks'),
+  },
+  {
+    args: {lnd: makeLnd({announce: blocks})},
+    description: 'Blocks from lnd are emitted',
+    expected: {
+      events: [
+        ...blocks,
+        [503, 'UnexpectedErrInBlocksSubscription', {err: 'err'}],
+      ],
+    },
+  },
+  {
+    args: {lnd: makeLnd({announce: []})},
+    description: 'Errors in the lnd blocks subscription are emitted',
+    expected: {
+      events: [[503, 'UnexpectedErrInBlocksSubscription', {err: 'err'}]],
+    },
+  },
+  {
+    args: {network, delay: 20, request: makeRequest({tips: blocks})},
+    description: 'Blocks are emitted as the chain tip changes',
+    expected: {
+      events: [...blocks, [503, 'UnexpectedResponseGettingChainTipHash']],
+    },
+  },
+  {
+    args: {
+      network,
+      delay: 100,
+      request: makeRequest({tips: [blocks[0], blocks[0]]}),
+    },
+    description: 'An unchanged chain tip is not emitted',
+    expected: {
+      events: [blocks[0], [503, 'UnexpectedResponseGettingChainTipHash']],
+    },
+  },
+  {
+    args: {network, request: makeRequest({tips: []})},
+    description: 'Polling starts right away with the default delay',
+    expected: {events: [[503, 'UnexpectedResponseGettingChainTipHash']]},
+  },
+];
 
-      if (events.length !== expected.events.length) {
-        return;
-      }
-
-      sub.removeAllListeners();
-
-      deepEqual(events, expected.events, 'Got expected events');
-
-      return end();
-    });
+tests.forEach(({args, description, error, expected}) => {
+  return test(description, async () => {
+    if (!!error) {
+      throws(() => subscribeToBlocks(args), error, 'Got error');
+    } else {
+      deepEqual(await eventsOf(args), expected, 'Got expected events');
+    }
 
     return;
   });

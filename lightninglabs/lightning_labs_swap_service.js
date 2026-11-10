@@ -4,6 +4,7 @@ const serviceSocket = require('./service_socket');
 /** Lightning Labs swap service
 
   {
+    [cert]: <Swap Service TLS Certificate Base64 or Hex Encoded String>
     [is_free]: <Use Free Service Endpoint Bool>
     network: <Network Name String>
     [socket]: <Custom Socket String>
@@ -18,10 +19,11 @@ const serviceSocket = require('./service_socket');
   }
 */
 module.exports = args => {
-  const {socket} = serviceSocket({
+  // A custom socket is used directly, it can be for a network like regtest
+  const {socket} = !!args.socket ? args : serviceSocket({
     is_free: args.is_free,
     network: args.network,
   });
 
-  return {service: getGrpcInterface({socket: args.socket || socket}).grpc};
+  return {service: getGrpcInterface({socket, cert: args.cert}).grpc};
 };

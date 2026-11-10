@@ -3,8 +3,17 @@ const test = require('node:test');
 
 const {cancelSwapOut} = require('./../../');
 
+// A swap service that checks the protocol version of cancel requests
 const makeService = ({err}) => {
-  return {cancelLoopOutSwap: ({}, {}, cbk) => cbk(err)};
+  return {
+    cancelLoopOutSwap: (args, {}, cbk) => {
+      if (args.protocol_version !== 'MUSIG2') {
+        return cbk([400, 'InvalidProtocolVersionSpecified']);
+      }
+
+      return cbk(err);
+    },
+  };
 };
 
 const makeArgs = overrides => {
@@ -49,10 +58,6 @@ const tests = [
   {
     args: makeArgs({}),
     description: 'Swap out is canceled',
-  },
-  {
-    args: makeArgs({is_taproot: true}),
-    description: 'Swap out is canceled with taproot version',
   },
 ];
 
