@@ -49,6 +49,12 @@ const refundBoth = {
   transaction: '020000000001029a4585773ce2ccd7a585c331d60a60d1e3b7d28cbb2ede3bc55445342f12f54b00000000000000000086d9576498ea764b49243efeb05df625010438c6a55d5b578de4ff00c9b4c1db030000000000000000016855050000000000160014751e76e8199196d454941c45d1b3a323f1433bd604483045022100f9a4dc77ed36dd3bd15576edc54c5a0758f36b56363a2b47675d57da899271e802205773e9de41742265137288a99717f9a799b26104dfe72689bc61a5d6fd08958a0121031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f006121024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766ac6476a91479b000887626b294a914501a4cd226b58b23598388ad0300350cb16782012088a9147dd7f871ad14950c1933f65611df24e9ae02433f8851b268044730440220194b26d3407b73c32602ea0ed020999411c7e60c525712bdd858243f5423d27302207b602e064613f9ed73a6d00b2083fc0964208c1dc96a13e304da8726da0ed0710121031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f006121024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766ac6476a91479b000887626b294a914501a4cd226b58b23598388ad0300350cb16782012088a9147dd7f871ad14950c1933f65611df24e9ae02433f8851b26800350c00',
 };
 
+// A refund held back until after block 800144 by its locktime, also checked
+const refundLater = {
+  id: '2b71067b3e07a81ab40e4ce1b1d988fa45eae470246148ac4e2af9f9060c8eb7',
+  transaction: '020000000001019a4585773ce2ccd7a585c331d60a60d1e3b7d28cbb2ede3bc55445342f12f54b0000000000000000000182cf030000000000160014751e76e8199196d454941c45d1b3a323f1433bd604483045022100cf87ec61819235aa08faa96d796f0de1b0fffc4ecffc3e94f894903eb2e0a6b4022031093d5e4a6257ed68713fdea3eb53e494b7eb0d286acabe13bf00c3465ac7230121031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f006121024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766ac6476a91479b000887626b294a914501a4cd226b58b23598388ad0300350cb16782012088a9147dd7f871ad14950c1933f65611df24e9ae02433f8851b26890350c00',
+};
+
 // The signer is asked to sign the utxo for the HTLC refund path
 const signRequest = [{
   input_index: 0,
@@ -251,6 +257,21 @@ const tests = [
     error: [400, 'ExpectedTimeoutHeightForSwapInFallbackRefund'],
   },
   {
+    args: makeArgs({block_height: 800000.5}),
+    description: 'A timelock height is expected to be a whole number',
+    error: [400, 'ExpectedTimelockHeightForSwapInFallbackRefund'],
+  },
+  {
+    args: makeArgs({block_height: 799999}),
+    description: 'A timelock is expected to be at or after the HTLC timeout',
+    error: [400, 'ExpectedLaterTimelockForSwapInFallbackRefund'],
+  },
+  {
+    args: makeArgs({block_height: 500000000}),
+    description: 'A timelock is expected to be a block height',
+    error: [400, 'ExpectedTimelockHeightForSwapInFallbackRefund'],
+  },
+  {
     args: makeArgs({network: 'btctestnet'}),
     description: 'The sweep address is expected to be for the network',
     error: [400, 'ExpectedValidSweepAddressForSwapInFallbackRefund'],
@@ -286,6 +307,11 @@ const tests = [
     args: makeArgs({fee_tokens_per_vbyte: 1.5}),
     description: 'A fractional fee rate is rounded up to the whole fee',
     expected: refundRoundedFee,
+  },
+  {
+    args: makeArgs({block_height: 800144}),
+    description: 'A refund can be held back until after the HTLC timeout',
+    expected: refundLater,
   },
 ];
 

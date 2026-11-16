@@ -43,6 +43,7 @@ const txVersion = 2;
       transaction_id: <Utxo Transaction Id Hex String>
       transaction_vout: <Utxo Transaction Output Index Number>
     }]
+    [block_height]: <Timelock Block Height At or After Timeout Number>
     fee_tokens_per_vbyte: <Fee Tokens Per Virtual Byte Number>
     hash: <Swap Hash Hex String>
     key_family: <HTLC Refund Key Family Number>
@@ -138,6 +139,24 @@ module.exports = (args, cbk) => {
           return cbk([400, 'ExpectedTimeoutHeightForSwapInFallbackRefund']);
         }
 
+        // Exit early when the refund is timelocked to the HTLC timeout
+        if (args.block_height === undefined) {
+          return cbk();
+        }
+
+        if (!isInteger(args.block_height)) {
+          return cbk([400, 'ExpectedTimelockHeightForSwapInFallbackRefund']);
+        }
+
+        // The HTLC timeout path cannot be spent before the timeout
+        if (args.block_height < args.timeout) {
+          return cbk([400, 'ExpectedLaterTimelockForSwapInFallbackRefund']);
+        }
+
+        if (args.block_height > maxLocktimeHeight) {
+          return cbk([400, 'ExpectedTimelockHeightForSwapInFallbackRefund']);
+        }
+
         return cbk();
       },
 
@@ -190,7 +209,10 @@ module.exports = (args, cbk) => {
 
       // Make the unsigned refund transaction
       unsigned: ['htlc', 'sweepScript', ({htlc, sweepScript}, cbk) => {
-        const locktime = bip65Encode({blocks: args.timeout});
+        // A later timelock height holds the refund back until a later block
+        const height = args.block_height || args.timeout;
+
+        const locktime = bip65Encode({blocks: height});
         const total = sumOf(args.utxos);
 
         // OP_CLTV needs the locktime set and prohibits a final sequence

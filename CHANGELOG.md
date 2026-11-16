@@ -1,5 +1,10 @@
 # Versions
 
+## 17.1.0
+
+- `signSharedUtxosRefund`, `signSwapInFallbackRefund`: Add `block_height` to
+    timelock a refund until a later block
+
 ## 17.0.0
 
 - Add support for the `btcsignet` network

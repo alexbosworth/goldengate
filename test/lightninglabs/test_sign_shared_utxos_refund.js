@@ -41,6 +41,12 @@ const refundRoundedFee = {
   transaction: '020000000001029a4585773ce2ccd7a585c331d60a60d1e3b7d28cbb2ede3bc55445342f12f54b01000000004038000086d9576498ea764b49243efeb05df625010438c6a55d5b578de4ff00c9b4c1db03000000004038000001be92040000000000160014751e76e8199196d454941c45d1b3a323f1433bd6034055ad81e97b6a67df41e75e8908c29be75b6454668789095f84be8f50a201784dd50148688b5e71dc12baedc19f81468977389ca4dbcb4ef267637adeeca901b826201b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fad024038b221c099a9da2f1aa3e4403438bfea7c2bc1ea9956469297f4f931c2531c24c38d59940340e29d119cb5f07fcdb0c47db71af7c4e2156b3fe6e13654910f69168d5db91d849e01561ff1dee8a2130ebfbc5699addee18307debff0c2b3d15e31572f5f921426201b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fad024038b221c099a9da2f1aa3e4403438bfea7c2bc1ea9956469297f4f931c2531c24c38d599400000000',
 };
 
+// A refund held back until after block 800000 by its locktime, also checked
+const refundLater = {
+  id: '94f842538acb522c57e594f791cbf2d6de4530005b7cb159ed8f9ee7b12731e2',
+  transaction: '020000000001029a4585773ce2ccd7a585c331d60a60d1e3b7d28cbb2ede3bc55445342f12f54b01000000004038000086d9576498ea764b49243efeb05df625010438c6a55d5b578de4ff00c9b4c1db030000000040380000015e92040000000000160014751e76e8199196d454941c45d1b3a323f1433bd603408cb164b7d33cd800ae9358638a726cbc0ed31522ed3f33739d5566eba0a9bc9f7d3bc7c39c0be3104dd0b5c960b917e0df69afb813dfcef0112a073f2433306b26201b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fad024038b221c099a9da2f1aa3e4403438bfea7c2bc1ea9956469297f4f931c2531c24c38d599403408780188a49d91981a903e12bda6fc4fad855f7435781608161b4367297ac837fad46f0af14f981dc298a61eb17324ca8710a6b872ad0c3da9489f2026aaa49b026201b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fad024038b221c099a9da2f1aa3e4403438bfea7c2bc1ea9956469297f4f931c2531c24c38d599400350c00',
+};
+
 // The signer is given every spent output and signs for the timeout path leaf
 const signRequest = {
   prev_outputs: utxos.map(({tokens}) => ({
@@ -294,9 +300,29 @@ const tests = [
     error: [503, 'ExpectedValidSignatureForSharedUtxoRefund'],
   },
   {
+    args: makeArgs({block_height: 1.5}),
+    description: 'A timelock height is expected to be a whole number',
+    error: [400, 'ExpectedTimelockHeightForSharedUtxosRefund'],
+  },
+  {
+    args: makeArgs({block_height: -1}),
+    description: 'A timelock height is expected to not be negative',
+    error: [400, 'ExpectedTimelockHeightForSharedUtxosRefund'],
+  },
+  {
+    args: makeArgs({block_height: 500000000}),
+    description: 'A timelock is expected to be a block height',
+    error: [400, 'ExpectedTimelockHeightForSharedUtxosRefund'],
+  },
+  {
     args: makeArgs({lnd: makeLnd({expected: signRequest})}),
     description: 'Refund expired shared address utxos',
     expected: refund,
+  },
+  {
+    args: makeArgs({block_height: 800000}),
+    description: 'A refund can be held back until a later block',
+    expected: refundLater,
   },
   {
     args: makeArgs({fee_tokens_per_vbyte: 1.5}),

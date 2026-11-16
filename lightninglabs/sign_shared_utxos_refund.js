@@ -24,6 +24,7 @@ const isHash = n => !!n && /^[0-9A-F]{64}$/i.test(n);
 const {isInteger} = Number;
 const {isSafeInteger} = Number;
 const lockTime = 0;
+const maxLocktimeHeight = 499999999;
 const maxTokens = 21e14;
 const maxVout = 4294967295;
 const outpoint = n => `${n.transaction_id}:${n.transaction_vout}`;
@@ -41,6 +42,7 @@ const xOnlyKey = key => key.slice(2);
       transaction_id: <Utxo Transaction Id Hex String>
       transaction_vout: <Utxo Transaction Output Index Number>
     }]
+    [block_height]: <Timelock Block Height Number>
     expiry: <Shared Address Expiry Blocks Count Number>
     fee_tokens_per_vbyte: <Fee Tokens Per Virtual Byte Number>
     key_family: <Shared Address Client Key Family Number>
@@ -93,6 +95,18 @@ module.exports = (args, cbk) => {
 
         if (new Set(outpoints).size !== outpoints.length) {
           return cbk([400, 'UnexpectedDuplicateSharedUtxoToRefund']);
+        }
+
+        if (args.block_height !== undefined && !isInteger(args.block_height)) {
+          return cbk([400, 'ExpectedTimelockHeightForSharedUtxosRefund']);
+        }
+
+        if (args.block_height < lockTime) {
+          return cbk([400, 'ExpectedTimelockHeightForSharedUtxosRefund']);
+        }
+
+        if (args.block_height > maxLocktimeHeight) {
+          return cbk([400, 'ExpectedTimelockHeightForSharedUtxosRefund']);
         }
 
         if (!isInteger(args.expiry) || args.expiry < 1) {
@@ -185,6 +199,8 @@ module.exports = (args, cbk) => {
 
       // Make the unsigned refund transaction
       unsigned: ['address', 'sweepScript', ({address, sweepScript}, cbk) => {
+        // A timelock height holds the refund back until a later block
+        const locktime = args.block_height || lockTime;
         const total = sumOf(args.utxos);
 
         // Utxos are spent through the timeout path after the expiry
@@ -202,8 +218,8 @@ module.exports = (args, cbk) => {
 
         const {vsize} = sizeOfTransaction({
           transaction: asTx({
+            locktime,
             inputs: inputs.map(input => ({...input, witness: dummyWitness})),
-            locktime: lockTime,
             outputs: [{script: sweepScript, tokens: total}],
             version: txVersion,
           }),
@@ -219,6 +235,7 @@ module.exports = (args, cbk) => {
 
         return cbk(null, {
           inputs,
+          locktime,
           outputs,
           witness,
           spends: args.utxos.map(utxo => ({
@@ -227,8 +244,8 @@ module.exports = (args, cbk) => {
           })),
           transaction: asTx({
             inputs,
+            locktime,
             outputs,
-            locktime: lockTime,
             version: txVersion,
           }),
         });
@@ -302,7 +319,7 @@ module.exports = (args, cbk) => {
             ...input,
             witness: [signatures[vin]].concat(unsigned.witness),
           })),
-          locktime: lockTime,
+          locktime: unsigned.locktime,
           outputs: unsigned.outputs,
           version: txVersion,
         });
