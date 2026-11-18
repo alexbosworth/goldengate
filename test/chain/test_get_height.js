@@ -2,6 +2,8 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {makeLnd} = require('mock-lnd');
+
 const {getHeight} = require('./../../');
 
 const tests = [
@@ -32,30 +34,9 @@ const tests = [
     expected: {height: 100},
   },
   {
-    args: {
-      lnd: {
-        default: {
-          getInfo: ({}, cbk) => cbk(null, {
-            alias: '',
-            best_header_timestamp: 1,
-            block_hash: '00',
-            block_height: 1,
-            chains: [{chain: 'bitcoin', network: 'mainnet'}],
-            color: '#000000',
-            features: {"1": {is_known: true, is_required: false}},
-            identity_pubkey: '020000000000000000000000000000000000000000000000000000000000000000',
-            num_active_channels: 0,
-            num_peers: 0,
-            num_pending_channels: 0,
-            synced_to_chain: false,
-            uris: [],
-            version: '',
-          }),
-        },
-      }
-    },
+    args: {lnd: makeLnd({chain: {height: 800000}})},
     description: 'Get chain height via lnd',
-    expected: {height: 1},
+    expected: {height: 800000},
   },
 ];
 

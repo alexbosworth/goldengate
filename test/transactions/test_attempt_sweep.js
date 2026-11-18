@@ -2,11 +2,13 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {makeLnd} = require('mock-lnd');
+
 const {attemptSweep} = require('./../../');
 
 const current_height = 105;
 const deadline_height = 201;
-const lnd = {wallet: {publishTransaction: (args, cbk) => cbk(null, {})}};
+const lnd = makeLnd({});
 const max_fee_multiplier = 1000;
 const network = 'btctestnet';
 const private_key = '79957dc2091c8b024e14ee7f338869174ae39674342f40cc804cb099145d1d97';
@@ -42,19 +44,18 @@ const makeArgs = overrides => {
 
 const tests = [
   {
-    args: makeArgs({}),
+    args: makeArgs({
+      lnd: makeLnd({
+        failures: [{details: 'err', method: 'estimateFee', type: 'wallet'}],
+      }),
+    }),
     description: 'Cursor starts at the default fee',
     expected: 1,
   },
   {
     args: makeArgs({
       is_dry_run: true,
-      lnd: {
-        wallet: {
-          estimateFee: ({}, cbk) => cbk(null, {sat_per_kw: 5000/4}),
-          publishTransaction: (args, cbk) => cbk(null, {})
-        },
-      },
+      lnd: makeLnd({chain: {fee_tokens_per_vbyte: 5}}),
     }),
     description: 'LND chain fee is used',
     expected: 5,
@@ -62,12 +63,7 @@ const tests = [
   {
     args: makeArgs({
       is_dry_run: true,
-      lnd: {
-        wallet: {
-          estimateFee: ({}, cbk) => cbk(null, {sat_per_kw: 5000/4}),
-          publishTransaction: (args, cbk) => cbk(null, {})
-        },
-      },
+      lnd: makeLnd({chain: {fee_tokens_per_vbyte: 5}}),
       min_fee_rate: 1,
     }),
     description: 'Min fee rate can be specified',

@@ -21,7 +21,7 @@
     "bip65": "1.0.3",
     "bip68": "1.0.4",
     "bitcoin-ops": "1.4.1",
-    "ln-service": "60.3.0",
+    "ln-service": "61.0.0",
     "macaroon": "3.0.4",
     "p2tr": "3.0.0",
     "psbt": "7.0.1",
@@ -29,7 +29,8 @@
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "ln-docker-daemons": "8.1.4"
+    "ln-docker-daemons": "9.0.0",
+    "mock-lnd": "5.1.0"
   },
   "engines": {
     "node": ">=22"
@@ -59,5 +60,5 @@
     "integration-tests": "node test/integration",
     "test": "node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/taproot/*.js test/transactions/*.js"
   },
-  "version": "17.1.0"
+  "version": "17.1.1"
 }

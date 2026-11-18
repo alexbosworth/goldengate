@@ -3,30 +3,17 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {idForBlock} = require('@alexbosworth/blockchain');
 const {idForTransaction} = require('@alexbosworth/blockchain');
-const {numberAsCompactInt} = require('@alexbosworth/blockchain');
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
 
 const {encodeTransaction} = require('./../../transactions');
 const scanBatch = require('./../../chain/scan_batch_for_utxos');
 
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
-const otherScript = `0014${'22'.repeat(20)}`;
+const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
 const script = `5120${'11'.repeat(32)}`;
 const sha256 = n => createHash('sha256').update(n).digest('hex');
 const witness = [Buffer.alloc(32, 1).toString('hex')];
-
-const coinbase = encodeTransaction({
-  inputs: [{
-    id: Buffer.alloc(32).toString('hex'),
-    script: '0101',
-    sequence: 4294967295,
-    vout: 4294967295,
-  }],
-  locktime: 0,
-  outputs: [{script: otherScript, tokens: 5000000000}],
-  version: 1,
-}).transaction;
 
 const funding = encodeTransaction({
   inputs: [{id: sha256('1'), script: '', sequence: 0, vout: 0, witness}],
@@ -37,69 +24,33 @@ const funding = encodeTransaction({
 
 const fundingId = idForTransaction({transaction: funding}).id;
 
-// A block header has the id of the block before it
-const headerFor = height => {
-  const header = Buffer.alloc(80);
+// A fake LND with blocks from height 99 to 104, where block 101 pays a utxo
+const chainLnd = args => makeLnd({
+  chain: {
+    blocks: [{}, {}, {transactions: [funding]}, {}, {}, {}],
+    height: 99,
+  },
+  failures: args.failures,
+});
 
-  header.writeUInt32LE(height, 68);
+// The id of the block at a height of the chain
+const idAt = height => {
+  const lnd = chainLnd({});
+  const block = {};
 
-  if (!height) {
-    return header;
-  }
+  // A fake LND responds right away
+  lnd.blocks.getBlockHash({block_height: height}, (err, res) => {
+    block.id = bufferAsHex(Buffer.from(res.block_hash).reverse());
+  });
 
-  const {id} = idForBlock({block: headerFor(height - 1).toString('hex')});
-
-  hexAsBuffer(id).reverse().copy(header, 4);
-
-  return header;
-};
-
-// A block at height 101 pays a utxo, other blocks only have a coinbase
-const blockAt = height => Buffer.concat([
-  headerFor(height),
-  numberAsCompactInt({number: height === 101 ? 2 : 1}).encoded,
-  ...(height === 101 ? [coinbase, funding] : [coinbase]).map(hexAsBuffer),
-]);
-
-const idAt = height => idForBlock({block: headerFor(height).toString('hex')});
-
-// A block is only expected to be fetched once
-const makeLnd = ({err}) => {
-  const fetched = new Set();
-
-  return {
-    blocks: {
-      getBlock: ({block_hash}, cbk) => {
-        const height = block_hash.readUInt32LE();
-
-        if (fetched.has(height)) {
-          return cbk([500, 'UnexpectedBlockFetch', {height}]);
-        }
-
-        fetched.add(height);
-
-        if (!!err) {
-          return cbk(err);
-        }
-
-        return cbk(null, {raw_block: blockAt(height)});
-      },
-      getBlockHash: ({block_height}, cbk) => {
-        const hash = Buffer.alloc(32);
-
-        hash.writeUInt32LE(block_height);
-
-        return cbk(null, {block_hash: hash});
-      },
-    },
-  };
+  return block.id;
 };
 
 const makeArgs = overrides => {
   const args = {
     heights: [100, 101, 102, 103, 104],
-    id: idAt(99).id,
-    lnd: makeLnd({}),
+    id: idAt(99),
+    lnd: chainLnd({}),
     output_script: script,
     utxos: [],
   };
@@ -121,10 +72,16 @@ const tests = [
     args: makeArgs({
       heights: [100],
       id: undefined,
-      lnd: makeLnd({err: 'err'}),
+      lnd: chainLnd({
+        failures: [{details: 'err', method: 'getBlock', type: 'blocks'}],
+      }),
     }),
     description: 'An error getting a block is passed back',
-    error: [503, 'UnexpectedErrorWhenGettingChainBlock', {err: 'err'}],
+    error: [
+      503,
+      'UnexpectedErrorWhenGettingChainBlock',
+      {err: makeRpcError({details: 'err'})},
+    ],
   },
   {
     args: makeArgs({heights: [100, 101], id: sha256('other')}),
@@ -134,7 +91,7 @@ const tests = [
   {
     args: makeArgs({}),
     description: 'A batch of blocks is scanned for utxos',
-    expected: {id: idAt(104).id, utxos: [utxo]},
+    expected: {id: idAt(104), utxos: [utxo]},
   },
 ];
 

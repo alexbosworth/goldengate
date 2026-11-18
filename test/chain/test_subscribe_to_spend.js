@@ -1,14 +1,14 @@
 const {deepEqual} = require('node:assert').strict;
-const EventEmitter = require('node:events');
 const test = require('node:test');
 
 const {idForTransaction} = require('@alexbosworth/blockchain');
+const {makeLnd} = require('mock-lnd');
 const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const {subscribeToSpend} = require('./../../chain');
 
 const api = 'https://blockstream.info/testnet/api';
-const fundingTxId = Buffer.alloc(32).toString('hex');
+const fundingTxId = Buffer.alloc(32, 1).toString('hex');
 const maxSequence = 0xffffffff;
 const network = 'btctestnet';
 const okStatus = {statusCode: 200};
@@ -61,25 +61,9 @@ const makeArgs = overrides => {
 const tests = [
   {
     args: {
-      lnd: {
-        chain: {
-          registerSpendNtfn: ({}) => {
-            const emitter = new EventEmitter();
-
-            emitter.cancel = () => {};
-
-            process.nextTick(() => emitter.emit('data', {
-              spend: {
-                raw_spending_tx: Buffer.from(transaction, 'hex'),
-                spending_height: 200,
-                spending_input_index: 0,
-              },
-            }));
-
-            return emitter;
-          },
-        },
-      },
+      lnd: makeLnd({
+        chain: {blocks: [{}, {transactions: [transaction]}], height: 199},
+      }),
       min_height: 100,
       output_script: outputScript,
       transaction_id: fundingTxId,

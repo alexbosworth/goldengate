@@ -1,6 +1,6 @@
 # Versions
 
-## 17.1.0
+## 17.1.1
 
 - `signSharedUtxosRefund`, `signSwapInFallbackRefund`: Add `block_height` to
     timelock a refund until a later block

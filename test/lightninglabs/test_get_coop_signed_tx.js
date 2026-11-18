@@ -2,7 +2,11 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {beginGroupSigningSession} = require('ln-service');
 const {hashForTree} = require('p2tr');
+const {makeLnd} = require('mock-lnd');
+const {pointFromScalar} = require('tiny-secp256k1');
+const {updateGroupSigningSession} = require('ln-service');
 
 const fixtures = require('./../taproot/fixtures');
 const {getCoopSignedTx} = require('./../../');
@@ -11,8 +15,65 @@ const bufferAsHex = buffer => buffer.toString('hex');
 const fundingHash = '2e8aeea80aa054b666bbb268753ce4e1587b3c450046077a3bf8fc4a07c16386';
 const fundingPayment = Buffer.alloc(32, 1).toString('hex');
 const hashToSign = 'd1c13d08d4b04aeaf83e25f32b86b078b16f04c096c42212b2e70d3e90c42c58';
-const localNonce = Buffer.alloc(66, 3).toString('hex');
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const sweepPsbt = '70736274ff01005202000000010cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd010000000000000000017a410f0000000000160014362a2872a1c9988ef71c31bb332dfff68d895f0d00000000000103040000000001012b40420f00000000002251205417babb3f2fbe2ae11eea7e61f30dfb25b326c7090002906bc7bb8a61f15ec50000';
+
+// The sweep was checked with an independent implementation
+const coopSweep = '020000000001010cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd010000000000000000017a410f0000000000160014362a2872a1c9988ef71c31bb332dfff68d895f0d0140e4806079d1ab18621f8be89fa927d4515834a15d39a3122c422c7d9f435872f222f12eff5f8232c246d31be28925611495415205bc73d288428fe8e547cc9c4b00000000';
+
+const claimKey = pointFromScalar(hexAsBuffer(fixtures.claim_private_key));
+const refundKey = pointFromScalar(hexAsBuffer(fixtures.refund_private_key));
+const rootHash = hashForTree({branches: fixtures.script_branches}).hash;
+
+// A fake swap service that cosigns the swap sweep with the refund key
+const makeService = () => {
+  const lnd = makeLnd({secret: fixtures.refund_private_key});
+
+  // Cosign the sweep hash with the nonce of the client
+  const cosign = async ({nonce}) => {
+    const session = await beginGroupSigningSession({
+      lnd,
+      key_family: 6,
+      key_index: 0,
+      public_keys: [bufferAsHex(Buffer.from(claimKey))],
+      root_hash: rootHash,
+    });
+
+    const {signature} = await updateGroupSigningSession({
+      lnd,
+      hash: hashToSign,
+      id: session.id,
+      nonces: [bufferAsHex(nonce)],
+    });
+
+    return {
+      nonce: hexAsBuffer(session.nonce),
+      partial_signature: hexAsBuffer(signature),
+    };
+  };
+
+  return {
+    muSig2SignSweep: (args, metadata, cbk) => {
+      if (bufferAsHex(args.payment_address) !== fundingPayment) {
+        return cbk([400, 'InvalidPaymentAddressSpecified']);
+      }
+
+      if (args.protocol_version !== 'MUSIG2') {
+        return cbk([400, 'InvalidProtocolVersionSpecified']);
+      }
+
+      if (bufferAsHex(args.swap_hash) !== fundingHash) {
+        return cbk([400, 'InvalidSwapHashSpecified']);
+      }
+
+      if (bufferAsHex(args.sweep_tx_psbt) !== sweepPsbt) {
+        return cbk([400, 'InvalidSweepPsbtSpecified']);
+      }
+
+      return cosign({nonce: args.nonce}).then(res => cbk(null, res), cbk);
+    },
+  };
+};
 
 const makeArgs = overrides => {
   const args = {
@@ -21,69 +82,15 @@ const makeArgs = overrides => {
     funding_payment: fundingPayment,
     key_family: 805,
     key_index: 0,
-    lnd: {
-      signer: {
-        muSig2CombineSig: ({}, cbk) => cbk(null, {
-          final_signature: Buffer.alloc(64, 7),
-          have_all_signatures: true,
-        }),
-        muSig2CreateSession: ({}, cbk) => cbk(null, {
-          combined_key: Buffer.alloc(32, 2),
-          local_public_nonces: Buffer.from(localNonce, 'hex'),
-          session_id: Buffer.alloc(32, 4),
-          taproot_internal_key: Buffer.alloc(32, 5),
-        }),
-        muSig2RegisterNonces: ({}, cbk) => cbk(null, {have_all_nonces: true}),
-        muSig2Sign: (args, cbk) => {
-          if (bufferAsHex(args.message_digest) !== hashToSign) {
-            return cbk([400, 'InvalidMessageDigestSpecified']);
-          }
-
-          return cbk(null, {local_partial_signature: Buffer.alloc(32, 6)});
-        },
-      },
-      wallet: {
-        deriveKey: ({}, cbk) => cbk(null, {
-          key_loc: {key_index: 0},
-          raw_key_bytes: Buffer.from(fixtures.internal_key, 'hex'),
-        }),
-      },
-    },
+    lnd: makeLnd({
+      keys: [{family: 805, index: 0, secret: fixtures.claim_private_key}],
+    }),
     network: 'btctestnet',
     output_script: fixtures.output_script,
-    public_keys: [
-      '031cb9fba5d8cbc3dad06185e49de60fac484944c3c12682b604e0261b5375d3bf',
-    ],
-    root_hash: hashForTree({branches: fixtures.script_branches}).hash,
+    public_keys: [bufferAsHex(Buffer.from(refundKey))],
+    root_hash: rootHash,
     script_branches: fixtures.script_branches,
-    service: {
-      muSig2SignSweep: (args, metadata, cbk) => {
-        if (bufferAsHex(args.nonce) !== localNonce) {
-          return cbk([400, 'InvalidNonceSpecified']);
-        }
-
-        if (bufferAsHex(args.payment_address) !== fundingPayment) {
-          return cbk([400, 'InvalidPaymentAddressSpecified']);
-        }
-
-        if (args.protocol_version !== 'MUSIG2') {
-          return cbk([400, 'InvalidProtocolVersionSpecified']);
-        }
-
-        if (bufferAsHex(args.swap_hash) !== fundingHash) {
-          return cbk([400, 'InvalidSwapHashSpecified']);
-        }
-
-        if (bufferAsHex(args.sweep_tx_psbt) !== sweepPsbt) {
-          return cbk([400, 'InvalidSweepPsbtSpecified']);
-        }
-
-        return cbk(null, {
-          nonce: Buffer.alloc(66, 8),
-          partial_signature: Buffer.alloc(32, 9),
-        });
-      },
-    },
+    service: makeService(),
     sweep_address: fixtures.sweep_address,
     tokens: 1e6,
     transaction_id: fixtures.transaction_id,
@@ -99,9 +106,7 @@ const tests = [
   {
     args: makeArgs({}),
     description: 'A cooperatively signed taproot sweep is assembled',
-    expected: {
-      transaction: '020000000001010cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd010000000000000000017a410f0000000000160014362a2872a1c9988ef71c31bb332dfff68d895f0d0140' + '07'.repeat(64) + '00000000',
-    },
+    expected: {transaction: coopSweep},
   },
   {
     args: makeArgs({fee_tokens_per_vbyte: undefined}),

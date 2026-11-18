@@ -2,6 +2,8 @@ const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {makeLnd} = require('mock-lnd');
+
 const {getChainFeeRate} = require('./../../chain');
 
 const tests = [
@@ -32,9 +34,7 @@ const tests = [
   {
     args: {
       confirmation_target: 6,
-      lnd: {
-        wallet: {estimateFee: ({}, cbk) => cbk(null, {sat_per_kw: 5000/4})},
-      },
+      lnd: makeLnd({chain: {fee_tokens_per_vbyte: 5}}),
     },
     description: 'Get chain fee rate from lnd',
     expected: 5,

@@ -3,11 +3,12 @@ const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
 const {componentsOfTransaction} = require('@alexbosworth/blockchain');
+const {makeLnd} = require('mock-lnd');
 
 const {attemptRefund} = require('./../../');
 
 const hash = Buffer.alloc(32).toString('hex');
-const lnd = {};
+const lnd = makeLnd({});
 const network = 'btctestnet';
 const refund_private_key = Buffer.alloc(32).toString('hex');
 const request = ({}, cbk) => cbk();

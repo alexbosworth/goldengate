@@ -3,16 +3,18 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
-const {idForBlock} = require('@alexbosworth/blockchain');
 const {idForTransaction} = require('@alexbosworth/blockchain');
-const {numberAsCompactInt} = require('@alexbosworth/blockchain');
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
+const {reorgChain} = require('mock-lnd');
 
 const {encodeTransaction} = require('./../../transactions');
 const {getSharedUtxos} = require('./../../');
 const {sharedAddressScript} = require('./../../');
 
+const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
 const clientKey = '031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f';
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const firstHeight = 99;
 const otherScript = `0014${'00'.repeat(20)}`;
 const serviceKey = '024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766';
 const sha256 = n => createHash('sha256').update(n).digest('hex');
@@ -24,54 +26,6 @@ const {address, output_script} = sharedAddressScript({
   network: 'btc',
   server_public_key: serviceKey,
 });
-
-// A block header has the id of the block before it
-const headerFor = height => {
-  const header = Buffer.alloc(80);
-
-  // Every header is different with a timestamp of the height
-  header.writeUInt32LE(height, 68);
-
-  if (!height) {
-    return header;
-  }
-
-  const {id} = idForBlock({block: headerFor(height - 1).toString('hex')});
-
-  hexAsBuffer(id).reverse().copy(header, 4);
-
-  return header;
-};
-
-const idAt = height => idForBlock({block: headerFor(height).toString('hex')});
-
-// A block is a header, a count of transactions, and then the transactions
-const blockOf = ({height, is_fork, transactions}) => {
-  const header = headerFor(height);
-
-  // A block on a different chain builds on a different block
-  if (!!is_fork) {
-    hexAsBuffer(sha256('fork')).copy(header, 4);
-  }
-
-  return Buffer.concat([
-    header,
-    numberAsCompactInt({number: transactions.length}).encoded,
-    ...transactions.map(hexAsBuffer),
-  ]);
-};
-
-const coinbase = height => encodeTransaction({
-  inputs: [{
-    id: Buffer.alloc(32).toString('hex'),
-    script: Buffer.from([1, height]).toString('hex'),
-    sequence: 4294967295,
-    vout: 4294967295,
-  }],
-  locktime: 0,
-  outputs: [{script: otherScript, tokens: 5000000000}],
-  version: 1,
-}).transaction;
 
 const funding = encodeTransaction({
   inputs: [{id: sha256('1'), script: '', sequence: 0, vout: 0, witness}],
@@ -98,88 +52,86 @@ const spend = encodeTransaction({
 
 const spendId = idForTransaction({transaction: spend}).id;
 
-// Blocks by height, every other block only has a coinbase
-const makeBlocks = extra => ({
-  100: [coinbase(100), funding],
-  101: [coinbase(101)],
-  ...extra,
-});
+// Heights from a height through to a height
+const heightsFrom = (from, to) => {
+  return [...Array(to - from + 1).keys()].map(n => from + n);
+};
 
-const getInfo = height => ({
-  alias: '',
-  best_header_timestamp: 1,
-  block_hash: Buffer.alloc(32).toString('hex'),
-  block_height: height,
-  chains: [{chain: 'bitcoin', network: 'mainnet'}],
-  color: '#000000',
-  features: {},
-  identity_pubkey: `02${'00'.repeat(32)}`,
-  num_active_channels: 0,
-  num_peers: 0,
-  num_pending_channels: 0,
-  synced_to_chain: true,
-  uris: [],
-  version: '',
-});
+// A fake LND with blocks from height 99 to the tip, with transactions at
+const chainLnd = ({at, tip}) => {
+  // The block at height 100 funds the shared address
+  const transactions = {100: [funding], ...at};
 
-// A block is only expected to be fetched once, and not before the start
-const makeLnd = ({blocks, err, fork, header, raw, start, tip}) => {
-  const fetched = new Set();
+  const heights = heightsFrom(firstHeight, tip);
 
-  return {
-    blocks: {
-      getBlock: ({block_hash}, cbk) => {
-        const height = block_hash.readUInt32LE();
-
-        if (fetched.has(height) || height < (start || 0)) {
-          return cbk([500, 'UnexpectedBlockFetch', {height}]);
-        }
-
-        fetched.add(height);
-
-        if (!!err) {
-          return cbk(err);
-        }
-
-        if (!!raw) {
-          return cbk(null, {raw_block: raw});
-        }
-
-        const transactions = blocks[height] || [coinbase(height % 256)];
-
-        return cbk(null, {
-          raw_block: blockOf({height, transactions, is_fork: fork === height}),
-        });
-      },
-      getBlockHash: ({block_height}, cbk) => {
-        const hash = Buffer.alloc(32);
-
-        hash.writeUInt32LE(block_height);
-
-        return cbk(null, {block_hash: hash});
-      },
-      getBlockHeader: ({block_hash}, cbk) => {
-        const height = block_hash.readUInt32LE();
-
-        if (!!err) {
-          return cbk(err);
-        }
-
-        if (!!header) {
-          return cbk(null, {raw_block_header: header});
-        }
-
-        const block = blockOf({
-          height,
-          is_fork: fork === height,
-          transactions: [],
-        });
-
-        return cbk(null, {raw_block_header: block.subarray(0, 80)});
-      },
+  return makeLnd({
+    chain: {
+      blocks: heights.map(height => ({transactions: transactions[height]})),
+      height: firstHeight,
     },
-    default: {getInfo: ({}, cbk) => cbk(null, getInfo(tip))},
+  });
+};
+
+// The id of the block at a height of a chain
+const idAt = (height, chain) => {
+  const lnd = chainLnd(chain || {tip: 102});
+  const block = {};
+
+  // A fake LND responds right away
+  lnd.blocks.getBlockHash({block_height: height}, (err, res) => {
+    block.id = bufferAsHex(Buffer.from(res.block_hash).reverse());
+  });
+
+  return block.id;
+};
+
+// A fake LND where the chain is reorganized during a scan of blocks
+const reorgingLnd = ({at, tip}) => {
+  const lnd = chainLnd({tip});
+  const state = {};
+
+  const {getBlockHash} = lnd.blocks;
+
+  lnd.blocks.getBlockHash = (args, cbk) => {
+    // The block before is replaced the first time the block is asked for
+    if (args.block_height === at && !state.is_reorganized) {
+      state.is_reorganized = true;
+
+      reorgChain({lnd, height: at - 1});
+    }
+
+    return getBlockHash(args, cbk);
   };
+
+  return lnd;
+};
+
+// A fake LND that gives a response that LND would not give for blocks
+const malformedLnd = ({method, response}) => {
+  const lnd = chainLnd({tip: 102});
+
+  lnd.blocks[method] = ({}, cbk) => cbk(null, response);
+
+  return lnd;
+};
+
+// A fake LND where getting a block fails
+const failingLnd = method => makeLnd({
+  chain: {blocks: [{}, {}, {}], height: 100},
+  failures: [{method, details: 'err', type: 'blocks'}],
+});
+
+// The heights of the blocks that a fake LND gave
+const fetchedHeights = ({calls}) => {
+  const hashes = calls.filter(n => n.method === 'getBlockHash');
+
+  return calls.filter(n => n.method === 'getBlock').map(call => {
+    const asked = hashes.find(hash => {
+      return hash.response.block_hash.equals(call.args.block_hash);
+    });
+
+    return asked.args.block_height;
+  });
 };
 
 const utxo = (id, vout, tokens, height) => ({
@@ -225,7 +177,7 @@ const apiUtxos = [
 const makeArgs = overrides => {
   const args = {
     address,
-    lnd: makeLnd({blocks: makeBlocks(), tip: 102}),
+    lnd: chainLnd({tip: 102}),
     min_height: 100,
     network: 'btc',
   };
@@ -233,6 +185,18 @@ const makeArgs = overrides => {
   Object.keys(overrides).forEach(k => args[k] = overrides[k]);
 
   return args;
+};
+
+// Get the shared utxos, and the heights of the blocks that LND gave
+const utxosOf = async args => {
+  const res = await getSharedUtxos(args);
+
+  // Exit early when the utxos are from the Blockstream API
+  if (!args.lnd) {
+    return res;
+  }
+
+  return {...res, fetched: fetchedHeights(args.lnd)};
 };
 
 const tests = [
@@ -297,23 +261,34 @@ const tests = [
     error: [400, 'ExpectedValidSharedAddressToGetUtxosFor'],
   },
   {
-    args: makeArgs({lnd: makeLnd({err: 'err', tip: 102})}),
+    args: makeArgs({lnd: failingLnd('getBlock')}),
     description: 'An error getting a block is passed back',
-    error: [503, 'UnexpectedErrorWhenGettingChainBlock', {err: 'err'}],
+    error: [
+      503,
+      'UnexpectedErrorWhenGettingChainBlock',
+      {err: makeRpcError({details: 'err'})},
+    ],
   },
   {
     args: makeArgs({
-      id: idAt(102).id,
-      lnd: makeLnd({err: 'err', tip: 102}),
+      id: idAt(102),
+      lnd: failingLnd('getBlockHeader'),
       min_height: 103,
     }),
     description: 'An error getting the scanned block header is passed back',
-    error: [503, 'UnexpectedErrorWhenGettingBlockHeader', {err: 'err'}],
+    error: [
+      503,
+      'UnexpectedErrorWhenGettingBlockHeader',
+      {err: makeRpcError({details: 'err'})},
+    ],
   },
   {
     args: makeArgs({
-      id: idAt(102).id,
-      lnd: makeLnd({header: Buffer.alloc(79), tip: 102}),
+      id: idAt(102),
+      lnd: malformedLnd({
+        method: 'getBlockHeader',
+        response: {raw_block_header: Buffer.alloc(79)},
+      }),
       min_height: 103,
     }),
     description: 'The scanned block header is expected to be a block header',
@@ -321,7 +296,10 @@ const tests = [
   },
   {
     args: makeArgs({
-      lnd: makeLnd({blocks: {}, raw: Buffer.alloc(82), tip: 102}),
+      lnd: malformedLnd({
+        method: 'getBlock',
+        response: {raw_block: Buffer.alloc(82)},
+      }),
     }),
     description: 'A block that cannot be scanned is an error',
     error: [
@@ -332,14 +310,14 @@ const tests = [
   },
   {
     args: makeArgs({
-      lnd: makeLnd({blocks: makeBlocks(), fork: 110, tip: 120}),
+      lnd: reorgingLnd({at: 110, tip: 120}),
     }),
     description: 'A chain reorganization in a batch of blocks is an error',
     error: [503, 'UnexpectedReorgScanningForSharedUtxos'],
   },
   {
     args: makeArgs({
-      lnd: makeLnd({blocks: makeBlocks(), fork: 108, tip: 120}),
+      lnd: reorgingLnd({at: 108, tip: 120}),
     }),
     description: 'A chain reorganization between batches is an error',
     error: [503, 'UnexpectedReorgScanningForSharedUtxos'],
@@ -347,7 +325,7 @@ const tests = [
   {
     args: makeArgs({
       id: sha256('stale'),
-      lnd: makeLnd({blocks: makeBlocks(), tip: 120}),
+      lnd: chainLnd({tip: 120}),
       min_height: 103,
       utxos: [utxo(fundingId, 1, 100000, 100)],
     }),
@@ -365,8 +343,8 @@ const tests = [
   },
   {
     args: makeArgs({
-      id: idAt(102).id,
-      lnd: makeLnd({blocks: makeBlocks(), fork: 103, tip: 103}),
+      id: idAt(102),
+      lnd: reorgingLnd({at: 103, tip: 103}),
       min_height: 103,
       utxos: [utxo(fundingId, 1, 100000, 100)],
     }),
@@ -377,38 +355,34 @@ const tests = [
     args: makeArgs({}),
     description: 'Blocks are scanned for utxos',
     expected: {
+      fetched: heightsFrom(100, 102),
       utxos: [
         counted(3, utxo(fundingId, 0, 200000, 100)),
         counted(3, utxo(fundingId, 1, 100000, 100)),
       ],
       height: 102,
-      id: idAt(102).id,
+      id: idAt(102),
     },
   },
   {
     args: makeArgs({
-      lnd: makeLnd({
-        blocks: makeBlocks({112: [coinbase(112), spend]}),
-        tip: 120,
-      }),
+      lnd: chainLnd({at: {112: [spend]}, tip: 120}),
     }),
     description: 'Utxos spent in later blocks are not unspent utxos',
     expected: {
+      fetched: heightsFrom(100, 120),
       utxos: [
         counted(21, utxo(fundingId, 1, 100000, 100)),
         counted(9, utxo(spendId, 1, 49000, 112)),
       ],
       height: 120,
-      id: idAt(120).id,
+      id: idAt(120, {at: {112: [spend]}, tip: 120}),
     },
   },
   {
     args: makeArgs({
-      id: idAt(102).id,
-      lnd: makeLnd({
-        blocks: makeBlocks({112: [coinbase(112), spend]}),
-        tip: 120,
-      }),
+      id: idAt(102),
+      lnd: chainLnd({at: {112: [spend]}, tip: 120}),
       min_height: 103,
       utxos: [
         utxo(fundingId, 0, 200000, 100),
@@ -417,129 +391,131 @@ const tests = [
     }),
     description: 'A scan continues from the last scanned block',
     expected: {
+      fetched: heightsFrom(103, 120),
       utxos: [
         counted(21, utxo(fundingId, 1, 100000, 100)),
         counted(9, utxo(spendId, 1, 49000, 112)),
       ],
       height: 120,
-      id: idAt(120).id,
+      id: idAt(120, {at: {112: [spend]}, tip: 120}),
     },
   },
   {
     args: makeArgs({
-      lnd: makeLnd({
-        blocks: makeBlocks({115: [coinbase(115), spend]}),
-        tip: 120,
-      }),
+      lnd: chainLnd({at: {115: [spend]}, tip: 120}),
     }),
     description: 'Blocks are scanned in order across batches',
     expected: {
+      fetched: heightsFrom(100, 120),
       utxos: [
         counted(21, utxo(fundingId, 1, 100000, 100)),
         counted(6, utxo(spendId, 1, 49000, 115)),
       ],
       height: 120,
-      id: idAt(120).id,
+      id: idAt(120, {at: {115: [spend]}, tip: 120}),
     },
   },
   {
     args: makeArgs({
-      id: idAt(102).id,
-      lnd: makeLnd({blocks: makeBlocks(), start: 103, tip: 120}),
+      id: idAt(102),
+      lnd: chainLnd({tip: 120}),
       min_height: 103,
       utxos: [utxo(fundingId, 1, 100000, 100)],
     }),
     description: 'A continued scan only gets blocks after the scanned block',
     expected: {
+      fetched: heightsFrom(103, 120),
       utxos: [counted(21, utxo(fundingId, 1, 100000, 100))],
       height: 120,
-      id: idAt(120).id,
+      id: idAt(120, {tip: 120}),
     },
   },
   {
     args: makeArgs({
-      id: idAt(102).id,
-      lnd: makeLnd({blocks: makeBlocks(), start: 103, tip: 120}),
+      id: idAt(102),
+      lnd: chainLnd({tip: 120}),
       min_height: 103,
       utxos: [counted(3, utxo(fundingId, 1, 100000, 100))],
     }),
     description: 'Confirmations of known utxos are counted again',
     expected: {
+      fetched: heightsFrom(103, 120),
       utxos: [counted(21, utxo(fundingId, 1, 100000, 100))],
       height: 120,
-      id: idAt(120).id,
+      id: idAt(120, {tip: 120}),
     },
   },
   {
     args: makeArgs({
-      id: idAt(99).id,
+      id: idAt(99),
       utxos: [
         utxo(sha256('earlier'), 3, 70000, 99),
         utxo(fundingId, 1, 100000, 100),
       ],
-      lnd: makeLnd({
-        blocks: makeBlocks({101: [coinbase(101), spend]}),
-        tip: 102,
-      }),
+      lnd: chainLnd({at: {101: [spend]}, tip: 102}),
     }),
     description: 'Known utxos from scanned blocks are found again',
     expected: {
+      fetched: heightsFrom(100, 102),
       utxos: [
         counted(4, utxo(sha256('earlier'), 3, 70000, 99)),
         counted(3, utxo(fundingId, 1, 100000, 100)),
         counted(2, utxo(spendId, 1, 49000, 101)),
       ],
       height: 102,
-      id: idAt(102).id,
+      id: idAt(102, {at: {101: [spend]}, tip: 102}),
     },
   },
   {
     args: makeArgs({
-      id: idAt(102).id,
+      id: idAt(102),
       utxos: [utxo(fundingId, 1, 100000, 100)],
       min_height: 103,
     }),
     description: 'There can be no blocks to scan',
     expected: {
+      fetched: [],
       utxos: [counted(3, utxo(fundingId, 1, 100000, 100))],
       height: 102,
-      id: idAt(102).id,
+      id: idAt(102),
     },
   },
   {
     args: makeArgs({
-      id: idAt(102).id.toUpperCase(),
+      id: idAt(102).toUpperCase(),
       utxos: [utxo(fundingId, 1, 100000, 100)],
       min_height: 103,
     }),
     description: 'Scanned block ids are not case sensitive',
     expected: {
+      fetched: [],
       utxos: [counted(3, utxo(fundingId, 1, 100000, 100))],
       height: 102,
-      id: idAt(102).id,
+      id: idAt(102),
     },
   },
   {
     args: makeArgs({utxos: [], min_height: 103}),
     description: 'No scanned block id is needed without known utxos',
-    expected: {utxos: [], height: 102, id: undefined},
+    expected: {fetched: [], utxos: [], height: 102, id: undefined},
   },
   {
     args: makeArgs({
-      id: idAt(109).id,
+      id: idAt(109, {tip: 109}),
       utxos: [utxo(fundingId, 1, 100000, 100)],
       min_height: 110,
     }),
     description: 'The height does not go back when the chain tip is behind',
     expected: {
+      fetched: [],
       utxos: [counted(10, utxo(fundingId, 1, 100000, 100))],
       height: 109,
-      id: idAt(109).id,
+      id: idAt(109, {tip: 109}),
     },
   },
   {
     args: makeArgs({
-      id: idAt(99).id,
+      id: idAt(99),
       utxos: [
         utxo(sha256('earlier'), 3, 70000, 99),
         utxo(sha256('reorganized'), 0, 5000, 100),
@@ -547,13 +523,14 @@ const tests = [
     }),
     description: 'Known utxos not seen again in scanned blocks are dropped',
     expected: {
+      fetched: heightsFrom(100, 102),
       utxos: [
         counted(4, utxo(sha256('earlier'), 3, 70000, 99)),
         counted(3, utxo(fundingId, 0, 200000, 100)),
         counted(3, utxo(fundingId, 1, 100000, 100)),
       ],
       height: 102,
-      id: idAt(102).id,
+      id: idAt(102),
     },
   },
   {
@@ -654,7 +631,7 @@ tests.forEach(({args, description, error, expected}) => {
     if (!!error) {
       await rejects(getSharedUtxos(args), error, 'Got error');
     } else {
-      deepEqual(await getSharedUtxos(args), expected, 'Got result');
+      deepEqual(await utxosOf(args), expected, 'Got result');
     }
 
     return;

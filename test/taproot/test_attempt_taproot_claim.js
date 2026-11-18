@@ -1,9 +1,12 @@
+const {deepEqual} = require('node:assert').strict;
 const {equal} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
 const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {hashForTree} = require('p2tr');
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
 const {v1OutputScript} = require('p2tr');
 
 const {attemptTaprootClaim} = require('./../../');
@@ -14,7 +17,6 @@ const bufferAsHex = buffer => buffer.toString('hex');
 const defaultInternalKey = fixtures.internal_key;
 const height = 1571579;
 const internalKey = '9a52e5049486097409dc92b476a0c72fcc24021d2c7d3bbf91789745041a488a';
-const lnd = {wallet: {publishTransaction: ({}, cbk) => cbk(null, {})}};
 
 const controlKey = transaction => {
   const [{witness}] = componentsOfTransaction({transaction}).inputs;
@@ -30,15 +32,25 @@ const output = v1OutputScript({
   internal_key: internalKey,
 });
 
+// A fake LND where a wallet method fails
+const failingLnd = method => makeLnd({
+  failures: [{method, details: 'err', type: 'wallet'}],
+});
+
+// Get the transactions that a fake LND was asked to publish
+const publishedBy = ({calls}) => calls
+  .filter(n => n.method === 'publishTransaction')
+  .map(n => bufferAsHex(n.args.tx_hex));
+
 const makeArgs = overrides => {
   const args = {
-    lnd,
     claim_script: fixtures.claim_script,
     current_height: height,
     deadline_height: height + 144,
     external_key: output.external_key,
     internal_key: internalKey,
     is_dry_run: true,
+    lnd: makeLnd({}),
     max_fee_multiplier: 1000,
     min_fee_rate: 2,
     network: 'btctestnet',
@@ -172,10 +184,14 @@ const tests = [
   {
     args: makeArgs({
       is_dry_run: false,
-      lnd: {wallet: {publishTransaction: ({}, cbk) => cbk('err')}},
+      lnd: failingLnd('publishTransaction'),
     }),
     description: 'A claim that fails to publish returns the publish error',
-    error: [503, 'UnexpectedErrBroadcastingRawTx', {err: 'err'}],
+    error: [
+      503,
+      'UnexpectedErrBroadcastingRawTx',
+      {err: makeRpcError({details: 'err'})},
+    ],
   },
   {
     args: makeArgs({}),
@@ -194,9 +210,7 @@ const tests = [
   },
   {
     args: makeArgs({
-      lnd: {
-        wallet: {estimateFee: ({}, cbk) => cbk(null, {sat_per_kw: 1250})},
-      },
+      lnd: makeLnd({chain: {fee_tokens_per_vbyte: 5}}),
       min_fee_rate: undefined,
     }),
     description: 'A claim without a minimum fee rate uses the chain fee rate',
@@ -204,29 +218,14 @@ const tests = [
   },
   {
     args: makeArgs({
-      lnd: {wallet: {estimateFee: ({}, cbk) => cbk('err')}},
+      lnd: failingLnd('estimateFee'),
       min_fee_rate: undefined,
     }),
     description: 'A claim uses the default fee rate when the chain fee fails',
     expected: {fee_rate: 1, internal_key: internalKey},
   },
   {
-    args: makeArgs({
-      is_dry_run: false,
-      lnd: {
-        wallet: {
-          publishTransaction: ({tx_hex}, cbk) => {
-            const {transaction} = makeClaim(makeArgs({}));
-
-            if (bufferAsHex(tx_hex) !== transaction) {
-              return cbk('ExpectedClaimTransactionToPublish');
-            }
-
-            return cbk(null, {});
-          },
-        },
-      },
-    }),
+    args: makeArgs({is_dry_run: false}),
     description: 'A claim is published',
     expected: {fee_rate: 2, internal_key: internalKey},
   },
@@ -254,6 +253,10 @@ tests.forEach(({args, description, error, expected}) => {
     equal(res.transaction, expectedClaim.transaction, 'Got claim transaction');
 
     equal(controlKey(res.transaction), expected.internal_key, 'Got key');
+
+    const published = args.is_dry_run ? [] : [res.transaction];
+
+    deepEqual(publishedBy(args.lnd), published, 'Claim is published');
 
     return;
   });

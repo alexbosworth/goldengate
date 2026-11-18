@@ -3,12 +3,18 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
+
+const {sharedAddressCosigner} = require('./../macros');
 const {sharedAddressScript} = require('./../../');
 const {signSwapInServiceFallback} = require('./../../');
 const {swapInServiceFallbackTx} = require('./../../');
 const {swapScriptV2} = require('./../../');
 
+const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
 const clientKey = '031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f';
+const clientSecret = Buffer.alloc(32, 1).toString('hex');
 const expiry = 14400;
 const id = Buffer.alloc(32, 9).toString('hex');
 const infoKeys = {
@@ -17,10 +23,10 @@ const infoKeys = {
   standard: 'standard_htlc_info',
 };
 const metadata = {get: () => []};
+const range = count => [...Array(count).keys()];
 const serviceKey = '024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766';
-const serviceNonce = (i, vin) => Buffer.alloc(66, 16 + i * 2 + vin);
-const sessionId = n => Buffer.alloc(32, n).toString('hex');
 const sha256 = hex => createHash('sha256').update(Buffer.from(hex, 'hex'));
+const types = ['standard', 'high', 'extreme'];
 
 const utxos = [
   {
@@ -34,6 +40,13 @@ const utxos = [
     transaction_vout: 3,
   },
 ];
+
+// More inputs to sign than are signed at once
+const many = range(5).map(i => ({
+  tokens: 100000,
+  transaction_id: sha256(`0${i + 3}`).digest('hex'),
+  transaction_vout: i,
+}));
 
 const address = sharedAddressScript({
   expiry,
@@ -49,28 +62,53 @@ const {script} = swapScriptV2({
   timeout: 900,
 });
 
+// A fake swap service that keeps the pushes of HTLC signatures
+const makeService = () => {
+  const cosigner = sharedAddressCosigner({
+    client_public_key: clientKey,
+    root_hash: address.root_hash,
+  });
+
+  const pushes = [];
+
+  // Every service starts the same sessions in order, so the nonces match
+  const noncesFor = (inputs, set) => types.map(type => {
+    return inputs.map((utxo, vin) => {
+      return cosigner.nonceFor(`${set}:${type}:${vin}`);
+    });
+  });
+
+  return {
+    cosigner,
+    pushes,
+    many: noncesFor(many, 'many'),
+    nonces: noncesFor(utxos, 'utxos'),
+    pushStaticAddressHtlcSigs: (args, auth, cbk) => {
+      if (auth !== metadata) {
+        return cbk([400, 'ExpectedAuthenticationMetadataPassedThrough']);
+      }
+
+      pushes.push(args);
+
+      return cbk();
+    },
+  };
+};
+
+// The service nonces for the utxos, and for many utxos
+const serviceNonces = makeService();
+
 // The service nonces differ for every HTLC type and utxo
-const fallbacks = ['standard', 'high', 'extreme'].map((type, i) => ({
+const fallbacks = types.map((type, i) => ({
   type,
   fee_tokens_per_kw: [2500, 5000, 10000][i],
-  nonces: utxos.map((utxo, vin) => serviceNonce(i, vin).toString('hex')),
-}));
-
-// More inputs to sign than are signed at once
-const many = Array.from({length: 5}, (_, i) => ({
-  tokens: 100000,
-  transaction_id: sha256(`0${i + 3}`).digest('hex'),
-  transaction_vout: i,
+  nonces: serviceNonces.nonces[i],
 }));
 
 // The service nonces for many inputs
 const manyFallbacks = fallbacks.map((fallback, i) => ({
   ...fallback,
-  nonces: many.map((_, vin) => Buffer.alloc(66, 64 + i * 8 + vin)),
-}))
-.map(fallback => ({
-  ...fallback,
-  nonces: fallback.nonces.map(n => n.toString('hex')),
+  nonces: serviceNonces.many[i],
 }));
 
 // Sign the extreme fee HTLC first, then the standard and high fee HTLCs
@@ -87,95 +125,37 @@ const unsignedFor = spend => spend.fallbacks.map(fallback => {
   });
 });
 
-// A fake LND signer: partial signatures commit to the digest and nonce
-const makeLnd = ({cleanupErr, createErr, registerErr, sessionKey}) => {
-  const cleaned = [];
-  const registered = {};
-  const state = {sessions: 0};
+// A fake LND with the client key of the shared address
+const clientLnd = args => makeLnd({
+  failures: args.failures,
+  keys: [{family: 42060, index: 7, secret: clientSecret}],
+});
 
-  // Sessions have the shared address key unless another key is given
-  const combinedKey = sessionKey || address.output_script.slice(4);
+// A fake LND where a signer method fails
+const failingLnd = method => clientLnd({
+  failures: [{method, details: 'err', type: 'signer'}],
+});
 
-  return {
-    cleaned,
-    signer: {
-      muSig2Cleanup: ({session_id}, cbk) => {
-        cleaned.push(session_id.toString('hex'));
+// A fake LND that gives signing sessions a key that is not the address key
+const otherKeyLnd = () => {
+  const lnd = clientLnd({});
 
-        return cbk(cleanupErr);
-      },
-      muSig2CombineSig: ({}, cbk) => cbk([500, 'UnexpectedCombineSigRequest']),
-      muSig2CreateSession: (args, cbk) => {
-        if (!!createErr) {
-          return cbk(createErr);
-        }
+  const {muSig2CreateSession} = lnd.signer;
 
-        const keys = args.all_signer_pubkeys.map(n => n.toString('hex'));
+  lnd.signer.muSig2CreateSession = (args, cbk) => {
+    return muSig2CreateSession(args, (err, res) => {
+      const internalKey = res.taproot_internal_key;
 
-        if (keys.join() !== [clientKey, serviceKey].join()) {
-          return cbk([400, 'ExpectedClientAndServiceKeysForSession']);
-        }
-
-        if (args.key_loc.key_family !== 42060) {
-          return cbk([400, 'ExpectedSharedAddressKeyFamily']);
-        }
-
-        if (args.key_loc.key_index !== 7) {
-          return cbk([400, 'ExpectedSharedAddressKeyIndex']);
-        }
-
-        const root = args.taproot_tweak.script_root.toString('hex');
-
-        if (root !== address.root_hash) {
-          return cbk([400, 'ExpectedSharedAddressScriptRootTweak']);
-        }
-
-        if (args.version !== 'MUSIG2_VERSION_V100RC2') {
-          return cbk([400, 'ExpectedMuSig2Version1RC2']);
-        }
-
-        state.sessions++;
-
-        return cbk(null, {
-          combined_key: Buffer.from(combinedKey, 'hex'),
-          local_public_nonces: Buffer.alloc(66, state.sessions),
-          session_id: Buffer.alloc(32, state.sessions),
-          taproot_internal_key: Buffer.from(address.internal_key, 'hex'),
-        });
-      },
-      muSig2RegisterNonces: (args, cbk) => {
-        if (!!registerErr) {
-          return cbk(registerErr);
-        }
-
-        const [nonce] = args.other_signer_public_nonces;
-
-        registered[args.session_id.toString('hex')] = nonce.toString('hex');
-
-        return cbk(null, {have_all_nonces: true});
-      },
-      muSig2Sign: (args, cbk) => {
-        const nonce = registered[args.session_id.toString('hex')];
-
-        const digest = args.message_digest.toString('hex');
-
-        return cbk(null, {
-          local_partial_signature: sha256(`${digest}${nonce}`).digest(),
-        });
-      },
-    },
-    wallet: {
-      deriveKey: ({}, cbk) => cbk(null, {
-        key_loc: {key_index: 7},
-        raw_key_bytes: Buffer.from(clientKey, 'hex'),
-      }),
-    },
+      return cbk(err, {...res, combined_key: internalKey});
+    });
   };
+
+  return lnd;
 };
 
 // A fake LND where sessions that are started later are ready first
 const makeSlowLnd = () => {
-  const lnd = makeLnd({});
+  const lnd = clientLnd({});
   const state = {calls: 0};
 
   const {muSig2CreateSession} = lnd.signer;
@@ -191,24 +171,6 @@ const makeSlowLnd = () => {
   return lnd;
 };
 
-// A fake service that keeps the pushes of HTLC signatures
-const makeService = () => {
-  const pushes = [];
-
-  return {
-    pushes,
-    pushStaticAddressHtlcSigs: (args, auth, cbk) => {
-      if (auth !== metadata) {
-        return cbk([400, 'ExpectedAuthenticationMetadataPassedThrough']);
-      }
-
-      pushes.push(args);
-
-      return cbk();
-    },
-  };
-};
-
 const makeArgs = overrides => {
   const args = {
     utxos,
@@ -219,7 +181,7 @@ const makeArgs = overrides => {
     script,
     key_family: 42060,
     key_index: 7,
-    lnd: makeLnd({}),
+    lnd: clientLnd({}),
     network: 'btc',
     service: makeService(),
     service_public_key: serviceKey,
@@ -231,28 +193,72 @@ const makeArgs = overrides => {
   return args;
 };
 
-// The ids of the sessions that are numbered from one
-const idsFrom = count => [...Array(count).keys()].map(n => sessionId(n + 1));
+// The sessions that the client LND started, in the order they were started
+const startedSessions = ({calls}) => calls
+  .filter(n => n.method === 'muSig2CreateSession' && !!n.response)
+  .map(n => n.response);
 
-// Sessions are numbered from one in the order that the inputs are signed
-const signingInfo = ({fallback, hashes, i}) => ({
-  nonces: hashes.map((hash, vin) => {
-    return Buffer.alloc(66, i * hashes.length + vin + 1);
-  }),
-  sigs: hashes.map((hash, vin) => {
-    return sha256(`${hash}${fallback.nonces[vin]}`).digest();
-  }),
-});
+// The indexes of the started sessions that the client LND was asked to end
+const cleanedSessions = lnd => {
+  const sessions = startedSessions(lnd);
 
-// The push of nonces and partial signatures for the HTLCs in signing order
-const pushFor = signed => signed.fallbacks.reduce((sum, fallback, i) => {
-  const {hashes} = signed.txs[i];
+  const cleaned = lnd.calls.filter(n => n.method === 'muSig2Cleanup');
 
-  sum[infoKeys[fallback.type]] = signingInfo({fallback, hashes, i});
+  return cleaned.map(call => {
+    return sessions.findIndex(session => {
+      return session.session_id.equals(call.args.session_id);
+    });
+  })
+  .sort((a, b) => a - b);
+};
 
-  return sum;
-},
-{swap_hash: Buffer.from(id, 'hex')});
+// Check the client signatures of a push combine into valid signatures
+const checkedPush = ({args, push}) => {
+  const txs = unsignedFor(args);
+  const {cosigner} = args.service;
+
+  return args.fallbacks.reduce((sum, fallback, i) => {
+    const info = push[infoKeys[fallback.type]];
+
+    const signed = txs[i].hashes.map((hash, vin) => {
+      return cosigner.isComplete({
+        hash,
+        key: cosigner.keyFor(fallback.nonces[vin]),
+        nonce: bufferAsHex(info.nonces[vin]),
+        signature: bufferAsHex(info.sigs[vin]),
+      });
+    });
+
+    // Counts show nonces or signatures that are pushed for no input
+    sum[infoKeys[fallback.type]] = {
+      signed,
+      nonces_count: info.nonces.length,
+      sigs_count: info.sigs.length,
+    };
+
+    return sum;
+  },
+  {fields: Object.keys(push).sort(), swap_hash: push.swap_hash});
+};
+
+// The push of signatures for the HTLCs, with a valid signature per input
+const pushFor = signing => {
+  const infos = signing.fallbacks.map(n => infoKeys[n.type]);
+
+  return signing.fallbacks.reduce((sum, fallback) => {
+    sum[infoKeys[fallback.type]] = {
+      nonces_count: signing.utxos.length,
+      signed: signing.utxos.map(() => true),
+      sigs_count: signing.utxos.length,
+    };
+
+    return sum;
+  },
+  {
+    fields: infos.concat('swap_hash').sort(),
+    swap_hash: Buffer.from(id, 'hex'),
+  });
+};
 
 // The signing of HTLCs that are passed in an order
 const signingFor = signing => {
@@ -260,7 +266,7 @@ const signingFor = signing => {
 
   return {
     cleaned: signing.cleaned,
-    pushes: [pushFor({txs, fallbacks: signing.fallbacks})],
+    pushes: [pushFor(signing)],
     transactions: txs.map((tx, i) => ({
       id: tx.id,
       transaction: tx.transaction,
@@ -271,14 +277,18 @@ const signingFor = signing => {
 
 // Sign the HTLCs, then see what is pushed and which sessions are cleaned up
 const signingOf = async args => {
-  const {pushes} = args.service;
+  const cleaned = () => cleanedSessions(args.lnd);
+
+  const pushes = () => args.service.pushes.map(push => {
+    return checkedPush({args, push});
+  });
 
   try {
     const {transactions} = await signSwapInServiceFallback(args);
 
-    return {pushes, transactions, cleaned: args.lnd.cleaned.slice().sort()};
+    return {transactions, cleaned: cleaned(), pushes: pushes()};
   } catch (err) {
-    return {err, pushes, cleaned: args.lnd.cleaned.slice().sort()};
+    return {err, cleaned: cleaned(), pushes: pushes()};
   }
 };
 
@@ -344,6 +354,17 @@ const tests = [
       ],
     }),
     description: 'A nonce for every utxo is expected',
+    error: [400, 'ExpectedNonceForEveryUtxoToSignServiceFallback'],
+  },
+  {
+    args: makeArgs({
+      fallbacks: [
+        {...fallbacks[0], nonces: manyFallbacks[0].nonces.slice(0, 3)},
+        fallbacks[1],
+        fallbacks[2],
+      ],
+    }),
+    description: 'A nonce for a utxo that is not spent is not expected',
     error: [400, 'ExpectedNonceForEveryUtxoToSignServiceFallback'],
   },
   {
@@ -422,43 +443,51 @@ const tests = [
     error: [503, 'UnexpectedErrorPushingFallbackSigs', {err: 'err'}],
   },
   {
-    args: makeArgs({lnd: makeLnd({sessionKey: address.internal_key})}),
+    args: makeArgs({lnd: otherKeyLnd()}),
     description: 'A session key that is not the shared address is rejected',
     expected: {
-      cleaned: idsFrom(1),
+      cleaned: [0],
       err: [503, 'UnexpectedSessionKeyForSharedAddress'],
       pushes: [],
     },
   },
   {
-    args: makeArgs({lnd: makeLnd({registerErr: 'err'})}),
+    args: makeArgs({lnd: failingLnd('muSig2RegisterNonces')}),
     description: 'A failure to sign cleans up the signing session',
     expected: {
-      cleaned: idsFrom(1),
-      err: [503, 'UnexpectedErrorUpdatingMuSig2Session', {err: 'err'}],
+      cleaned: [0],
+      err: [
+        503,
+        'UnexpectedErrorUpdatingMuSig2Session',
+        {err: makeRpcError({details: 'err'})},
+      ],
       pushes: [],
     },
   },
   {
-    args: makeArgs({lnd: makeLnd({createErr: 'err'})}),
+    args: makeArgs({lnd: failingLnd('muSig2CreateSession')}),
     description: 'A failure to start a signing session is passed back',
     expected: {
       cleaned: [],
-      err: [503, 'UnexpectedErrorCreatingMuSig2Session', {err: 'err'}],
+      err: [
+        503,
+        'UnexpectedErrorCreatingMuSig2Session',
+        {err: makeRpcError({details: 'err'})},
+      ],
       pushes: [],
     },
   },
   {
     args: makeArgs({}),
     description: 'Sign swap in HTLC transactions',
-    expected: signingFor({fallbacks, utxos, cleaned: idsFrom(6)}),
+    expected: signingFor({fallbacks, utxos, cleaned: range(6)}),
   },
   {
     args: makeArgs({fallbacks: order.map(i => fallbacks[i])}),
     description: 'HTLCs can be passed in any order',
     expected: signingFor({
       utxos,
-      cleaned: idsFrom(6),
+      cleaned: range(6),
       fallbacks: order.map(i => fallbacks[i]),
     }),
   },
@@ -470,15 +499,15 @@ const tests = [
     }),
     description: 'Inputs signed in parallel are pushed in order',
     expected: signingFor({
-      cleaned: idsFrom(15),
+      cleaned: range(15),
       fallbacks: manyFallbacks,
       utxos: many,
     }),
   },
   {
-    args: makeArgs({lnd: makeLnd({cleanupErr: 'err'})}),
+    args: makeArgs({lnd: failingLnd('muSig2Cleanup')}),
     description: 'A failure to clean up a session is not an error',
-    expected: signingFor({fallbacks, utxos, cleaned: idsFrom(6)}),
+    expected: signingFor({fallbacks, utxos, cleaned: range(6)}),
   },
 ];
 

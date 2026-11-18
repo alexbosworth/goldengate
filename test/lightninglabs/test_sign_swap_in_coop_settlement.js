@@ -3,28 +3,37 @@ const {deepEqual} = require('node:assert').strict;
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {createPsbt} = require('psbt');
 const {decodePsbt} = require('psbt');
 const {idForTransaction} = require('@alexbosworth/blockchain');
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
 const {numberAsCompactInt} = require('@alexbosworth/blockchain');
+const {payInvoice} = require('mock-lnd');
 const {v1HashToSign} = require('p2tr');
 
 const {encodeTransaction} = require('./../../transactions');
+const {sharedAddressCosigner} = require('./../macros');
 const {sharedAddressScript} = require('./../../');
 const {signSwapInCoopSettlement} = require('./../../');
 
+const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
 const clientKey = '031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f';
+const clientSecret = Buffer.alloc(32, 1).toString('hex');
 const expiry = 14400;
-const id = Buffer.alloc(32, 9).toString('hex');
+const hexAsBuffer = hex => Buffer.from(hex, 'hex');
 const metadata = {get: () => []};
 const otherId = Buffer.alloc(32, 8).toString('hex');
 const outpoint = n => `${n.transaction_id}:${n.transaction_vout}`;
 const psbtError = 'ExpectedHexSerializedPartiallySignedBitcoinTransaction';
 const serverScript = `0014${Buffer.alloc(20, 4).toString('hex')}`;
 const serviceKey = '024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766';
-const serviceNonce = vin => Buffer.alloc(66, 16 + vin).toString('hex');
 const sha256 = hex => createHash('sha256').update(Buffer.from(hex, 'hex'));
+const swapSecret = Buffer.alloc(32, 9).toString('hex');
 const upper = n => ({...n, transaction_id: n.transaction_id.toUpperCase()});
+
+const id = sha256(swapSecret).digest('hex');
 
 const address = sharedAddressScript({
   expiry,
@@ -32,8 +41,6 @@ const address = sharedAddressScript({
   network: 'btc',
   server_public_key: serviceKey,
 });
-
-const outputKey = address.output_script.slice(4);
 
 const utxos = [
   {tokens: 200000, transaction_id: sha256('01').digest('hex'), vout: 1},
@@ -104,100 +111,85 @@ const makeDoubleSpendPsbt = () => {
   .toString('hex');
 };
 
-// The swap payment request as LND looks it up
-const invoiceAs = ({hash, state}) => ({
-  state,
-  amt_paid_msat: '0',
-  amt_paid_sat: '0',
-  cltv_expiry: '40',
-  creation_date: '1',
-  description_hash: Buffer.alloc(0),
-  expiry: '3600',
-  features: {},
-  htlcs: [],
-  memo: '',
-  payment_addr: Buffer.alloc(32),
-  payment_request: 'request',
-  private: false,
-  r_hash: hash,
-  r_preimage: Buffer.alloc(32),
-  settle_date: '0',
-  value: '251000',
-  value_msat: '251000000',
-});
+// A fake LND with the client key and the swap invoice
+const swapLnd = ({failures, is_unpaid}) => {
+  const lnd = makeLnd({
+    failures,
+    keys: [{family: 42060, index: 7, secret: clientSecret}],
+  });
 
-// A fake LND with the swap invoice and a signer committing to digest and nonce
-const makeLnd = ({isUnpaid, lookupErr, sessionKey}) => {
-  const registered = {};
-  const state = {sessions: 0};
+  // A fake LND adds the invoice right away
+  lnd.default.addInvoice({
+    r_preimage: hexAsBuffer(swapSecret),
+    value: '251000',
+  },
+  () => {});
 
-  return {
-    default: {
-      lookupInvoice: ({r_hash}, cbk) => {
-        if (!!lookupErr) {
-          return cbk(lookupErr);
-        }
+  // Exit early when the swap is not paid
+  if (!!is_unpaid) {
+    return lnd;
+  }
 
-        const status = !!isUnpaid ? 'OPEN' : 'SETTLED';
+  payInvoice({id, lnd});
 
-        return cbk(null, invoiceAs({hash: r_hash, state: status}));
-      },
-    },
-    signer: {
-      muSig2Cleanup: ({}, cbk) => cbk(),
-      muSig2CombineSig: ({}, cbk) => cbk([500, 'UnexpectedCombineSigRequest']),
-      muSig2CreateSession: (args, cbk) => {
-        const root = args.taproot_tweak.script_root.toString('hex');
+  return lnd;
+};
 
-        if (root !== address.root_hash) {
-          return cbk([400, 'ExpectedSharedAddressScriptRootTweak']);
-        }
+// A fake LND that gives signing sessions a key that is not the address key
+const otherKeyLnd = () => {
+  const lnd = swapLnd({});
 
-        state.sessions++;
+  const {muSig2CreateSession} = lnd.signer;
 
-        return cbk(null, {
-          combined_key: Buffer.from(sessionKey, 'hex'),
-          local_public_nonces: Buffer.alloc(66, state.sessions),
-          session_id: Buffer.alloc(32, state.sessions),
-          taproot_internal_key: Buffer.from(address.internal_key, 'hex'),
-        });
-      },
-      muSig2RegisterNonces: (args, cbk) => {
-        const [nonce] = args.other_signer_public_nonces;
+  lnd.signer.muSig2CreateSession = (args, cbk) => {
+    return muSig2CreateSession(args, (err, res) => {
+      const internalKey = res.taproot_internal_key;
 
-        registered[args.session_id.toString('hex')] = nonce.toString('hex');
-
-        return cbk(null, {have_all_nonces: true});
-      },
-      muSig2Sign: (args, cbk) => {
-        const nonce = registered[args.session_id.toString('hex')];
-
-        const digest = args.message_digest.toString('hex');
-
-        return cbk(null, {
-          local_partial_signature: sha256(`${digest}${nonce}`).digest(),
-        });
-      },
-    },
-    wallet: {
-      deriveKey: ({}, cbk) => cbk(null, {
-        key_loc: {key_index: 7},
-        raw_key_bytes: Buffer.from(clientKey, 'hex'),
-      }),
-    },
+      return cbk(err, {...res, combined_key: internalKey});
+    });
   };
+
+  return lnd;
 };
 
 const sweep = makeSweep({change: 49000});
 
 const swap = {utxos, id, tokens: 251000};
 
+// A fake swap service that keeps the pushes of sweep signatures
+const makeService = () => {
+  const cosigner = sharedAddressCosigner({
+    client_public_key: clientKey,
+    root_hash: address.root_hash,
+  });
+
+  const pushes = [];
+
+  // Every service starts the same sessions in order, so the nonces match
+  const nonces = utxos.map(utxo => ({
+    nonce: cosigner.nonceFor(outpoint(utxo)),
+    transaction_id: utxo.transaction_id,
+    transaction_vout: utxo.transaction_vout,
+  }));
+
+  return {
+    cosigner,
+    nonces,
+    pushes,
+    pushStaticAddressSweeplessSigs: (args, auth, cbk) => {
+      if (auth !== metadata) {
+        return cbk([400, 'ExpectedAuthenticationMetadataPassedThrough']);
+      }
+
+      pushes.push(args);
+
+      return cbk();
+    },
+  };
+};
+
 // The service nonces for the swap utxos
-const nonces = utxos.map((utxo, vin) => ({
-  nonce: serviceNonce(vin),
-  transaction_id: utxo.transaction_id,
-  transaction_vout: utxo.transaction_vout,
-}));
+const {nonces} = makeService();
 
 // Another swap that is batched in a sweep with the swap
 const other = {
@@ -221,7 +213,14 @@ const noChange = makeSweep({});
 
 // A fake LND where the payment lookup is slow and signing is not expected
 const makeUnpaidLnd = () => {
-  const lnd = makeLnd({isUnpaid: true, sessionKey: outputKey});
+  const lnd = swapLnd({
+    failures: [{
+      details: 'UnexpectedSigningSessionForUnpaidSwap',
+      method: 'muSig2CreateSession',
+      type: 'signer',
+    }],
+    is_unpaid: true,
+  });
 
   const {lookupInvoice} = lnd.default;
 
@@ -230,29 +229,7 @@ const makeUnpaidLnd = () => {
     return setTimeout(() => lookupInvoice(args, cbk), 50);
   };
 
-  lnd.signer.muSig2CreateSession = ({}, cbk) => {
-    return cbk([500, 'UnexpectedSigningSessionForUnpaidSwap']);
-  };
-
   return lnd;
-};
-
-// A fake service that keeps the pushes of sweep signatures
-const makeService = () => {
-  const pushes = [];
-
-  return {
-    pushes,
-    pushStaticAddressSweeplessSigs: (args, auth, cbk) => {
-      if (auth !== metadata) {
-        return cbk([400, 'ExpectedAuthenticationMetadataPassedThrough']);
-      }
-
-      pushes.push(args);
-
-      return cbk();
-    },
-  };
 };
 
 const makeArgs = overrides => {
@@ -263,7 +240,7 @@ const makeArgs = overrides => {
     nonces,
     key_family: 42060,
     key_index: 7,
-    lnd: makeLnd({sessionKey: outputKey}),
+    lnd: swapLnd({}),
     network: 'btc',
     prevouts: sweep.spends,
     psbt: sweep.psbt,
@@ -278,18 +255,12 @@ const makeArgs = overrides => {
 };
 
 // Get the expected push of signatures for a sweep
-const expectedPush = ({psbt, signing, spends}) => {
+const expectedPush = ({psbt, signing}) => {
   const transaction = decodePsbt({psbt}).unsigned_transaction;
 
-  const signingInfo = signing.reduce((sum, utxo, i) => {
-    const vin = spends.findIndex(n => outpoint(n) === outpoint(utxo));
-
-    const {hash} = v1HashToSign({spends, transaction, vin, sighash: 0});
-
-    sum[outpoint(utxo)] = {
-      nonce: Buffer.alloc(66, i + 1),
-      sig: sha256(`${hash}${utxo.nonce}`).digest(),
-    };
+  // Signatures of the signed utxos are valid with the service signatures
+  const signingInfo = signing.reduce((sum, utxo) => {
+    sum[outpoint(utxo)] = true;
 
     return sum;
   },
@@ -305,20 +276,55 @@ const expectedPush = ({psbt, signing, spends}) => {
 };
 
 // The sweep transaction id and the signatures pushed for the sweep
-const settlementFor = ({psbt, signing, spends}) => {
+const settlementFor = ({psbt, signing}) => {
   const transaction = decodePsbt({psbt}).unsigned_transaction;
 
   return {
-    pushes: [expectedPush({psbt, signing, spends})],
+    pushes: [expectedPush({psbt, signing})],
     transaction_id: idForTransaction({transaction}).id,
   };
+};
+
+// Check the client signatures of a push combine into valid signatures
+const checkedPush = ({args, push}) => {
+  const transaction = decodePsbt({psbt: args.psbt}).unsigned_transaction;
+
+  const {inputs} = componentsOfTransaction({transaction});
+
+  const keys = inputs.map(n => `${n.id}:${n.vout}`);
+
+  // Spends are the prevouts in the order of the inputs
+  const spends = keys.map(key => {
+    return args.prevouts.find(n => outpoint(n).toLowerCase() === key);
+  });
+
+  const signingInfo = Object.keys(push.signing_info).reduce((sum, key) => {
+    const info = push.signing_info[key];
+    const vin = keys.indexOf(key);
+
+    const {hash} = v1HashToSign({spends, transaction, vin, sighash: 0});
+
+    sum[key] = args.service.cosigner.isComplete({
+      hash,
+      key,
+      nonce: bufferAsHex(info.nonce),
+      signature: bufferAsHex(info.sig),
+    });
+
+    return sum;
+  },
+  {});
+
+  return {...push, signing_info: signingInfo};
 };
 
 // Cosign a sweep and get the signatures that are pushed to the service
 const settlementOf = async args => {
   const res = await signSwapInCoopSettlement(args);
 
-  return {...res, pushes: args.service.pushes};
+  const pushes = args.service.pushes.map(push => checkedPush({args, push}));
+
+  return {...res, pushes};
 };
 
 const tests = [
@@ -442,12 +448,20 @@ const tests = [
     error: [400, 'ExpectedSwapForCoopSettlement'],
   },
   {
-    args: makeArgs({lnd: makeLnd({lookupErr: 'err', sessionKey: outputKey})}),
+    args: makeArgs({
+      lnd: swapLnd({
+        failures: [{details: 'err', method: 'lookupInvoice', type: 'default'}],
+      }),
+    }),
     description: 'An error looking up the swap payment is passed back',
-    error: [503, 'UnexpectedLookupInvoiceErr', {err: 'err'}],
+    error: [
+      503,
+      'UnexpectedLookupInvoiceErr',
+      {err: makeRpcError({details: 'err'})},
+    ],
   },
   {
-    args: makeArgs({lnd: makeLnd({isUnpaid: true, sessionKey: outputKey})}),
+    args: makeArgs({lnd: swapLnd({is_unpaid: true})}),
     description: 'The swap is expected to be paid before cosigning',
     error: [425, 'ExpectedPaidSwapToSignSettlement'],
   },
@@ -513,7 +527,7 @@ const tests = [
   {
     args: makeArgs({
       nonces: [{
-        nonce: serviceNonce(0),
+        nonce: nonces[0].nonce,
         transaction_id: sha256('04').digest('hex'),
         transaction_vout: 0,
       }],
@@ -604,7 +618,7 @@ const tests = [
     error: [503, 'UnexpectedErrorPushingSettlementSigs', {err: 'err'}],
   },
   {
-    args: makeArgs({lnd: makeLnd({sessionKey: address.internal_key})}),
+    args: makeArgs({lnd: otherKeyLnd()}),
     description: 'A session key that is not the shared address is rejected',
     error: [503, 'UnexpectedSessionKeyForSharedAddress'],
   },

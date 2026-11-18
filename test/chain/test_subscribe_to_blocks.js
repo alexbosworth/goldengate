@@ -1,12 +1,16 @@
 const {deepEqual} = require('node:assert').strict;
-const EventEmitter = require('node:events');
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
+
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
+const {mineBlocks} = require('mock-lnd');
 
 const {subscribeToBlocks} = require('./../../');
 
 const api = 'https://blockstream.info/testnet/api';
 const network = 'btctestnet';
+const {nextTick} = process;
 const okStatus = {statusCode: 200};
 
 // Blocks at the tip of the chain
@@ -15,29 +19,48 @@ const blocks = [1, 2, 3].map(height => ({
   id: Buffer.alloc(32, height).toString('hex'),
 }));
 
-// A fake LND that announces blocks, then fails
-const makeLnd = ({announce}) => ({
-  chain: {
-    registerBlockEpochNtfn: ({}) => {
-      const emitter = new EventEmitter();
+// A fake LND that mines blocks after it announces its tip, then fails
+const announcingLnd = ({count}) => {
+  const lnd = makeLnd({});
 
-      emitter.cancel = () => {};
+  const {registerBlockEpochNtfn} = lnd.chain;
 
-      process.nextTick(() => {
-        // Block hashes are in the reverse byte order of block ids
-        announce.forEach(({height, id}) => {
-          const hash = Buffer.from(id, 'hex').reverse();
+  lnd.chain.registerBlockEpochNtfn = args => {
+    const stream = registerBlockEpochNtfn(args);
 
-          return emitter.emit('data', {hash, height});
-        });
+    // The tip is announced on the next tick, then blocks are mined
+    nextTick(() => nextTick(() => {
+      mineBlocks({count, lnd});
 
-        return emitter.emit('error', 'err');
-      });
+      return stream.emit('error', makeRpcError({details: 'err'}));
+    }));
 
-      return emitter;
-    },
-  },
-});
+    return stream;
+  };
+
+  return lnd;
+};
+
+// The blocks that a fake LND announces: its tip, then the blocks it mines
+const announcedBlocks = ({count}) => {
+  const lnd = makeLnd({});
+  const tip = {};
+
+  // A fake LND responds right away
+  lnd.default.getInfo({}, (err, res) => tip.id = res.block_hash);
+
+  // A fake LND with the same chain mines the same blocks
+  const {blocks} = mineBlocks({count, lnd});
+
+  return [{height: 1, id: tip.id}].concat(blocks);
+};
+
+// The error of a stream that fails in a fake LND
+const lndError = [
+  503,
+  'UnexpectedErrInBlocksSubscription',
+  {err: makeRpcError({details: 'err'})},
+];
 
 // A fake request that serves chain tips, then has no response
 const makeRequest = ({tips}) => {
@@ -95,21 +118,22 @@ const tests = [
     error: new Error('ExpectedNetworkNameToSubscribeToBlocks'),
   },
   {
-    args: {lnd: makeLnd({announce: blocks})},
+    args: {lnd: announcingLnd({count: 2})},
     description: 'Blocks from lnd are emitted',
-    expected: {
-      events: [
-        ...blocks,
-        [503, 'UnexpectedErrInBlocksSubscription', {err: 'err'}],
-      ],
-    },
+    expected: {events: [...announcedBlocks({count: 2}), lndError]},
   },
   {
-    args: {lnd: makeLnd({announce: []})},
-    description: 'Errors in the lnd blocks subscription are emitted',
-    expected: {
-      events: [[503, 'UnexpectedErrInBlocksSubscription', {err: 'err'}]],
+    args: {
+      lnd: makeLnd({
+        failures: [{
+          details: 'err',
+          method: 'registerBlockEpochNtfn',
+          type: 'chain',
+        }],
+      }),
     },
+    description: 'Errors in the lnd blocks subscription are emitted',
+    expected: {events: [lndError]},
   },
   {
     args: {network, delay: 20, request: makeRequest({tips: blocks})},

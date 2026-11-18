@@ -1,24 +1,55 @@
 const {deepEqual} = require('node:assert').strict;
 const {equal} = require('node:assert').strict;
-const EventEmitter = require('node:events');
 const test = require('node:test');
 
 const {idForTransaction} = require('@alexbosworth/blockchain');
-const {transactionFromComponents} = require('@alexbosworth/blockchain');
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
+const {mineBlocks} = require('mock-lnd');
 
 const {findDeposit} = require('./../../chain');
 
-const confirmationsEmitter = new EventEmitter();
+const {nextTick} = process;
 const transaction = '01000000000101a39553582e2d797aa0d31042b9a737758aeac3691f302c11224e36da128a59f20100000000ffffffff02dfed160000000000160014594dcb8eb9c9be306ae8786fc37bd5d3c44e5ea190d003000000000022002086daa389646653a4d447d2c29edeea0699f7c4bf62e2b2ee9fe5bdb6ec21b82b02483045022100ce17fb91481425494dc96e92855de5af916737c23b882410f511195b01ee081e022015a4b06847dda99bbe5512a728f55fe551ef4561fe8cc792056a82e43c88cd8b012103c33feb98c803a306163e0c29a87b18787f11c37f89cdcd0d4122536d6e2044ee00000000';
 
-const emptyTx = transactionFromComponents({
-  inputs: [],
-  locktime: 0,
-  outputs: [],
-  version: 1,
-}).transaction;
+// A fake LND with a chain where the deposit has 3 confirmations
+const depositLnd = () => makeLnd({
+  chain: {blocks: [{transactions: [transaction]}, {}, {}], height: 100},
+});
 
-confirmationsEmitter.cancel = () => {};
+// A fake LND where the stream of confirmations ends right away
+const endingLnd = () => {
+  const lnd = makeLnd({chain: {height: 100}});
+
+  const {registerConfirmationsNtfn} = lnd.chain;
+
+  lnd.chain.registerConfirmationsNtfn = args => {
+    const stream = registerConfirmationsNtfn(args);
+
+    nextTick(() => stream.emit('end'));
+
+    return stream;
+  };
+
+  return lnd;
+};
+
+// A fake LND where the deposit is mined after the deposit is watched for
+const minedLaterLnd = () => {
+  const lnd = makeLnd({chain: {height: 100}});
+
+  const {registerConfirmationsNtfn} = lnd.chain;
+
+  lnd.chain.registerConfirmationsNtfn = args => {
+    const stream = registerConfirmationsNtfn(args);
+
+    nextTick(() => mineBlocks({lnd, count: 3, transactions: [transaction]}));
+
+    return stream;
+  };
+
+  return lnd;
+};
 
 const tests = [
   {
@@ -26,11 +57,7 @@ const tests = [
       address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
       after: 1,
       confirmations: 3,
-      lnd: {
-        chain: {
-          registerConfirmationsNtfn: ({}) => confirmationsEmitter,
-        },
-      },
+      lnd: depositLnd(),
       network: 'btctestnet',
       timeout: 1000,
       tokens: 100,
@@ -46,11 +73,7 @@ const tests = [
       address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
       after: 1,
       confirmations: 3,
-      lnd: {
-        chain: {
-          registerConfirmationsNtfn: ({}) => confirmationsEmitter,
-        },
-      },
+      lnd: depositLnd(),
       network: 'btctestnet',
       timeout: 100000,
       transaction_id: 'f2598a12da364e22112c301f69c3ea8a7537a7b94210d3a07a792d2e585395a3',
@@ -67,11 +90,7 @@ const tests = [
       address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
       after: 1,
       confirmations: 3,
-      lnd: {
-        chain: {
-          registerConfirmationsNtfn: ({}) => confirmationsEmitter,
-        },
-      },
+      lnd: makeLnd({chain: {height: 100}}),
       network: 'btctestnet',
       timeout: 1,
       transaction_id: 'f2598a12da364e22112c301f69c3ea8a7537a7b94210d3a07a792d2e585395a3',
@@ -85,25 +104,7 @@ const tests = [
       address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
       after: 1,
       confirmations: 3,
-      lnd: {
-        chain: {
-          registerConfirmationsNtfn: ({}) => {
-            const emitter = new EventEmitter();
-
-            emitter.cancel = () => {};
-
-            process.nextTick(() => {
-              emitter.emit('status', {});
-
-              emitter.emit('end');
-
-              return;
-            });
-
-            return emitter;
-          },
-        },
-      },
+      lnd: endingLnd(),
       network: 'btctestnet',
       timeout: 1000,
       tokens: 100,
@@ -116,25 +117,52 @@ const tests = [
       address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
       after: 1,
       confirmations: 3,
-      lnd: {
-        chain: {
-          registerConfirmationsNtfn: ({}) => {
-            const emitter = new EventEmitter();
-
-            emitter.cancel = () => {};
-
-            process.nextTick(() => emitter.emit('error', 'err'));
-
-            return emitter;
-          },
-        },
-      },
+      lnd: makeLnd({
+        failures: [{
+          details: 'err',
+          method: 'registerConfirmationsNtfn',
+          type: 'chain',
+        }],
+      }),
       network: 'btctestnet',
       timeout: 1000,
       tokens: 100,
     },
     description: 'Subscription fails before finding deposit',
-    error: [503, 'FailedToFindChainDeposit', {err: 'err'}],
+    error: [
+      503,
+      'FailedToFindChainDeposit',
+      {err: makeRpcError({details: 'err'})},
+    ],
+  },
+  {
+    args: {
+      address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
+      after: 1,
+      confirmations: 3,
+      lnd: minedLaterLnd(),
+      network: 'btctestnet',
+      timeout: 1000,
+      tokens: 100,
+    },
+    description: 'A deposit is found when it confirms after it is watched for',
+    expected: {
+      transaction_id: idForTransaction({transaction}).id,
+      transaction_vout: 1,
+    },
+  },
+  {
+    args: {
+      address: 'tb1qsmd28ztyvef6f4z86tpfahh2q6vl039lvt3t9m5luk7mdmpphq4sf3spnr',
+      after: 1,
+      confirmations: 3,
+      lnd: depositLnd(),
+      network: 'btctestnet',
+      timeout: 50,
+      tokens: 1e6,
+    },
+    description: 'A confirmation of too few tokens is not the deposit',
+    error: [503, 'FailedToFindDepositWithinTimeoutTime'],
   },
   {
     args: {
@@ -212,12 +240,12 @@ const tests = [
     error: [400, 'ExpectedChainAddressOrScriptToFindDepositTo'],
   },
   {
-    args: {address: 'address', lnd: {}},
+    args: {address: 'address', lnd: makeLnd({})},
     description: 'An address is required to find deposit',
     error: [400, 'ExpectedChainHeightToFindDepositAfter'],
   },
   {
-    args: {address: 'address', lnd: {}},
+    args: {address: 'address', lnd: makeLnd({})},
     description: 'An address is required to find deposit',
     error: [400, 'ExpectedChainHeightToFindDepositAfter'],
   },
@@ -227,12 +255,17 @@ const tests = [
     error: [400, 'ExpectedChainLndOrRequestFunctionToFindDeposit'],
   },
   {
-    args: {address: 'address', after: 1, lnd: {}},
+    args: {address: 'address', after: 1, lnd: makeLnd({})},
     description: 'Confirmation depth is required to find deposit',
     error: [400, 'ExpectedConfirmationsToFindDeposit'],
   },
   {
-    args: {address: 'address', after: 1, confirmations: 0, lnd: {}},
+    args: {
+      address: 'address',
+      after: 1,
+      confirmations: 0,
+      lnd: makeLnd({}),
+    },
     description: 'Network is required to find deposit',
     error: [400, 'ExpectedNetworkToFindDeposit'],
   },
@@ -241,7 +274,7 @@ const tests = [
       address: 'address',
       after: 1,
       confirmations: 0,
-      lnd: {},
+      lnd: makeLnd({}),
       network: 'btc',
     },
     description: 'Timeout is required for finding deposit',
@@ -252,7 +285,7 @@ const tests = [
       address: 'address',
       after: 1,
       confirmations: 0,
-      lnd: {},
+      lnd: makeLnd({}),
       network: 'btc',
       timeout: 1,
     },
@@ -264,7 +297,7 @@ const tests = [
       address: 'address',
       after: 1,
       confirmations: 0,
-      lnd: {},
+      lnd: makeLnd({}),
       network: 'btc',
       timeout: 1,
       tokens: 1,
@@ -277,22 +310,6 @@ const tests = [
 
 tests.forEach(({args, description, error, expected}) => {
   return test(description, (t, end) => {
-    setTimeout(() => confirmationsEmitter.emit('data', {
-      conf: {
-        block_hash: Buffer.alloc(32),
-        block_height: 1,
-        raw_tx: Buffer.from(emptyTx, 'hex'),
-      },
-    }), 100);
-
-    setTimeout(() => confirmationsEmitter.emit('data', {
-      conf: {
-        block_hash: Buffer.alloc(32),
-        block_height: 1,
-        raw_tx: Buffer.from(transaction, 'hex'),
-      },
-    }), 200);
-
     return findDeposit(args, (err, res) => {
       if (!!error) {
         deepEqual(err, error, 'Got expected error');

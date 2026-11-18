@@ -1,20 +1,16 @@
 const {deepEqual} = require('node:assert').strict;
-const {isDeepStrictEqual} = require('node:util');
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
 const {pointFromScalar} = require('tiny-secp256k1');
-const {signSchnorr} = require('tiny-secp256k1');
-const {v1HashToSign} = require('p2tr');
 
 const {signSharedUtxosRefund} = require('./../../');
 
 const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
-const clientPrivateKey = Buffer.alloc(32, 1);
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
-const outputScript = '512096b770d763d4c483d3e7fb98381e67a3f1ed4ca4b326327140a890b20bff22a5';
+const clientSecret = Buffer.alloc(32, 1).toString('hex');
 const sweepAddress = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
-const timeoutScript = '201b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fad024038b2';
 
 const utxos = [
   {
@@ -47,92 +43,19 @@ const refundLater = {
   transaction: '020000000001029a4585773ce2ccd7a585c331d60a60d1e3b7d28cbb2ede3bc55445342f12f54b01000000004038000086d9576498ea764b49243efeb05df625010438c6a55d5b578de4ff00c9b4c1db030000000040380000015e92040000000000160014751e76e8199196d454941c45d1b3a323f1433bd603408cb164b7d33cd800ae9358638a726cbc0ed31522ed3f33739d5566eba0a9bc9f7d3bc7c39c0be3104dd0b5c960b917e0df69afb813dfcef0112a073f2433306b26201b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fad024038b221c099a9da2f1aa3e4403438bfea7c2bc1ea9956469297f4f931c2531c24c38d599403408780188a49d91981a903e12bda6fc4fad855f7435781608161b4367297ac837fad46f0af14f981dc298a61eb17324ca8710a6b872ad0c3da9489f2026aaa49b026201b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fad024038b221c099a9da2f1aa3e4403438bfea7c2bc1ea9956469297f4f931c2531c24c38d599400350c00',
 };
 
-// The signer is given every spent output and signs for the timeout path leaf
-const signRequest = {
-  prev_outputs: utxos.map(({tokens}) => ({
-    pk_script: outputScript,
-    value: tokens,
-  })),
-  sign_descs: utxos.map((utxo, vin) => ({
-    input_index: vin,
-    key_loc: {key_family: 42060, key_index: 7},
-    output: {pk_script: outputScript, value: utxo.tokens},
-    sighash: 0,
-    sign_method: 3,
-    tap_tweak: '',
-    witness_script: timeoutScript,
-  })),
-};
-
-// Get the parts of a sign request that say what is signed
-const signRequestFor = args => ({
-  prev_outputs: args.prev_outputs.map(output => ({
-    pk_script: bufferAsHex(output.pk_script),
-    value: output.value,
-  })),
-  sign_descs: args.sign_descs.map(desc => ({
-    input_index: desc.input_index,
-    key_loc: desc.key_desc.key_loc,
-    output: {
-      pk_script: bufferAsHex(desc.output.pk_script),
-      value: desc.output.value,
-    },
-    sighash: desc.sighash,
-    sign_method: desc.sign_method,
-    tap_tweak: bufferAsHex(desc.tap_tweak),
-    witness_script: bufferAsHex(desc.witness_script),
-  })),
+// A fake LND with the client key of the shared address
+const clientLnd = args => makeLnd({
+  failures: args.failures,
+  keys: [{family: 42060, index: 7, secret: clientSecret}],
 });
 
-// Sign for the timeout path with the client key like the LND signer does
-const signTimeoutPath = ({args, desc}) => {
-  const spends = args.prev_outputs.map(output => ({
-    script: bufferAsHex(output.pk_script),
-    tokens: output.value,
-  }));
+// A fake LND that gives signatures that LND would not give
+const signingLnd = ({signatures}) => {
+  const lnd = clientLnd({});
 
-  const {hash} = v1HashToSign({
-    spends,
-    leaf: {script: bufferAsHex(desc.witness_script)},
-    sighash: desc.sighash,
-    transaction: bufferAsHex(args.raw_tx_bytes),
-    vin: desc.input_index,
-  });
+  lnd.signer.signOutputRaw = ({}, cbk) => cbk(null, {raw_sigs: signatures});
 
-  return Buffer.from(signSchnorr(hexAsBuffer(hash), clientPrivateKey));
-};
-
-// A fake LND signer that signs for the timeout path with the client key
-const makeLnd = ({err, expected, signatures}) => {
-  const clientKey = bufferAsHex(pointFromScalar(clientPrivateKey, true));
-
-  return {
-    signer: {
-      signOutputRaw: (args, cbk) => {
-        if (!!expected && !isDeepStrictEqual(signRequestFor(args), expected)) {
-          return cbk([400, 'UnexpectedSignRequest']);
-        }
-
-        if (!!err) {
-          return cbk(err);
-        }
-
-        if (!!signatures) {
-          return cbk(null, {raw_sigs: signatures});
-        }
-
-        return cbk(null, {
-          raw_sigs: args.sign_descs.map(desc => signTimeoutPath({args, desc})),
-        });
-      },
-    },
-    wallet: {
-      deriveKey: ({}, cbk) => cbk(null, {
-        key_loc: {key_index: 7},
-        raw_key_bytes: hexAsBuffer(clientKey),
-      }),
-    },
-  };
+  return lnd;
 };
 
 const makeArgs = overrides => {
@@ -144,7 +67,7 @@ const makeArgs = overrides => {
     fee_tokens_per_vbyte: 2,
     key_family: 42060,
     key_index: 7,
-    lnd: makeLnd({}),
+    lnd: clientLnd({}),
     network: 'btc',
     service_public_key: serviceKey,
     sweep_address: sweepAddress,
@@ -269,32 +192,40 @@ const tests = [
     error: [400, 'ExpectedMoreTokensForSharedUtxosRefund', {fee: 299729}],
   },
   {
-    args: makeArgs({lnd: makeLnd({err: 'err'})}),
+    args: makeArgs({
+      lnd: clientLnd({
+        failures: [{details: 'err', method: 'signOutputRaw', type: 'signer'}],
+      }),
+    }),
     description: 'An error signing is passed back',
-    error: [503, 'UnexpectedErrorWhenSigning', {err: 'err'}],
+    error: [
+      503,
+      'UnexpectedErrorWhenSigning',
+      {err: makeRpcError({details: 'err'})},
+    ],
   },
   {
-    args: makeArgs({lnd: makeLnd({signatures: [Buffer.alloc(64, 1)]})}),
+    args: makeArgs({lnd: signingLnd({signatures: [Buffer.alloc(64, 1)]})}),
     description: 'A signature is expected for every utxo',
     error: [503, 'ExpectedSignatureForEveryUtxoToRefund'],
   },
   {
     args: makeArgs({
-      lnd: makeLnd({signatures: utxos.map(() => Buffer.alloc(64, 1))}),
+      lnd: signingLnd({signatures: utxos.map(() => Buffer.alloc(64, 1))}),
     }),
     description: 'Signatures are expected to spend the timeout path',
     error: [503, 'ExpectedValidSignatureForSharedUtxoRefund'],
   },
   {
     args: makeArgs({
-      lnd: makeLnd({signatures: utxos.map(() => Buffer.alloc(65, 1))}),
+      lnd: signingLnd({signatures: utxos.map(() => Buffer.alloc(65, 1))}),
     }),
     description: 'Signatures are expected to be default sighash signatures',
     error: [503, 'ExpectedValidSignatureForSharedUtxoRefund'],
   },
   {
     args: makeArgs({
-      lnd: makeLnd({signatures: utxos.map(() => Buffer.alloc(64, 255))}),
+      lnd: signingLnd({signatures: utxos.map(() => Buffer.alloc(64, 255))}),
     }),
     description: 'Signatures are expected to be well formed',
     error: [503, 'ExpectedValidSignatureForSharedUtxoRefund'],
@@ -315,7 +246,7 @@ const tests = [
     error: [400, 'ExpectedTimelockHeightForSharedUtxosRefund'],
   },
   {
-    args: makeArgs({lnd: makeLnd({expected: signRequest})}),
+    args: makeArgs({}),
     description: 'Refund expired shared address utxos',
     expected: refund,
   },

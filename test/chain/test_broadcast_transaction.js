@@ -3,6 +3,7 @@ const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
 const {idForTransaction} = require('@alexbosworth/blockchain');
+const {makeLnd} = require('mock-lnd');
 const {transactionFromComponents} = require('@alexbosworth/blockchain');
 
 const {broadcastTransaction} = require('./../../');
@@ -34,7 +35,7 @@ const tests = [
   },
   {
     args: {
-      lnd: {wallet: {publishTransaction: ({}, cbk) => cbk(null, {})}},
+      lnd: makeLnd({}),
       transaction: emptyTx,
     },
     description: 'Transaction published to blockchain',

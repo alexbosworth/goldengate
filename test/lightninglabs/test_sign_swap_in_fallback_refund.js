@@ -1,23 +1,17 @@
 const {deepEqual} = require('node:assert').strict;
-const {isDeepStrictEqual} = require('node:util');
 const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 
+const {makeLnd} = require('mock-lnd');
+const {makeRpcError} = require('mock-lnd');
 const {pointFromScalar} = require('tiny-secp256k1');
-const {sign} = require('tiny-secp256k1');
-const {v0HashToSign} = require('@alexbosworth/blockchain');
 
-const encodeSignature = require('./../../transactions/encode_signature');
 const {signSwapInFallbackRefund} = require('./../../');
 
 const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
-const clientPrivateKey = Buffer.alloc(32, 1);
-const hexAsBuffer = hex => Buffer.from(hex, 'hex');
-const outputScript = '00202b008a4ee620abb5435e34070a30dd07bf09d9d9367ef3eeb0716e37cd32714e';
-const sighashAll = 1;
+const clientSecret = Buffer.alloc(32, 1).toString('hex');
 const swapHash = Buffer.alloc(32, 3).toString('hex');
 const sweepAddress = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4';
-const witnessScript = '21024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766ac6476a91479b000887626b294a914501a4cd226b58b23598388ad0300350cb16782012088a9147dd7f871ad14950c1933f65611df24e9ae02433f8851b268';
 
 const utxos = [
   {
@@ -55,75 +49,19 @@ const refundLater = {
   transaction: '020000000001019a4585773ce2ccd7a585c331d60a60d1e3b7d28cbb2ede3bc55445342f12f54b0000000000000000000182cf030000000000160014751e76e8199196d454941c45d1b3a323f1433bd604483045022100cf87ec61819235aa08faa96d796f0de1b0fffc4ecffc3e94f894903eb2e0a6b4022031093d5e4a6257ed68713fdea3eb53e494b7eb0d286acabe13bf00c3465ac7230121031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f006121024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766ac6476a91479b000887626b294a914501a4cd226b58b23598388ad0300350cb16782012088a9147dd7f871ad14950c1933f65611df24e9ae02433f8851b26890350c00',
 };
 
-// The signer is asked to sign the utxo for the HTLC refund path
-const signRequest = [{
-  input_index: 0,
-  key_loc: {key_family: 42060, key_index: 9},
-  output: {pk_script: outputScript, value: utxos[0].tokens},
-  sighash: sighashAll,
-  witness_script: witnessScript,
-}];
+// A fake LND with the client key of the swap
+const clientLnd = args => makeLnd({
+  failures: args.failures,
+  keys: [{family: 42060, index: 9, secret: clientSecret}],
+});
 
-// Get the parts of a sign request that say what is signed
-const signRequestFor = args => args.sign_descs.map(desc => ({
-  input_index: desc.input_index,
-  key_loc: desc.key_desc.key_loc,
-  output: {
-    pk_script: bufferAsHex(desc.output.pk_script),
-    value: desc.output.value,
-  },
-  sighash: desc.sighash,
-  witness_script: bufferAsHex(desc.witness_script),
-}));
+// A fake LND that gives signatures that LND would not give
+const signingLnd = ({signatures}) => {
+  const lnd = clientLnd({});
 
-// Sign the refund path like the LND signer does, without the sighash flag
-const signRefundPath = ({args, desc}) => {
-  const {hash} = v0HashToSign({
-    script: bufferAsHex(desc.witness_script),
-    sighash: desc.sighash,
-    tokens: desc.output.value,
-    transaction: bufferAsHex(args.raw_tx_bytes),
-    vin: desc.input_index,
-  });
+  lnd.signer.signOutputRaw = ({}, cbk) => cbk(null, {raw_sigs: signatures});
 
-  const signature = Buffer.from(sign(hexAsBuffer(hash), clientPrivateKey));
-
-  const {encoded} = encodeSignature({signature, flag: sighashAll});
-
-  return encoded.subarray(0, -1);
-};
-
-// A fake LND signer that signs for the refund path with the client key
-const makeLnd = ({err, expected, signatures}) => {
-  const clientKey = bufferAsHex(pointFromScalar(clientPrivateKey, true));
-
-  return {
-    signer: {
-      signOutputRaw: (args, cbk) => {
-        if (!!expected && !isDeepStrictEqual(signRequestFor(args), expected)) {
-          return cbk([400, 'UnexpectedSignRequest']);
-        }
-
-        if (!!err) {
-          return cbk(err);
-        }
-
-        if (!!signatures) {
-          return cbk(null, {raw_sigs: signatures});
-        }
-
-        return cbk(null, {
-          raw_sigs: args.sign_descs.map(desc => signRefundPath({args, desc})),
-        });
-      },
-    },
-    wallet: {
-      deriveKey: ({}, cbk) => cbk(null, {
-        key_loc: {key_index: 9},
-        raw_key_bytes: hexAsBuffer(clientKey),
-      }),
-    },
-  };
+  return lnd;
 };
 
 const makeArgs = overrides => {
@@ -134,7 +72,7 @@ const makeArgs = overrides => {
     hash: swapHash,
     key_family: 42060,
     key_index: 9,
-    lnd: makeLnd({}),
+    lnd: clientLnd({}),
     network: 'btc',
     service_public_key: serviceKey,
     sweep_address: sweepAddress,
@@ -282,19 +220,29 @@ const tests = [
     error: [400, 'ExpectedMoreTokensToRefundSwapInFallback', {fee: 249480}],
   },
   {
-    args: makeArgs({lnd: makeLnd({err: 'err'})}),
+    args: makeArgs({
+      lnd: clientLnd({
+        failures: [{details: 'err', method: 'signOutputRaw', type: 'signer'}],
+      }),
+    }),
     description: 'An error signing is passed back',
-    error: [503, 'UnexpectedErrorWhenSigning', {err: 'err'}],
+    error: [
+      503,
+      'UnexpectedErrorWhenSigning',
+      {err: makeRpcError({details: 'err'})},
+    ],
   },
   {
     args: makeArgs({
-      lnd: makeLnd({signatures: [Buffer.alloc(71, 1), Buffer.alloc(71, 1)]}),
+      lnd: signingLnd({
+        signatures: [Buffer.alloc(71, 1), Buffer.alloc(71, 1)],
+      }),
     }),
     description: 'A signature is expected for every utxo',
     error: [503, 'ExpectedSignatureForEveryFallbackUtxoToRefund'],
   },
   {
-    args: makeArgs({lnd: makeLnd({expected: signRequest})}),
+    args: makeArgs({}),
     description: 'Refund a timed out swap in fallback HTLC',
     expected: refund,
   },
