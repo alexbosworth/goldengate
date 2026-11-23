@@ -13,7 +13,7 @@ const tests = [
       request: ({}, cbk) => {
         return cbk(null, {statusCode: 200}, [{
           txid: Buffer.alloc(32).toString('hex'),
-          vin: [{
+          vin: [{}, {
             witness: [
               '30440220043c495d3cecfbfecc0d2b32991ced11a246b9992d4ec3fd336dd9eb5a5f0b4f02205420ea17b23d27807d07acb33741368c91bb133a8210a013ae096fb7c867477701',
               '4c7ecf5627ed7243bb9d425b1b687b4c08e5e391f5b58d6b4c384f5c612ad5a3',

@@ -4,11 +4,14 @@ const {rejects} = require('node:assert').strict;
 const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
-const {createLegacySwapOut} = require('./../../');
+const {createSwapOut} = require('./../../');
 const {genericSwapService} = require('./../../');
 const {getSwapOutTerms} = require('./../../');
 
+const fundAt = new Date(1e12).toISOString();
+const hash = Buffer.alloc(32).toString('hex');
 const metadata = {get: () => [String()]};
+const publicKey = Buffer.alloc(33, 2).toString('hex');
 
 const fetch = () => new Promise((resolve, reject) => {
   return resolve({
@@ -66,17 +69,23 @@ tests.forEach(({args, description, error, expected}) => {
         socket: args.socket
       });
 
-      await rejects(createLegacySwapOut({
+      await rejects(createSwapOut({
+        hash,
         metadata,
+        fund_at: fundAt,
         network: 'btctestnet',
+        public_key: publicKey,
         service: failResponse.service,
         timeout: 150,
         tokens: 100,
       }));
 
-      await rejects(createLegacySwapOut({
+      await rejects(createSwapOut({
+        hash,
         metadata,
+        fund_at: fundAt,
         network: 'btctestnet',
+        public_key: publicKey,
         service: fail.service,
         timeout: 150,
         tokens: 100,
@@ -94,14 +103,9 @@ tests.forEach(({args, description, error, expected}) => {
       deepEqual(quote, expected, 'got expected response');
 
       // Streaming methods are unsupported and return inert emitters
-      const streams = [
-        service.subscribeLoopInUpdates({}, metadata),
-        service.subscribeLoopOutUpdates({}, metadata),
-      ];
+      const stream = service.subscribeLoopOutUpdates({}, metadata);
 
-      streams.forEach(stream => {
-        return equal(typeof stream.on, 'function', 'Got emitter');
-      });
+      equal(typeof stream.on, 'function', 'Got emitter');
     }
 
     return;

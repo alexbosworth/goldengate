@@ -105,6 +105,11 @@ module.exports = args => {
     throw new Error('FailedToAddSweepAddressOutputCalculatingTaprootOutputs');
   }
 
+  // The smallest sweep output cannot be more than the tokens to sweep
+  if (args.tokens <= dust + dust) {
+    throw new Error('ExpectedMoreTokensToCalculateTaprootClaimOutputs');
+  }
+
   // Estimate final weight with the single output
   const singleOutput = predictSweepWeight({
     control: args.control,

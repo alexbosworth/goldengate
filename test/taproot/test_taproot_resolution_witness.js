@@ -10,6 +10,7 @@ const fixtures = require('./fixtures');
 const method = require('./../../taproot/taproot_resolution_witness');
 
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
+const zeroSignature = '00'.repeat(64);
 
 const tx = transactionFromComponents({
   inputs: [{id: fixtures.transaction_id, script: '', sequence: 1, vout: 0}],
@@ -96,7 +97,7 @@ const tests = [
       signature_index: 0,
       signing_key: '25fa57056fd79b6e489fcdb4df720ca5a00b6c87499159b8963086edd0536e1a',
       witness: [
-        '54848d457e06ddef302fb25ca3e6999fc4e5e57e13189c70312290a9e174a8556c4fde58e60f831278ca71e8374c49e15076ca4c541c922fcbde2899eaf2fe8d',
+        zeroSignature,
       ],
     },
   },
@@ -210,12 +211,20 @@ tests.forEach(({args, description, error, expected}) => {
 
     const {witness} = method(args);
 
-    deepEqual(witness, expected.witness, 'Got expected witness stack');
+    const signature = witness[expected.signature_index];
+    const stack = [...witness];
+
+    // Key path signatures use auxiliary randomness so only validity is checked
+    if (expected.witness.includes(zeroSignature)) {
+      stack[expected.signature_index] = zeroSignature;
+    }
+
+    deepEqual(stack, expected.witness, 'Got expected witness stack');
 
     const isValid = verifySchnorr(
       hexAsBuffer(expected.sighash),
       hexAsBuffer(expected.signing_key),
-      hexAsBuffer(witness[expected.signature_index])
+      hexAsBuffer(signature)
     );
 
     equal(isValid, true, 'Signature is valid for the hash to sign');

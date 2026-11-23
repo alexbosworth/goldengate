@@ -33,6 +33,15 @@ const tests = [
   },
   {
     args: {
+      confirmation_target: 7,
+      network: 'btctestnet',
+      request: ({}, cbk) => cbk(null, {statusCode: 200}, {'6': 'rate'}),
+    },
+    description: 'A valid fee rate is expected from Blockstream',
+    error: [503, 'ExpectedValidChainFeeRateEstimate'],
+  },
+  {
+    args: {
       confirmation_target: 6,
       lnd: makeLnd({chain: {fee_tokens_per_vbyte: 5}}),
     },

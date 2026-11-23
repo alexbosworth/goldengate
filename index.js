@@ -1,6 +1,4 @@
 const {addressForScript} = require('./script');
-const {attemptRefund} = require('./transactions');
-const {attemptSweep} = require('./transactions');
 const {attemptTaprootClaim} = require('./taproot');
 const {broadcastTransaction} = require('./chain');
 const {cancelSwapIn} = require('./lightninglabs');
@@ -8,14 +6,10 @@ const {cancelSwapOut} = require('./lightninglabs');
 const {checkSwapTiming} = require('./chain');
 const {claimTransaction} = require('./transactions');
 const {confirmationFee} = require('./transactions');
-const {createLegacySwapIn} = require('./lightninglabs');
-const {createLegacySwapOut} = require('./lightninglabs');
 const {createSharedAddress} = require('./lightninglabs');
 const {createSwapIn} = require('./lightninglabs');
 const {createSwapOut} = require('./lightninglabs');
-const {decodeSwapRecovery} = require('./lightninglabs');
 const {deferSwapInCoopSettlement} = require('./lightninglabs');
-const {encodeSwapRecovery} = require('./lightninglabs');
 const {findDeposit} = require('./chain');
 const {findSecret} = require('./blockstream');
 const {genericSwapAuth} = require('./service');
@@ -31,8 +25,6 @@ const {getSwapInTerms} = require('./lightninglabs');
 const {getSwapMacaroon} = require('./lightninglabs');
 const {getSwapOutQuote} = require('./lightninglabs');
 const {getSwapOutTerms} = require('./lightninglabs');
-const {isSweep} = require('./transactions');
-const {legacySwapInFee} = require('./lightninglabs');
 const {lightningLabsSwapAuth} = require('./lightninglabs');
 const {lightningLabsSwapService} = require('./lightninglabs');
 const {p2wshOutputScript} = require('./script');
@@ -46,12 +38,10 @@ const {signSwapInFallbackRefund} = require('./lightninglabs');
 const {signSwapInServiceFallback} = require('./lightninglabs');
 const {spendSharedUtxos} = require('./lightninglabs');
 const {subscribeToBlocks} = require('./chain');
-const {subscribeToLegacySwapInStatus} = require('./lightninglabs');
 const {subscribeToSpend} = require('./chain');
 const {subscribeToSwapInStatus} = require('./lightninglabs');
 const {subscribeToSwapOutStatus} = require('./lightninglabs');
 const {swapInServiceFallbackTx} = require('./taproot');
-const {swapScript} = require('./script');
 const {swapScriptBranches} = require('./script');
 const {swapScriptV2} = require('./script');
 const {swapUserId} = require('./lightninglabs');
@@ -61,8 +51,6 @@ const {taprootRefundTransaction} = require('./taproot');
 
 module.exports = {
   addressForScript,
-  attemptRefund,
-  attemptSweep,
   attemptTaprootClaim,
   broadcastTransaction,
   cancelSwapIn,
@@ -70,14 +58,10 @@ module.exports = {
   checkSwapTiming,
   claimTransaction,
   confirmationFee,
-  createLegacySwapIn,
-  createLegacySwapOut,
   createSharedAddress,
   createSwapIn,
   createSwapOut,
-  decodeSwapRecovery,
   deferSwapInCoopSettlement,
-  encodeSwapRecovery,
   findDeposit,
   findSecret,
   genericSwapAuth,
@@ -93,8 +77,6 @@ module.exports = {
   getSwapMacaroon,
   getSwapOutQuote,
   getSwapOutTerms,
-  isSweep,
-  legacySwapInFee,
   lightningLabsSwapAuth,
   lightningLabsSwapService,
   p2wshOutputScript,
@@ -108,12 +90,10 @@ module.exports = {
   signSwapInServiceFallback,
   spendSharedUtxos,
   subscribeToBlocks,
-  subscribeToLegacySwapInStatus,
   subscribeToSpend,
   subscribeToSwapInStatus,
   subscribeToSwapOutStatus,
   swapInServiceFallbackTx,
-  swapScript,
   swapScriptBranches,
   swapScriptV2,
   swapUserId,

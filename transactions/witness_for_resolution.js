@@ -4,7 +4,7 @@ const {sign} = require('tiny-secp256k1');
 const {v0HashToSign} = require('@alexbosworth/blockchain');
 
 const encodeSignature = require('./encode_signature');
-const {versionOfSwapScript} = require('./../script');
+const {isSwapScriptV2} = require('./../script');
 
 const bufferAsHex = buffer => Buffer.from(buffer).toString('hex');
 const hexAsBuffer = hex => Buffer.from(hex, 'hex');
@@ -61,13 +61,12 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForResolutionTransactionWitness');
   }
 
-  if (!versionOfSwapScript({script: args.witness_script}).version) {
+  if (!isSwapScriptV2({script: args.witness_script})) {
     throw new Error('ExpectedKnownSwapScriptTypeToDeriveResolutionWitness');
   }
 
   const signingKey = hexAsBuffer(args.private_key);
   const tx = componentsOfTransaction({transaction: args.transaction});
-  const {version} = versionOfSwapScript({script: args.witness_script});
 
   const publicKey = bufferAsHex(pointFromScalar(signingKey, isCompressed));
 
@@ -90,17 +89,11 @@ module.exports = args => {
 
   const sig = bufferAsHex(encoded);
 
-  switch (version) {
-  case 1:
-    return {witness: [sig, args.unlock, args.witness_script]};
-
-  default:
-    switch (args.unlock.length) {
-    case preimageHexLength:
-      return {witness: [args.unlock, sig, args.witness_script]};
-
-    default:
-      return {witness: [sig, publicKey, args.unlock, args.witness_script]};
-    }
+  // Exit early when the preimage unlocks the claim path
+  if (args.unlock.length === preimageHexLength) {
+    return {witness: [args.unlock, sig, args.witness_script]};
   }
+
+  // The refund path takes the refund key and an element that is not a preimage
+  return {witness: [sig, publicKey, args.unlock, args.witness_script]};
 };

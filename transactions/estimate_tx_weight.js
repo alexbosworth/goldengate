@@ -1,4 +1,4 @@
-const {versionOfSwapScript} = require('./../script');
+const {isSwapScriptV2} = require('./../script');
 
 const bufferFromHex = hex => Buffer.from(hex, 'hex');
 const maxSignatureLength = 72;
@@ -37,11 +37,14 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForTxWeightEstimation');
   }
 
-  const unlock = bufferFromHex(args.unlock);
-  const {version} = versionOfSwapScript({script: args.witness_script});
+  if (!isSwapScriptV2({script: args.witness_script})) {
+    throw new Error('ExpectedKnownWitnessScriptForTxWeightEstimation');
+  }
 
-  switch (version) {
-  case 1:
+  const unlock = bufferFromHex(args.unlock);
+
+  // Exit early when the preimage unlocks the claim path
+  if (unlock.length === preimageLength) {
     return {
       weight: sumOf([
         args.weight,
@@ -53,38 +56,19 @@ module.exports = args => {
         bufferFromHex(args.witness_script).length,
       ]),
     };
-
-  case 2:
-    switch (unlock.length) {
-    case preimageLength:
-      return {
-        weight: sumOf([
-          args.weight,
-          shortPushdataLength,
-          maxSignatureLength,
-          shortPushdataLength,
-          unlock.length,
-          sequenceLength,
-          bufferFromHex(args.witness_script).length,
-        ]),
-      };
-
-    default:
-      return {
-        weight: sumOf([
-          args.weight,
-          shortPushdataLength,
-          maxSignatureLength,
-          shortPushdataLength,
-          publicKeyLength,
-          shortPushdataLength,
-          sequenceLength,
-          bufferFromHex(args.witness_script).length,
-        ]),
-      };
-    }
-
-  default:
-    throw new Error('ExpectedKnownWitnessScriptForTxWeightEstimation');
   }
+
+  // The refund path has a signature, the refund key and an empty element
+  return {
+    weight: sumOf([
+      args.weight,
+      shortPushdataLength,
+      maxSignatureLength,
+      shortPushdataLength,
+      publicKeyLength,
+      shortPushdataLength,
+      sequenceLength,
+      bufferFromHex(args.witness_script).length,
+    ]),
+  };
 };

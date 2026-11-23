@@ -13,7 +13,6 @@ const {getInvoice} = require('ln-service');
 const {getPublicKey} = require('ln-service');
 const {getWalletInfo} = require('ln-service');
 const {hashForTree} = require('p2tr');
-const {outputScriptForAddress} = require('@alexbosworth/blockchain');
 const {parsePaymentRequest} = require('ln-service');
 const {sendToChainOutputScripts} = require('ln-service');
 const {settleHodlInvoice} = require('ln-service');
@@ -22,15 +21,10 @@ const {updateGroupSigningSession} = require('ln-service');
 const {v1HashToSign} = require('p2tr');
 const {v1OutputScript} = require('p2tr');
 
-const {addressForScript} = require('./../../script');
 const {broadcastTransaction} = require('./../../chain');
 const {encodeTransaction} = require('./../../transactions');
 const grpcSwapServer = require('./grpc_swap_server');
-const {makePrivateKey} = require('./../../script');
-const {refundTransaction} = require('./../../transactions');
-const swapKey = require('./../../script/get_public_key');
 const {swapScriptBranches} = require('./../../script');
-const {swapScriptV2} = require('./../../script');
 const {taprootRefundTransaction} = require('./../../taproot');
 const xOnlyPublicKey = require('./../../taproot/x_only_public_key');
 
@@ -57,7 +51,6 @@ const prepayCanceled = 'SERVER_CLIENT_PREPAY_CANCEL';
 const prepayRoute = 'PREPAY_ROUTE';
 const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 const sighashDefault = 0;
-const taprootVersion = 'MUSIG2';
 
 const paymentOf = request => parsePaymentRequest({request}).payment;
 
@@ -151,31 +144,6 @@ module.exports = async args => {
     return update({id, state: 'SERVER_SUCCESS'});
   };
 
-  // A P2WSH HTLC has a refund key that the service keeps itself
-  const legacyHtlc = async ({request}) => {
-    const privateKey = makePrivateKey({}).private_key;
-
-    const key = swapKey({private_key: privateKey});
-
-    const {script} = swapScriptV2({
-      claim_public_key: bufferAsHex(request.receiver_key),
-      hash: bufferAsHex(request.swap_hash),
-      refund_public_key: key.public_key,
-      timeout: request.expiry,
-    });
-
-    const {address} = addressForScript({script, network: args.network});
-
-    const output = outputScriptForAddress({address, network: args.network});
-
-    return {
-      script,
-      output_script: output.script,
-      private_key: privateKey,
-      public_key: key.public_key,
-    };
-  };
-
   // A Taproot HTLC has a MuSig2 internal key of the client and service keys
   const taprootHtlc = async ({request}) => {
     const key = await getPublicKey({family: args.key_family, lnd: args.lnd});
@@ -217,21 +185,6 @@ module.exports = async args => {
       public_key: key.public_key,
       root_hash: rootHash,
     };
-  };
-
-  // A P2WSH HTLC is refunded with the private key that the service keeps
-  const legacyRefund = async ({address, swap}) => {
-    return refundTransaction({
-      block_height: swap.timeout,
-      fee_tokens_per_vbyte: feeRate,
-      network: args.network,
-      private_key: swap.htlc.private_key,
-      sweep_address: address,
-      tokens: swap.published.tokens,
-      transaction_id: swap.published.transaction_id,
-      transaction_vout: swap.published.transaction_vout,
-      witness_script: swap.htlc.script,
-    });
   };
 
   // A Taproot HTLC is refunded on its refund leaf with the LND of the service
@@ -362,7 +315,7 @@ module.exports = async args => {
         throw new Error('ExpectedPaymentAddressOfSwapToCoSign');
       }
 
-      if (!swap.is_taproot || !swap.published) {
+      if (!swap.published) {
         throw new Error('ExpectedPublishedTaprootSwapToCoSign');
       }
 
@@ -422,13 +375,10 @@ module.exports = async args => {
       requests.newLoopOutSwap.push(request);
 
       const id = bufferAsHex(request.swap_hash);
-      const isTaproot = request.protocol_version === taprootVersion;
       const prepaySecret = randomBytes(32);
       const tokens = Number(request.amt);
 
-      const makeHtlc = isTaproot ? taprootHtlc : legacyHtlc;
-
-      const htlc = await makeHtlc({request});
+      const htlc = await taprootHtlc({request});
 
       // The client pays the swap tokens and the fee, less the prepay
       const fund = await createHodlInvoice({
@@ -452,7 +402,6 @@ module.exports = async args => {
         prepay,
         tokens,
         claim_public_key: bufferAsHex(request.receiver_key),
-        is_taproot: isTaproot,
         prepay_secret: bufferAsHex(prepaySecret),
         states: [],
         subscribers: [],
@@ -550,9 +499,7 @@ module.exports = async args => {
     refund: async ({address, id}) => {
       const swap = swaps[id];
 
-      const refundHtlc = swap.is_taproot ? taprootRefund : legacyRefund;
-
-      const {transaction} = await refundHtlc({address, swap});
+      const {transaction} = await taprootRefund({address, swap});
 
       await broadcastTransaction({transaction, lnd: args.lnd});
 

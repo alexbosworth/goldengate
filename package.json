@@ -12,7 +12,7 @@
     "url": "https://github.com/alexbosworth/goldengate/issues"
   },
   "dependencies": {
-    "@alexbosworth/blockchain": "4.12.0",
+    "@alexbosworth/blockchain": "5.0.0",
     "@grpc/grpc-js": "1.14.7",
     "@grpc/proto-loader": "0.8.1",
     "async": "3.2.6",
@@ -21,16 +21,16 @@
     "bip65": "1.0.3",
     "bip68": "1.0.4",
     "bitcoin-ops": "1.4.1",
-    "ln-service": "61.0.0",
+    "ln-service": "61.1.0",
     "macaroon": "3.0.4",
-    "p2tr": "3.0.0",
-    "psbt": "7.0.1",
+    "p2tr": "4.0.0",
+    "psbt": "8.0.0",
     "tiny-secp256k1": "2.2.5"
   },
   "description": "Tools for working with hash timelock contract swaps",
   "devDependencies": {
-    "ln-docker-daemons": "9.0.0",
-    "mock-lnd": "5.1.0"
+    "ln-docker-daemons": "9.1.0",
+    "mock-lnd": "5.1.1"
   },
   "engines": {
     "node": ">=22"
@@ -60,5 +60,5 @@
     "integration-tests": "node test/integration",
     "test": "node --experimental-test-coverage --test test/blockstream/*.js test/chain/*.js test/funding/*.js test/grpc/*.js test/lightninglabs/*.js test/script/*.js test/service/*.js test/taproot/*.js test/transactions/*.js"
   },
-  "version": "17.1.1"
+  "version": "18.0.0"
 }

@@ -31,6 +31,7 @@ const bufferAsHex = buffer => buffer.toString('hex');
 const capacity = 5e6;
 const feeRate = 2;
 const {floor} = Math;
+const fundDelayMs = 1000 * 60;
 const interval = 50;
 const maturity = 100;
 const maxFeeMultiplier = 1000;
@@ -106,7 +107,9 @@ test(`Swap out with the regtest swap service`, async () => {
       const timeout = height.current_block_height + delta;
       const tokens = terms.min_tokens;
 
-      // The service funds the HTLC right away when funding is due now
+      // The service needs the swap payments before the publication deadline
+      const fundAt = new Date(Date.now() + fundDelayMs).toISOString();
+
       const swap = await createSwapOut({
         hash,
         metadata,
@@ -114,7 +117,7 @@ test(`Swap out with the regtest swap service`, async () => {
         service,
         timeout,
         tokens,
-        fund_at: new Date().toISOString(),
+        fund_at: fundAt,
         public_key: claimPublicKey,
       });
 

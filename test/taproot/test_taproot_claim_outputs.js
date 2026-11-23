@@ -152,6 +152,11 @@ const tests = [
     error: 'FailedToAddSweepAddressOutputCalculatingTaprootOutputs',
   },
   {
+    args: makeArgs({tokens: 1092}),
+    description: 'Tokens above the smallest sweep output are expected',
+    error: 'ExpectedMoreTokensToCalculateTaprootClaimOutputs',
+  },
+  {
     args: makeArgs({network: 'btc'}),
     description: 'A sweep address for the network is expected',
     error: 'FailedToAddSweepAddressOutputCalculatingTaprootOutputs',

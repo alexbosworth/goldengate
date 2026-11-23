@@ -225,6 +225,22 @@ const tests = [
     expected: {fee_rate: 1, internal_key: internalKey},
   },
   {
+    args: makeArgs({
+      lnd: makeLnd({chain: {fee_tokens_per_vbyte: 1e6}}),
+      min_fee_rate: undefined,
+    }),
+    description: 'A chain fee rate past a sane rate is limited',
+    expected: {fee_rate: 10000, internal_key: internalKey},
+  },
+  {
+    args: makeArgs({
+      min_fee_rate: undefined,
+      request: ({}, cbk) => cbk(null, {statusCode: 200}, {'6': 'rate'}),
+    }),
+    description: 'A claim uses the default fee rate for an invalid estimate',
+    expected: {fee_rate: 1, internal_key: internalKey},
+  },
+  {
     args: makeArgs({is_dry_run: false}),
     description: 'A claim is published',
     expected: {fee_rate: 2, internal_key: internalKey},

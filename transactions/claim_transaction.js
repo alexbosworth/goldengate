@@ -4,8 +4,8 @@ const {outputScriptForAddress} = require('@alexbosworth/blockchain');
 
 const claimOutputs = require('./claim_outputs');
 const encodeTransaction = require('./encode_transaction');
+const {isSwapScriptV2} = require('./../script');
 const {names} = require('./../conf/networks');
-const {versionOfSwapScript} = require('./../script');
 const witnessForResolution = require('./witness_for_resolution');
 
 const asTx = components => encodeTransaction(components).transaction;
@@ -81,7 +81,7 @@ module.exports = args => {
     throw new Error('ExpectedWitnessScriptForClaimTransaction');
   }
 
-  if (!versionOfSwapScript({script: args.witness_script}).version) {
+  if (!isSwapScriptV2({script: args.witness_script})) {
     throw new Error('ExpectedKnownSwapScriptTypeForClaimTransaction');
   }
 

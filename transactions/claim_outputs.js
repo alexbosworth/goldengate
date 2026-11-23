@@ -103,6 +103,11 @@ module.exports = ({address, network, rate, sends, script, tokens}) => {
     throw new Error('FailedToAddSweepAddressOutputScriptCalculatingOutputs');
   }
 
+  // The smallest sweep output cannot be more than the tokens to sweep
+  if (tokens <= dust + dust) {
+    throw new Error('ExpectedMoreTokensToCalculateClaimOutputs');
+  }
+
   // Estimate final weight with the single output
   const singleOutput = estimateTxWeight({
     unlock: Buffer.alloc(secretByteLength),

@@ -5,7 +5,6 @@
     "loopOutQuote",
     "loopOutPushPreimage",
     "loopOutTerms",
-    "newLoopInSwap",
     "newLoopOutSwap"
   ]
 }

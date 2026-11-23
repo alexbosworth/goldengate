@@ -6,7 +6,7 @@ const {componentsOfTransaction} = require('@alexbosworth/blockchain');
 const {verify} = require('tiny-secp256k1');
 
 const {claimTransaction} = require('./../../');
-const {swapScript} = require('./../../script');
+const {swapScriptV2} = require('./../../script');
 
 const asScalar = n => Buffer.concat([Buffer.alloc(32), n]).subarray(-32);
 const derHeaderLength = 2;
@@ -122,7 +122,7 @@ const tests = [
       input_sequence: 1,
       locktime: 1571579,
       out_script: '0014362a2872a1c9988ef71c31bb332dfff68d895f0d',
-      out_value: 9864,
+      out_value: 9866,
       version: 2,
       witness_unlock: Buffer.alloc(32).toString('hex'),
     },
@@ -142,24 +142,9 @@ const tests = [
       input_sequence: 1,
       locktime: 1571579,
       out_script: '0014362a2872a1c9988ef71c31bb332dfff68d895f0d',
-      out_value: 9864,
+      out_value: 9866,
       version: 2,
       witness_unlock: Buffer.alloc(32).toString('hex'),
-    },
-  },
-  {
-    args: makeArgs({
-      secret,
-      fee_tokens_per_vbyte: 2,
-      tokens: 1e5,
-      transaction_vout: 1,
-      witness_script: '8201208763a914c792bea2f08a4dcada80a2e848e01f236bd139278821039a52e5049486097409dc92b476a0c72fcc24021d2c7d3bbf91789745041a488a67750327fc17b17521031cb9fba5d8cbc3dad06185e49de60fac484944c3c12682b604e0261b5375d3bf68ac',
-    }),
-    description: 'Signed v1 claim transaction formed',
-    expected: {
-      sighash: 'b38c49f7366138941a728ce228b611954f4d126d22c725589fe277c2ed5b9b76',
-      signature_index: 0,
-      transaction: '020000000001010cb9318f1cbe8688e71ca9e61a9b2e361d1fb47adf92ee4152d274f15cca2ebd010000000001000000019085010000000000160014362a2872a1c9988ef71c31bb332dfff68d895f0d03483045022100b675fc27bbd1ef2f2b611d0be950040eb945468de82e8a17083cd2887338f63002202a80d279d69806950b883c6c42f3cd0aef4331fd67b44a33c68186a67021ad4e0120bdb8e03b149a48e3c706663b8cee7c7590bee386d5d8b5620fd504c848437e6e6a8201208763a914c792bea2f08a4dcada80a2e848e01f236bd139278821039a52e5049486097409dc92b476a0c72fcc24021d2c7d3bbf91789745041a488a67750327fc17b17521031cb9fba5d8cbc3dad06185e49de60fac484944c3c12682b604e0261b5375d3bf68acfbfa1700',
     },
   },
   {
@@ -182,7 +167,7 @@ const tests = [
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async () => {
     if (args.witness_script === true) {
-      const {script} = swapScript({
+      const {script} = swapScriptV2({
         claim_private_key: privateKey,
         refund_public_key: Buffer.alloc(33, 3).toString('hex'),
         secret: Buffer.alloc(32).toString('hex'),
@@ -222,7 +207,7 @@ tests.forEach(({args, description, error, expected}) => {
       const [input] = tx.inputs;
       const [out] = tx.outputs;
 
-      const [witnessSig, witnessUnlock, witnessScript] = input.witness;
+      const [witnessUnlock, witnessSig, witnessScript] = input.witness;
 
       equal(input.id, expected.input_id, 'Input spends expected tx id');
       equal(input.vout, expected.input_index, 'Input index as expected');

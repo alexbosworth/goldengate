@@ -3,17 +3,11 @@ const test = require('node:test');
 
 const {genericSwapServer} = require('./../macros');
 
-const failedSwapIn = [503, 'FailedToCreateSwapIn'];
 const failedSwapOut = [503, 'FailedToCreateSwapOut'];
 const port = 2354;
 const {stringify} = JSON;
 
 const tests = [
-  {
-    args: {method: 'POST', path: '/v0/newLoopInSwap'},
-    description: 'A swap in creation failure is returned as the response',
-    expected: {body: stringify(failedSwapIn), status: 200},
-  },
   {
     args: {method: 'POST', path: '/v0/newLoopOutSwap'},
     description: 'A swap out creation failure is returned as the response',
@@ -51,9 +45,6 @@ const stopSwapServer = ({server}) => new Promise((resolve, reject) => {
 tests.forEach(({args, description, expected}) => {
   return test(description, async () => {
     const {app} = genericSwapServer({
-      handle_swap_in: ({}) => new Promise((resolve, reject) => {
-        return reject(failedSwapIn);
-      }),
       handle_swap_out: ({}) => new Promise((resolve, reject) => {
         return reject(failedSwapOut);
       }),

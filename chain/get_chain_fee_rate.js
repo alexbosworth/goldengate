@@ -4,6 +4,8 @@ const {returnResult} = require('asyncjs-util');
 
 const {getBlockstreamChainFeeRate} = require('./../blockstream');
 
+const isRate = n => Number.isFinite(n) && n > 0;
+
 /** Get chain fee rate
 
   {
@@ -72,6 +74,11 @@ module.exports = (args, cbk) => {
         ({getBlockstreamFeeRate, getLndFeeRate}, cbk) =>
       {
         const feeRate = getBlockstreamFeeRate || getLndFeeRate;
+
+        // A fee rate from a chain data source is checked before it is used
+        if (!isRate(feeRate.tokens_per_vbyte)) {
+          return cbk([503, 'ExpectedValidChainFeeRateEstimate']);
+        }
 
         return cbk(null, {tokens_per_vbyte: feeRate.tokens_per_vbyte});
       }],

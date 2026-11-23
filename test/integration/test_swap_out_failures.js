@@ -15,7 +15,6 @@ const {setupChannel} = require('ln-docker-daemons');
 const {spawnLightningCluster} = require('ln-docker-daemons');
 
 const {cancelSwapOut} = require('./../../');
-const {createLegacySwapOut} = require('./../../');
 const {createSwapOut} = require('./../../');
 const {findDeposit} = require('./../../');
 const {lightningLabsSwapAuth} = require('./../../');
@@ -24,6 +23,7 @@ const {makePrivateKey} = require('./../../script');
 const {subscribeToSwapOutStatus} = require('./../../');
 const swapKey = require('./../../script/get_public_key');
 const {swapOutServer} = require('./../macros');
+const {taprootSwapOutHtlc} = require('./../macros');
 const {waitForSameChainTip} = require('./../macros');
 
 const bufferAsHex = buffer => buffer.toString('hex');
@@ -123,17 +123,22 @@ test(`Swap out failures`, async () => {
     const height = await getHeight({lnd: client.lnd});
     const secret = randomBytes(32);
 
+    const canceledHash = sha256(randomBytes(32));
     const claimPublicKey = swapKey({private_key: claimKey}).public_key;
     const hash = sha256(secret);
+    const shortHash = sha256(randomBytes(32));
     const timeout = height.current_block_height + cltvDelta;
 
     // The client makes a swap that it only pays the prepay of
-    const canceled = await createLegacySwapOut({
+    const canceled = await createSwapOut({
       metadata,
       network,
       service,
       timeout,
       tokens,
+      fund_at: fundAt,
+      hash: canceledHash,
+      public_key: claimPublicKey,
     });
 
     const fund = parsePaymentRequest({request: canceled.swap_fund_request});
@@ -188,7 +193,7 @@ test(`Swap out failures`, async () => {
 
     equal(canceledFund.is_canceled, true, 'The swap can no longer be paid');
 
-    // The client makes a Taproot swap that the service does not publish
+    // The client makes a swap that the service does not publish
     const late = await createSwapOut({
       hash,
       metadata,
@@ -258,15 +263,25 @@ test(`Swap out failures`, async () => {
     equal(failed.is_failed, true, 'The swap failed');
 
     // The client makes a swap that the service underpays on chain
-    const short = await createLegacySwapOut({
+    const short = await createSwapOut({
       metadata,
       network,
       service,
       timeout,
       tokens,
+      fund_at: fundAt,
+      hash: shortHash,
+      public_key: claimPublicKey,
     });
 
-    const shortId = parsePaymentRequest({request: short.swap_fund_request}).id;
+    // The client derives the HTLC that the service is expected to publish
+    const shortSwap = taprootSwapOutHtlc({
+      timeout,
+      claim_public_key: claimPublicKey,
+      hash: shortHash,
+      service_public_key: short.service_public_key,
+    });
+
     const shortTokens = tokens - missingTokens;
 
     const shortPrepaying = payRequest({
@@ -281,7 +296,7 @@ test(`Swap out failures`, async () => {
 
     // The service publishes an HTLC that pays less than the swap tokens
     const shortHtlc = await asyncRetry({interval, times}, async () => {
-      return await swapServer.publish({id: shortId, tokens: shortTokens});
+      return await swapServer.publish({id: shortHash, tokens: shortTokens});
     });
 
     // The service mines the HTLC into a block
@@ -302,10 +317,10 @@ test(`Swap out failures`, async () => {
 
     const lookup = {
       network,
-      address: short.address,
       after: height.current_block_height,
       confirmations: 1,
       lnd: client.lnd,
+      output_script: shortSwap.output_script,
     };
 
     // The client sees the HTLC confirm with the tokens that it pays
@@ -325,7 +340,7 @@ test(`Swap out failures`, async () => {
     );
 
     // The service fails the swap, the swap payment fails back to the client
-    await swapServer.fail({id: shortId, state: invalidAmountState});
+    await swapServer.fail({id: shortHash, state: invalidAmountState});
 
     const [shortPayment, shortPrepay] = await Promise.all([
       shortPaying,

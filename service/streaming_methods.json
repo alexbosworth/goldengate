@@ -1,6 +1,5 @@
 {
   "streams": [
-    "subscribeLoopInUpdates",
     "subscribeLoopOutUpdates"
   ]
 }

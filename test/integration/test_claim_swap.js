@@ -1,4 +1,3 @@
-const {deepEqual} = require('node:assert').strict;
 const {equal} = require('node:assert').strict;
 const {randomBytes} = require('node:crypto');
 const test = require('node:test');
@@ -18,9 +17,7 @@ const {addressForScript} = require('./../../');
 const {broadcastTransaction} = require('./../../');
 const {claimTransaction} = require('./../../');
 const {getPublicKey} = require('./../../script');
-const {isSweep} = require('./../../');
 const {makePrivateKey} = require('./../../script');
-const {swapScript} = require('./../../');
 const {swapScriptV2} = require('./../../');
 
 const feeRate = 2;
@@ -29,12 +26,11 @@ const makeSecret = () => randomBytes(32).toString('hex');
 const maturity = 100;
 const network = 'btcregtest';
 const scriptFor = address => outputScriptForAddress({address, network}).script;
-const successSweep = {is_success_sweep: true, is_timeout_sweep: false};
 const timeoutDelta = 100;
 const times = 2000;
 const tokens = 1e6;
 
-// Claiming P2WSH swaps with the preimage should result in successful sweeps
+// Claiming a P2WSH swap with the preimage should sweep the swap
 test(`Claim swap`, async () => {
   const {kill, nodes} = await spawnLightningCluster({});
 
@@ -50,27 +46,19 @@ test(`Claim swap`, async () => {
 
     const refundPublicKey = getPublicKey({private_key: refundKey}).public_key;
 
-    const v1 = swapScript({
+    const swap = swapScriptV2({
       secret,
       claim_private_key: claimKey,
       refund_public_key: refundPublicKey,
       timeout: height + timeoutDelta,
     });
 
-    const v2 = swapScriptV2({
-      secret,
-      claim_private_key: claimKey,
-      refund_public_key: refundPublicKey,
-      timeout: height + timeoutDelta,
-    });
+    const {address} = addressForScript({network, script: swap.script});
 
-    const v1Address = addressForScript({network, script: v1.script}).address;
-    const v2Address = addressForScript({network, script: v2.script}).address;
-
-    // Send coins to the swap addresses
+    // Send coins to the swap address
     const {id} = await sendToChainAddresses({
       lnd,
-      send_to: [{tokens, address: v1Address}, {tokens, address: v2Address}],
+      send_to: [{address, tokens}],
     });
 
     // Wait for the swap funding to confirm
@@ -97,8 +85,8 @@ test(`Claim swap`, async () => {
 
     const scripts = outputs.map(n => n.script);
 
-    // Claim the v1 swap
-    const v1Claim = claimTransaction({
+    // Claim the swap
+    const claim = claimTransaction({
       network,
       secret,
       tokens,
@@ -107,49 +95,20 @@ test(`Claim swap`, async () => {
       private_key: claimKey,
       sweep_address: sweepAddress,
       transaction_id: id,
-      transaction_vout: scripts.indexOf(scriptFor(v1Address)),
-      witness_script: v1.script,
+      transaction_vout: scripts.indexOf(scriptFor(address)),
+      witness_script: swap.script,
     });
 
-    const v1Id = idForTransaction({transaction: v1Claim.transaction}).id;
-    const v1Type = isSweep({transaction: v1Claim.transaction});
+    const claimId = idForTransaction({transaction: claim.transaction}).id;
 
-    deepEqual(v1Type, successSweep, 'V1 claim is a success sweep');
-
-    const v1Published = await broadcastTransaction({
+    const published = await broadcastTransaction({
       lnd,
-      transaction: v1Claim.transaction,
+      transaction: claim.transaction,
     });
 
-    equal(v1Published.transaction_id, v1Id, 'V1 claim is published');
+    equal(published.transaction_id, claimId, 'Claim is published');
 
-    // Claim the v2 swap
-    const v2Claim = claimTransaction({
-      network,
-      secret,
-      tokens,
-      block_height: blockHeight,
-      fee_tokens_per_vbyte: feeRate,
-      private_key: claimKey,
-      sweep_address: sweepAddress,
-      transaction_id: id,
-      transaction_vout: scripts.indexOf(scriptFor(v2Address)),
-      witness_script: v2.script,
-    });
-
-    const v2Id = idForTransaction({transaction: v2Claim.transaction}).id;
-    const v2Type = isSweep({transaction: v2Claim.transaction});
-
-    deepEqual(v2Type, successSweep, 'V2 claim is a success sweep');
-
-    const v2Published = await broadcastTransaction({
-      lnd,
-      transaction: v2Claim.transaction,
-    });
-
-    equal(v2Published.transaction_id, v2Id, 'V2 claim is published');
-
-    // Wait for the claims to confirm
+    // Wait for the claim to confirm
     await asyncRetry({interval, times}, async () => {
       await generate({});
 
@@ -159,12 +118,8 @@ test(`Claim swap`, async () => {
 
       const ids = confirmed.map(n => n.transaction_id);
 
-      if (!ids.includes(v1Published.transaction_id)) {
-        throw new Error('ExpectedV1ClaimConfirmed');
-      }
-
-      if (!ids.includes(v2Published.transaction_id)) {
-        throw new Error('ExpectedV2ClaimConfirmed');
+      if (!ids.includes(published.transaction_id)) {
+        throw new Error('ExpectedClaimConfirmed');
       }
     });
   } catch (err) {

@@ -3,7 +3,7 @@ const test = require('node:test');
 const {throws} = require('node:assert').strict;
 
 const claimOutputs = require('./../../transactions/claim_outputs');
-const {swapScript} = require('./../../script');
+const {swapScriptV2} = require('./../../script');
 
 const privateKey = '4af38565a8bb19480057f375400105fcfb3b6534c32fbc1039df496421012b0d';
 
@@ -29,7 +29,7 @@ const makeExpected = ({}) => {
     outputs: [
       {
         address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-        tokens: 987446,
+        tokens: 987449,
       },
       {
         address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
@@ -86,6 +86,11 @@ const tests = [
     error: 'ExpectedTokensToCalculateClaimOutputs',
   },
   {
+    args: makeArgs({tokens: 1092}),
+    description: 'Tokens above the smallest sweep output are required',
+    error: 'ExpectedMoreTokensToCalculateClaimOutputs',
+  },
+  {
     args: makeArgs({rate: 99999}),
     description: 'A large fee rate is clamped to a small value output',
     expected: {
@@ -101,7 +106,7 @@ const tests = [
     expected: {
       outputs: [{
         address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-        tokens: 999830,
+        tokens: 999833,
       }],
     },
   },
@@ -116,7 +121,7 @@ const tests = [
     expected: {
       outputs: [{
         address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-        tokens: 999830,
+        tokens: 999833,
       }],
     },
   },
@@ -131,7 +136,7 @@ const tests = [
     expected: {
       outputs: [{
         address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-        tokens: 999830,
+        tokens: 999833,
       }],
     },
   },
@@ -141,7 +146,7 @@ const tests = [
     expected: {
       outputs: [{
         address: 'tb1qxc4zsu4pexvgaacuxxanxt0l76xcjhcd252g4u',
-        tokens: 999830,
+        tokens: 999833,
       }],
     },
   },
@@ -154,7 +159,7 @@ const tests = [
 
 tests.forEach(({args, description, error, expected}) => {
   return test(description, async () => {
-    const {script} = swapScript({
+    const {script} = swapScriptV2({
       claim_private_key: privateKey,
       refund_public_key: Buffer.alloc(33, 3).toString('hex'),
       secret: Buffer.alloc(32).toString('hex'),

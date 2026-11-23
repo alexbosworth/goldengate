@@ -6,7 +6,6 @@ const {sizeOfTransaction} = require('@alexbosworth/blockchain');
 const encodeTransaction = require('./encode_transaction');
 const estimateTxWeight = require('./estimate_tx_weight');
 const {names} = require('./../conf/networks');
-const {nestedWitnessScript} = require('./../script');
 const witnessForResolution = require('./witness_for_resolution');
 
 const asTx = components => encodeTransaction(components).transaction;
@@ -25,7 +24,6 @@ const vRatio = 4;
   {
     block_height: <Timelock Block Height Number>
     fee_tokens_per_vbyte: <Fee Per Virtual Byte Token Rate Number>
-    [is_nested]: <Refund Spending From Nested Output Bool>
     network: <Network Name String>
     [private_key]: <Refund Private Key Hex String>
     sweep_address: <Sweep Tokens to Address String>
@@ -50,6 +48,11 @@ module.exports = args => {
 
   if (!args.fee_tokens_per_vbyte) {
     throw new Error('ExpectedFeeRateToUseForRefundTransaction');
+  }
+
+  // Nested P2SH swap outputs were removed along with legacy swaps
+  if (!!args.is_nested) {
+    throw new Error('NestedRefundTransactionsAreNotSupported');
   }
 
   if (!args.network || !names[args.network]) {
@@ -93,14 +96,6 @@ module.exports = args => {
     outputs: [{script, tokens: args.tokens}],
     version: defaultVersion,
   };
-
-  // When using nested P2SH, the true script hash is added to the scriptSig
-  if (!!args.is_nested) {
-    const nested = nestedWitnessScript({witness_script: args.witness_script});
-
-    // Set the nested redeem script
-    tx.inputs.forEach(input => input.script = nested.redeem_script);
-  }
 
   // Estimate final weight and reduce output by this estimate
   const {weight} = estimateTxWeight({

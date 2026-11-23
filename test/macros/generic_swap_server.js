@@ -15,7 +15,6 @@ const defaultSwapOutFeeRate = 500;
 const failureCode = 500;
 const feeRateDenominator = BigInt(1e6);
 const jsonHeaders = {'content-type': 'application/json'};
-const methodNewSwapIn = 'newLoopInSwap';
 const methodNewSwapOut = 'newLoopOutSwap';
 const methodSwapInQuote = 'loopInQuote';
 const methodSwapInTerms = 'loopInTerms';
@@ -36,7 +35,6 @@ const trailingSlash = /\/$/;
 
   {
     destination: <Destination Hex String>
-    handle_swap_in: <Respond to Swap In Promise>
     handle_swap_out: <Respond to Swap Out Promise>
     [max_swap_in_tokens]: <Maximum Swap In Tokens Number>
     [min_swap_in_tokens]: <Minimum Swap In Tokens Number>
@@ -59,15 +57,6 @@ const trailingSlash = /\/$/;
 */
 module.exports = args => {
   const routes = {
-    // Create new swap in
-    [path(methodNewSwapIn)]: async ({}) => {
-      try {
-        return await args.handle_swap_in({});
-      } catch (err) {
-        return err;
-      }
-    },
-
     // Create new swap out
     [path(methodNewSwapOut)]: async ({}) => {
       try {

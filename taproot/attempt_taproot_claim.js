@@ -9,9 +9,15 @@ const {getChainFeeRate} = require('./../chain');
 
 const defaultMinFeeRate = 1;
 const {isArray} = Array;
+const isRate = n => Number.isFinite(n) && n > 0;
 const longRangeConfTarget = 1008;
+const maxEstimatedFeeRate = 10000;
+const {min} = Math;
 
 /** Attempt a Taproot claim sweep
+
+  When the fee rate would cost more than the tokens to sweep, the sweep output
+  is reduced to 1,092 tokens and the rest of the tokens are paid as the fee
 
   {
     claim_script: <Swap Claim Leaf Script Hex String>
@@ -135,11 +141,12 @@ module.exports = (args, cbk) => {
         },
         (err, res) => {
           // Exit early with default fee rate if there is any issue
-          if (!!err || !res || !res.tokens_per_vbyte) {
+          if (!!err || !res || !isRate(res.tokens_per_vbyte)) {
             return cbk(null, defaultMinFeeRate);
           }
 
-          return cbk(null, res.tokens_per_vbyte);
+          // An estimate past a sane long range fee rate is not trusted
+          return cbk(null, min(res.tokens_per_vbyte, maxEstimatedFeeRate));
         });
       }],
 

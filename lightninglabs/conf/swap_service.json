@@ -1,5 +1,4 @@
 {
-  "legacyProtocolVersion": "LOOP_OUT_CANCEL",
   "maxSharedAddressExpiry": 28800,
   "maxSwapInBackupFallbackFeeRatio": 0.5,
   "maxSwapInFallbackFeeRatio": 0.2,

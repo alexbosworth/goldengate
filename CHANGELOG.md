@@ -1,5 +1,28 @@
 # Versions
 
+## 18.0.0
+
+### Breaking Changes
+
+- `addressForScript`: `nested` is no longer returned
+- `attemptRefund`, `attemptSweep`: Methods are removed
+- `attemptTaprootClaim`, `taprootClaimTransaction`,
+    `taprootRefundTransaction`: `external_key` must be a compressed public key
+- `attemptTaprootClaim`, `taprootClaimTransaction`, `taprootCoopTransaction`,
+    `taprootRefundTransaction`: `script_branches` with `version: 0` are no
+    longer treated as the default leaf version, drop `version` or use 192 for
+    branches saved with `version: 0`
+- `claimTransaction`, `refundTransaction`: Only v2 swap scripts are supported
+- `createLegacySwapIn`, `createLegacySwapOut`: Methods are removed
+- `decodeSwapRecovery`, `encodeSwapRecovery`: Methods are removed
+- `genericSwapService`: `newLoopInSwap` and `subscribeLoopInUpdates` are
+    removed
+- `isSweep`: Method is removed
+- `legacySwapInFee`: Method is removed
+- `refundTransaction`: `is_nested` is no longer supported
+- `subscribeToLegacySwapInStatus`: Method is removed
+- `swapScript`: Method is removed, use `swapScriptV2`
+
 ## 17.1.1
 
 - `signSharedUtxosRefund`, `signSwapInFallbackRefund`: Add `block_height` to

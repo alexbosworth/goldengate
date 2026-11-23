@@ -55,7 +55,8 @@ module.exports = ({address, hash, network, request}, cbk) => {
         const txs = getWitnesses.transactions;
 
         const ids = txs.map(({id}) => id);
-        const inputs = txs.map(({inputs}) => inputs.map(n => n.witness));
+        // Inputs that do not spend a witness output have no witness
+        const inputs = txs.map(({inputs}) => inputs.map(n => n.witness || []));
 
         return {ids, inputs: flatten(flatten(inputs))};
       }],
